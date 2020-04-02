@@ -89,6 +89,22 @@ class Observation:
         os.environ["SAS_ODF"] = os.path.join(self.obsdir, sum_odf_dir)
         logging.info(f"SAS_ODF pointing to {os.path.join(self.obsdir, sum_odf_dir)}")
 
+       # Mark info of the observation and assign Revolution Identifier, Observation Start time and End time
+       # to attributes of the class 
+        with open(sum_odf_dir) as f:    
+            sum_odf = f.read()
+
+        sum_odf = sum_odf.split('\n') #divide text file into lines
+        for line in sum_odf:
+            if not line.startswith('//'): #skip commented lines
+                if line.endswith('Revolution Identifier'):
+                    self.revolution = line.split('/')[0]
+                if line.endswith('Observation Start Time'):
+                    self.starttime = line.split('/')[0]
+                if line.endswith('Observation End Time'):
+                    self.endtime = line.split('/')[0]
+
+
     def rgsproc(self):
         """
         Runs the rgsproc SAS command to process and reduce RGS data. 
