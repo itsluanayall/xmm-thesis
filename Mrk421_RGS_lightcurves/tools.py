@@ -96,4 +96,3 @@ def sort_rgs_list(l, variable='expo_number'):
 
     return final_list
     
-    #return [sorted_l[x:x+2] for x in range(0, len(sorted_l), 2)]
