@@ -1,5 +1,6 @@
 import logging
 import os
+from statistics import mean
 import glob
 from config import CONFIG
 from tools import run_command, split_rgs_filename, sort_rgs_list
@@ -203,16 +204,23 @@ class Observation:
                 x = data[1].data['TIME']
                 y = data[1].data['RATE']
                 yerr = data[1].data['ERROR']
+                avg_rate = mean(y)
+                self.rgsrate = avg_rate
 
                 #Plot data and add labels and title
                 fig = plt.figure(figsize=(20,10))
-                plt.errorbar(x, y, yerr=yerr, color='black', marker='.', ecolor='gray')
+                ax = fig.add_subplot(1, 1, 1)
+                plt.errorbar(x, y, yerr=yerr, color='black', marker='.', ecolor='gray', label=f'RGS Lightcurve ObsId {self.obsid}')
                 plt.grid(True)
                 plt.title(output_name, fontsize=30)
                 plt.xlabel('TIME [s]', fontsize=25)
                 plt.ylabel('RATE [count/s]', fontsize=25)
                 plt.xticks(fontsize=20)
                 plt.yticks(fontsize=20)
+                
+                #Plot average rate and legend
+                plt.hlines(self.rgsrate, plt.xlim()[0], plt.xlim()[1] ,colors='red', label=f'Average rate: {self.rgsrate: .2f} [count/s]')
+                ax.legend(loc='lower right', fontsize='x-large')
 
                 #Save figure in rgs directory of the current Observation
                 plt.savefig(f'{output_name}.png')
