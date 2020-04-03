@@ -71,9 +71,10 @@ if __name__ == "__main__":
             #Keep track of number of observations that have been processed so far
             counter += 1
             logging.info(f'Processed {counter}/{nobs} observations!')
+            
     '''
-
-    obs = Observation(obsid='0510610101', target_dir=target_dir)   #instance of the observation
+    For a single observation
+    obs = Observation(obsid='0158970201', target_dir=target_dir)   #instance of the observation
     
     
     #Process each observation
@@ -82,6 +83,5 @@ if __name__ == "__main__":
     obs.rgsproc()
     obs.rgslccorr()
     obs.lightcurve(use_grace=use_grace)
+    
     '''
-    
-    
