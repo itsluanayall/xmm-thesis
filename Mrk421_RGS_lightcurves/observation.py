@@ -127,7 +127,7 @@ class Observation:
             rgs_command = 'rgsproc > my_rgsproc_logfile'
             rgs_status = run_command(rgs_command)
             if (rgs_status != 0):
-                raise Exception
+                print(f'\033[91m An error has occurred running rgsproc for observation {self.obsid}! \033[0m')
             else:
                 logging.info(f'Done processing RGS data. The products are in {self.rgsdir}.')
         else:
@@ -172,11 +172,12 @@ class Observation:
                     #Making the lightcurve for single RGS
                     rgslc_command = f"rgslccorr evlist='{pairs_events[i][0]}' srclist='{pairs_srcli[i][0]}' timebinsize=100 orders='1' sourceid=1 outputsrcfilename={output_name}"
                     status_rgslc = run_command(rgslc_command)
-
+    
                 if (status_rgslc!=0):
-                    raise Exception
+                    print(f'\033[91m An error has occurred running rgslccorr for observation {self.obsid}! \033[0m')
                 else:
                     logging.info(f'RGS lightcurves extracted in {output_name}.')
+                
             else:
                 logging.info(f'Lightcurves already extracted in {output_name}.')
 
@@ -193,46 +194,47 @@ class Observation:
 
         for i in range(self.npairs):
             output_name = f'{self.obsid}_expo{i}_RGS_rates.ds'
+            try:
+                if use_grace: 
+                    logging.info(f'The RGS lightcurve {output_name} will be plotted with xmgrace.')
+                    plot_lc_command = f'dsplot table={output_name} withx=yes x=TIME withy=yes y=RATE plotter="xmgrace -hardcopy -printfile RGS_lightcurve{i}.ps"'
+                    plot_status = run_command(plot_lc_command)
+                    if (plot_status!=0):
+                        raise Exception
+                    else:
+                        logging.info(f'Lightcurve {output_name} ready and saved.')
 
-            if use_grace: 
-                logging.info(f'The RGS lightcurve {output_name} will be plotted with xmgrace.')
-                plot_lc_command = f'dsplot table={output_name} withx=yes x=TIME withy=yes y=RATE plotter="xmgrace -hardcopy -printfile RGS_lightcurve{i}.ps"'
-                plot_status = run_command(plot_lc_command)
-                if (plot_status!=0):
-                    raise Exception
-                else:
-                    logging.info(f'Lightcurve {output_name} ready and saved.')
+                else:  
+                    logging.info(f'The lightcurve {output_name} will be plotted with matplotlib.')
+                    import matplotlib.pyplot as plt
+                    from astropy.io import fits
 
-            else:  
-                logging.info(f'The lightcurve {output_name} will be plotted with matplotlib.')
-                import matplotlib.pyplot as plt
-                from astropy.io import fits
+                    #Extract data from the lightcurve fits file produced with rgslccorr
+                    data = fits.open(output_name) 
+                    x = data[1].data['TIME']
+                    y = data[1].data['RATE']
+                    yerr = data[1].data['ERROR']
+                    avg_rate = mean(y)
+                    self.rgsrate = avg_rate
 
-                #Extract data from the lightcurve fits file produced with rgslccorr
-                data = fits.open(output_name) 
-                x = data[1].data['TIME']
-                y = data[1].data['RATE']
-                yerr = data[1].data['ERROR']
-                avg_rate = mean(y)
-                self.rgsrate = avg_rate
+                    #Plot data and add labels and title
+                    fig = plt.figure(figsize=(20,10))
+                    ax = fig.add_subplot(1, 1, 1)
+                    plt.errorbar(x, y, yerr=yerr, color='black', marker='.', ecolor='gray', label=f'RGS Lightcurve ObsId {self.obsid}')
+                    plt.grid(True)
+                    plt.title(output_name, fontsize=30)
+                    plt.xlabel('TIME [s]', fontsize=25)
+                    plt.ylabel('RATE [count/s]', fontsize=25)
+                    plt.xticks(fontsize=20)
+                    plt.yticks(fontsize=20)
 
-                #Plot data and add labels and title
-                fig = plt.figure(figsize=(20,10))
-                ax = fig.add_subplot(1, 1, 1)
-                plt.errorbar(x, y, yerr=yerr, color='black', marker='.', ecolor='gray', label=f'RGS Lightcurve ObsId {self.obsid}')
-                plt.grid(True)
-                plt.title(output_name, fontsize=30)
-                plt.xlabel('TIME [s]', fontsize=25)
-                plt.ylabel('RATE [count/s]', fontsize=25)
-                plt.xticks(fontsize=20)
-                plt.yticks(fontsize=20)
+                    #Plot average rate and legend
+                    plt.hlines(self.rgsrate, plt.xlim()[0], plt.xlim()[1] ,colors='red', label=f'Average rate: {self.rgsrate: .2f} [count/s]')
+                    ax.legend(loc='lower right', fontsize='x-large')
 
-                #Plot average rate and legend
-                plt.hlines(self.rgsrate, plt.xlim()[0], plt.xlim()[1] ,colors='red', label=f'Average rate: {self.rgsrate: .2f} [count/s]')
-                ax.legend(loc='lower right', fontsize='x-large')
-
-                #Save figure in rgs directory of the current Observation
-                plt.savefig(f'{output_name}.png')
-                plt.close()
-                logging.info(f'The lightcurve is saved as {output_name}.png')
-
+                    #Save figure in rgs directory of the current Observation
+                    plt.savefig(f'{output_name}.png')
+                    plt.close()
+                    logging.info(f'The lightcurve is saved as {output_name}.png')
+            except Exception as e:
+                logging.error(e)

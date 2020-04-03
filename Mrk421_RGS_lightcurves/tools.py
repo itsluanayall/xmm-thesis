@@ -16,26 +16,22 @@ def setupSAS(sas_dir, ccf_dir):
     run_command('sasversion')
 
 
-def run_command(command,verbose=True):
+def run_command(command):
     """
-     Execute a shell command with the stdout and stderr being redirected to a log file 
+    Execute a shell command. If an error occurs, it will be reported in the STDOUT and the exception will be handled,
+    so that the program will keep on running.
     """
-    
     try:
-        result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         retcode = result.returncode
-        if retcode<0:
-            if verbose:
-                print(f"Execution of {command} was terminated by signal", -retcode, file=sys.stderr)
-            logging.warning("Execution of {} was terminated by signal: {} \n {}".format(command,-retcode,result.stdout.decode()))
-        else:
-            if verbose:
-                print(f"Execution of {command} returned", retcode, file=sys.stderr)
-            logging.debug("Execution of {} returned {}, \n {}".format(command,retcode,result.stdout.decode()))
-    except OSError as e:
-        print(f"Execution of {command} failed:", e, file=sys.stderr)
-        logging.error("Execution of {} failed: {}".format(command,e))
-    return retcode
+        logging.debug("Execution of {} returned {}, \n {}".format(command,retcode,result.stdout.decode()))
+        return retcode
+
+    except subprocess.CalledProcessError as e:
+        print(f'\033[91m Execution of {command} failed: \033[0m')
+        logging.error(e.output)
+        return 1
+    
 
 
 def split_rgs_filename(filename):
