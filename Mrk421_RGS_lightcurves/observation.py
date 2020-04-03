@@ -1,6 +1,7 @@
 import logging
 import os
 from statistics import mean
+from astropy.time import Time
 import glob
 from config import CONFIG
 from tools import run_command, split_rgs_filename, sort_rgs_list
@@ -21,6 +22,14 @@ class Observation:
         self._obsdir = os.path.join(self.target_dir, self.obsid) 
         self._odfdir = os.path.join(self.obsdir, 'odf')
         self._rgsdir = os.path.join(self.obsdir, 'rgs')
+        
+        #The following attributes will be modified in the odfingest method. 
+        # For now, we just inizialize them
+        self.revolution = 0    
+        self.starttime = 0.
+        self.endtime = 0.
+        self.duration = 0.
+
 
     @property
     def target_dir(self):
@@ -91,7 +100,7 @@ class Observation:
         logging.info(f"SAS_ODF pointing to {os.path.join(self.obsdir, sum_odf_dir)}")
 
        # Mark info of the observation and assign Revolution Identifier, Observation Start time and End time
-       # to attributes of the class 
+       # to attributes of the class. To move in a new method (?)
         with open(sum_odf_dir) as f:    
             sum_odf = f.read()
 
@@ -101,10 +110,10 @@ class Observation:
                 if line.endswith('Revolution Identifier'):
                     self.revolution = line.split('/')[0]
                 if line.endswith('Observation Start Time'):
-                    self.starttime = line.split('/')[0]
+                    self.starttime = Time(line.split('/')[0], format='isot', scale='utc')
                 if line.endswith('Observation End Time'):
-                    self.endtime = line.split('/')[0]
-
+                    self.endtime = Time(line.split('/')[0], format='isot', scale='utc')
+        self.duration = round(((self.endtime - self.starttime)*86400).value)    #duration observation in seconds
 
     def rgsproc(self):
         """
@@ -217,7 +226,7 @@ class Observation:
                 plt.ylabel('RATE [count/s]', fontsize=25)
                 plt.xticks(fontsize=20)
                 plt.yticks(fontsize=20)
-                
+
                 #Plot average rate and legend
                 plt.hlines(self.rgsrate, plt.xlim()[0], plt.xlim()[1] ,colors='red', label=f'Average rate: {self.rgsrate: .2f} [count/s]')
                 ax.legend(loc='lower right', fontsize='x-large')
