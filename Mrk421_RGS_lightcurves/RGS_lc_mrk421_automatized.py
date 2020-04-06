@@ -28,6 +28,8 @@ import os
 from observation import Observation
 from tools import run_command, setupSAS
 from config import CONFIG
+from astropy.table import Table
+from astropy.io import ascii
 
 logging.basicConfig(level=logging.INFO)
 
@@ -51,13 +53,17 @@ if __name__ == "__main__":
             os.remove(os.path.join(target_dir, directory))
     
     #Loop analysis for each observation
-    nobs = len(os.listdir(target_dir))
+    #nobs = len(os.listdir(target_dir))
     mrk421_observation_list = []
+    obs_table = Table(names=('ObsId', 'RevolutionId', 'Start', 'End', 'Duration[ksec]', 'RGS_Rate[count/s]'), 
+                    dtype=('object', 'object', 'object', 'object', 'f4', 'object'))
+
     counter = 0
+
     
     for obsid in os.listdir(target_dir):
         
-        if not obsid.startswith('.'):   #ignore hidden files
+        if obsid.startswith('0'):   #All observation folders start with 0
             obs = Observation(obsid=obsid, target_dir=target_dir)   #instance of the observation
             mrk421_observation_list.append(obs)
             
@@ -68,13 +74,20 @@ if __name__ == "__main__":
             obs.rgslccorr()
             obs.lightcurve(use_grace=use_grace)
 
+            #Save attributes of observable into a table
+            obs_table.add_row((str(obs.obsid), str(obs.revolution), str(obs.starttime), str(obs.endtime), obs.duration, obs.rgsrate))
+
             #Keep track of number of observations that have been processed so far
             counter += 1
-            logging.info(f'Processed {counter}/{nobs} observations!')
+            logging.info(f'Processed {counter} observations!')
+
+    #Show and save in csv format the table with all the attributes of the observations
+    print(obs_table)
+    ascii.write(table=obs_table, output=f'{target_dir}/Products/obs_table.csv', format='csv', overwrite=True)
             
     '''
-    For a single observation
-    obs = Observation(obsid='0158970201', target_dir=target_dir)   #instance of the observation
+    #For a single observation
+    obs = Observation(obsid='0510610101', target_dir=target_dir)   #instance of the observation
     
     
     #Process each observation

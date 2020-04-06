@@ -29,6 +29,7 @@ class Observation:
         self.starttime = 0.
         self.endtime = 0.
         self.duration = 0.
+        self.rgsrate = 0.
 
 
     @property
@@ -113,7 +114,7 @@ class Observation:
                     self.starttime = Time(line.split('/')[0], format='isot', scale='utc')
                 if line.endswith('Observation End Time'):
                     self.endtime = Time(line.split('/')[0], format='isot', scale='utc')
-        self.duration = round(((self.endtime - self.starttime)*86400).value)    #duration observation in seconds
+        self.duration = round(((self.endtime - self.starttime)*86400).value)/1000.    #duration observation in seconds
 
     def rgsproc(self):
         """
@@ -223,8 +224,11 @@ class Observation:
                     y = data[1].data['RATE']
                     yerr = data[1].data['ERROR']
                     avg_rate = mean(y)
-                    self.rgsrate = avg_rate
-
+                    if self.npairs>0:
+                        self.rgsrate = avg_rate
+                    else:
+                        self.rgsrate = 'N/A'
+                        
                     #Plot data and add labels and title
                     fig = plt.figure(figsize=(20,10))
                     ax = fig.add_subplot(1, 1, 1)
