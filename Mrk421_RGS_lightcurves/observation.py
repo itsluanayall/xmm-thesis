@@ -174,7 +174,15 @@ class Observation:
                     status_rgslc = run_command(rgslc_command)
     
                 if (status_rgslc!=0):
-                    print(f'\033[91m An error has occurred running rgslccorr for observation {self.obsid}! \033[0m')
+                    print(f'\033[91m An error has occurred running rgslccorr for observation {self.obsid}! Will try to run rgslccorr with a single exposure.\033[0m')
+
+                    for j in range(0,2):
+                        logging.info(f'Running rgslccorr for ObsId {self.obsid} and exposure {pairs_events[i][j]}')
+                        rgslc_command2 = f"rgslccorr evlist='{pairs_events[i][j]}' srclist='{pairs_srcli[i][j]}' timebinsize=100 orders='1' sourceid=1 outputsrcfilename={output_name}"
+                        status_rgslc2 = run_command(rgslc_command2)
+                        if (status_rgslc2==0):
+                            print(f'\33[32m Error solved for {self.obsid}, exposure {pairs_events[i][j]}! \033[0m ')
+                            logging.info(f'RGS lightcurves extracted in {output_name}.')
                 else:
                     logging.info(f'RGS lightcurves extracted in {output_name}.')
                 
@@ -234,6 +242,7 @@ class Observation:
 
                     #Save figure in rgs directory of the current Observation
                     plt.savefig(f'{output_name}.png')
+                    plt.savefig(f'{self.target_dir}/Products/RGS_Lightcurves/{output_name}.png')
                     plt.close()
                     logging.info(f'The lightcurve is saved as {output_name}.png')
             except Exception as e:
