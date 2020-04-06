@@ -5,7 +5,7 @@ from astropy.time import Time
 import glob
 from config import CONFIG
 from tools import run_command, split_rgs_filename, sort_rgs_list
-
+import numpy as np
 class Observation:
     """
     Observation class for a specific target.
@@ -219,12 +219,20 @@ class Observation:
                     from astropy.io import fits
 
                     #Extract data from the lightcurve fits file produced with rgslccorr
-                    data = fits.open(output_name) 
+                    data = fits.open(output_name)
                     x = data[1].data['TIME']
-                    y = data[1].data['RATE']
+                    y = data[1].data['RATE']               
                     yerr = data[1].data['ERROR']
+
+                    #Drop NaN values by making a numpy mask
+                    mask_nan = np.invert(np.isnan(y)) 
+                    x = x[mask_nan]
+                    y = y[mask_nan]
+                    yerr = yerr[mask_nan]
+                    
+                    #Store average rate into Observation attribute
                     avg_rate = mean(y)
-                    if self.npairs>0:
+                    if self.npairs!=0.:
                         self.rgsrate = avg_rate
                     else:
                         self.rgsrate = 'N/A'

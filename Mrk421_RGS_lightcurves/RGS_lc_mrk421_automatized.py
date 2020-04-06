@@ -59,7 +59,7 @@ if __name__ == "__main__":
                     dtype=('object', 'object', 'object', 'object', 'f4', 'object'))
 
     counter = 0
-
+    
     
     for obsid in os.listdir(target_dir):
         
@@ -87,7 +87,7 @@ if __name__ == "__main__":
             
     '''
     #For a single observation
-    obs = Observation(obsid='0510610101', target_dir=target_dir)   #instance of the observation
+    obs = Observation(obsid='0136540101', target_dir=target_dir)   #instance of the observation
     
     
     #Process each observation
@@ -95,6 +95,7 @@ if __name__ == "__main__":
     obs.odfingest()
     obs.rgsproc()
     obs.rgslccorr()
-    obs.lightcurve(use_grace=use_grace)
     
+    obs.lightcurve(use_grace=use_grace)
     '''
+    
