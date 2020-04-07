@@ -2,7 +2,7 @@ import subprocess
 import sys
 import os
 import logging
-
+from astropy.io import fits
 def setupSAS(sas_dir, ccf_dir):
     """
     Set up the fundamental environment variables for a new session of SAS: the directory in which SAS is installed
@@ -79,6 +79,7 @@ def sort_rgs_list(l, variable='expo_number'):
     
     final_list = []
     x=0
+    
     while x<len(sorted_l):
         
         if not (x+1)>len(sorted_l)-1:    #avoid index out of range error
@@ -92,7 +93,7 @@ def sort_rgs_list(l, variable='expo_number'):
         else:
             final_list.append(sorted_l[x:x+1])
             x=x+1
-
-
     return final_list
-    
+    '''
+    return [sorted_l[x:x+2] for x in range(0, len(sorted_l), 2)]
+    '''

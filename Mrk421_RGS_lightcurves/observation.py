@@ -1,11 +1,56 @@
 import logging
 import os
 from statistics import mean
+from datetime import datetime as dt
+from astropy.io import fits
 from astropy.time import Time
 import glob
 from config import CONFIG
 from tools import run_command, split_rgs_filename, sort_rgs_list
 import numpy as np
+
+class Exposure:
+    """
+    Class for an Exposure of an Observation.
+    """
+
+    def __init__(self, evenli):
+        """
+        Constructor. evenli is the Eventlist of the exposure, which contains all the information
+        that will be stored as attributes of the Exposure.
+        """
+        self.evenli = evenli
+        with fits.open(evenli) as hdul:
+            self.expid = hdul[1].header['EXP_ID']
+            
+            #Extrapolate start time and date. 
+            start_date_str = hdul[1].header['DATE-OBS']
+            end_date_str = hdul[1].header['DATE-END']
+
+            start_exp = dt.strptime(start_date_str, "%Y-%m-%dT%H:%M:%S")
+            end_exp = end_date = dt.strptime(end_date_str, "%Y-%m-%dT%H:%M:%S")
+            duration_exp = end_exp - start_exp
+
+            self.end_exp = end_exp.timestamp()
+            self.start_exp = start_exp.timestamp()
+            self.duration_exp = duration_exp.total_seconds()
+
+    def overlaps_with(self, exp2):
+        """
+        Method that returns True if the Exposure's operating time overlaps
+        at least 90% with another exposure exp2.
+        """
+
+        overlap = max(0., min(self.end_exp, exp2.end_exp) - max(self.start_exp, exp2.start_exp))
+        max_duration = max(self.duration_exp, exp2.duration_exp) 
+        diff = abs(overlap - max_duration)
+        diff_percent = (diff/max_duration)*100
+        print(f'Non-overlapping time percentage: {diff_percent}')
+        if diff_percent>10: 
+            return False
+        else:
+            return True
+
 class Observation:
     """
     Observation class for a specific target.
@@ -30,7 +75,6 @@ class Observation:
         self.endtime = 0.
         self.duration = 0.
         self.rgsrate = 0.
-
 
     @property
     def target_dir(self):
@@ -162,33 +206,45 @@ class Observation:
             output_name = f'{self.obsid}_expo{i}_RGS_rates.ds'
 
             if not glob.glob(output_name):
-                logging.info(f'Running rgslccorr SAS command for observation number {self.obsid}...')
                 
                 if len(pairs_events[i])==2:
+
                     #Making the lightcurve for RGS1+RGS2 pairs
-                    rgslc_command = f"rgslccorr evlist='{pairs_events[i][0]} {pairs_events[i][1]}' srclist='{pairs_srcli[i][0]} {pairs_srcli[i][1]}' timebinsize=100 orders='1' sourceid=1 outputsrcfilename={output_name}"
-                    status_rgslc = run_command(rgslc_command)
+                    expos0 = Exposure(pairs_events[i][0])
+                    expos1 = Exposure(pairs_events[i][1])
+
+                    if expos0.overlaps_with(expos1):
+                        expo_num0 = split_rgs_filename(pairs_events[i][0])['expo_number']
+                        expo_num1 = split_rgs_filename(pairs_events[i][1])['expo_number']
+                        logging.info(f"Running rgslccorr SAS command for observation number {self.obsid} and exposures {split_rgs_filename(pairs_events[i][0])['expo_number']}, {split_rgs_filename(pairs_events[i][1])['expo_number']} ...")
+                        rgslc_command = f"rgslccorr evlist='{pairs_events[i][0]} {pairs_events[i][1]}' srclist='{pairs_srcli[i][0]} {pairs_srcli[i][1]}' timebinsize=100 orders='1' sourceid=1 outputsrcfilename={self.obsid}_{expo_num0}+{expo_num1}_RGS_rates.ds"
+                        status_rgslc = run_command(rgslc_command)
+                    else:   #if the exposure do not overlap at least for 90% of their duration
+                        logging.error(f"Exposures {split_rgs_filename(pairs_events[i][0])['expo_number']}, {split_rgs_filename(pairs_events[i][1])['expo_number']} do not overlap entirely.")
+                        status_rgslc = 1
 
                 elif len(pairs_events[i])==1:
                     #Making the lightcurve for single RGS
-                    rgslc_command = f"rgslccorr evlist='{pairs_events[i][0]}' srclist='{pairs_srcli[i][0]}' timebinsize=100 orders='1' sourceid=1 outputsrcfilename={output_name}"
+                    logging.info(f"Running rgslccorr SAS command for observation number {self.obsid} and exposure {split_rgs_filename(pairs_events[i][0])['expo_number']} ...")
+                    rgslc_command = f"rgslccorr evlist='{pairs_events[i][0]}' srclist='{pairs_srcli[i][0]}' timebinsize=100 orders='1' sourceid=1 outputsrcfilename={self.obsid}_{split_rgs_filename(pairs_events[i][0])['expo_number']}_RGS_rates.ds"
                     status_rgslc = run_command(rgslc_command)
-    
+
+                #If an error occurred try running on separate exposures rgslccorr
                 if (status_rgslc!=0):
                     print(f'\033[91m An error has occurred running rgslccorr for observation {self.obsid}! Will try to run rgslccorr with a single exposure.\033[0m')
 
                     for j in range(0,2):
                         logging.info(f'Running rgslccorr for ObsId {self.obsid} and exposure {pairs_events[i][j]}')
-                        rgslc_command2 = f"rgslccorr evlist='{pairs_events[i][j]}' srclist='{pairs_srcli[i][j]}' timebinsize=100 orders='1' sourceid=1 outputsrcfilename={output_name}"
+                        rgslc_command2 = f"rgslccorr evlist='{pairs_events[i][j]}' srclist='{pairs_srcli[i][j]}' timebinsize=100 orders='1' sourceid=1 outputsrcfilename={self.obsid}_{split_rgs_filename(pairs_events[i][j])['expo_number']}_RGS_rates.ds"
                         status_rgslc2 = run_command(rgslc_command2)
                         if (status_rgslc2==0):
                             print(f'\33[32m Error solved for {self.obsid}, exposure {pairs_events[i][j]}! \033[0m ')
-                            logging.info(f'RGS lightcurves extracted in {output_name}.')
+                            logging.info(f"RGS lightcurves extracted in {self.obsid}_{split_rgs_filename(pairs_events[i][j])['expo_number']}_RGS_rates.ds")
                 else:
-                    logging.info(f'RGS lightcurves extracted in {output_name}.')
+                    logging.info(f'RGS lightcurves extracted.')
                 
             else:
-                logging.info(f'Lightcurves already extracted in {output_name}.')
+                logging.info(f'Lightcurves already extracted.')
 
 
     def lightcurve(self, use_grace=False):
@@ -201,8 +257,8 @@ class Observation:
         """
         os.chdir(self.rgsdir)
 
-        for i in range(self.npairs):
-            output_name = f'{self.obsid}_expo{i}_RGS_rates.ds'
+        for filename in glob.glob('*_RGS_rates.ds'):
+            output_name = filename
             try:
                 if use_grace: 
                     logging.info(f'The RGS lightcurve {output_name} will be plotted with xmgrace.')
@@ -216,7 +272,7 @@ class Observation:
                 else:  
                     logging.info(f'The lightcurve {output_name} will be plotted with matplotlib.')
                     import matplotlib.pyplot as plt
-                    from astropy.io import fits
+                    
 
                     #Extract data from the lightcurve fits file produced with rgslccorr
                     data = fits.open(output_name)
@@ -240,7 +296,8 @@ class Observation:
                     #Plot data and add labels and title
                     fig = plt.figure(figsize=(20,10))
                     ax = fig.add_subplot(1, 1, 1)
-                    plt.errorbar(x, y, yerr=yerr, color='black', marker='.', ecolor='gray', label=f'RGS Lightcurve ObsId {self.obsid}')
+                    plt.errorbar(x, y, yerr=yerr, color='black', marker='.', ecolor='gray', 
+                                label=f'RGS Lightcurve ObsId {self.obsid}')
                     plt.grid(True)
                     plt.title(output_name, fontsize=30)
                     plt.xlabel('TIME [s]', fontsize=25)
@@ -257,5 +314,6 @@ class Observation:
                     plt.savefig(f'{self.target_dir}/Products/RGS_Lightcurves/{output_name}.png')
                     plt.close()
                     logging.info(f'The lightcurve is saved as {output_name}.png')
+
             except Exception as e:
                 logging.error(e)

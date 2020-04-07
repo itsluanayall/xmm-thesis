@@ -87,7 +87,7 @@ if __name__ == "__main__":
             
     '''
     #For a single observation
-    obs = Observation(obsid='0136540101', target_dir=target_dir)   #instance of the observation
+    obs = Observation(obsid='0136541001', target_dir=target_dir)   #instance of the observation
     
     
     #Process each observation
@@ -97,5 +97,5 @@ if __name__ == "__main__":
     obs.rgslccorr()
     
     obs.lightcurve(use_grace=use_grace)
-    '''
     
+    '''
