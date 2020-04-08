@@ -11,7 +11,9 @@ ODFs and the RGS products will be stored respectively.\n
 
 Because of the large number of observations to be processed, this software is driven by
 the object-oriented paradigm, so each observation is an instance of the class 'Observation', and 
-all the operations made on the data are encapsulated in the methods of this class. \n
+all the operations made on the data are encapsulated in the methods of this class. 
+Note that it will take a few hours to finish executing if you're running the code for the first time.\n
+
 
 The python code shouldn't be modified by the user, but in order to make it run on you computer,
 make sure to set all the user-dependent variables in the config.json file of the package.
