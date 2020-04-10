@@ -3,6 +3,6 @@
     "debug": true,
     "sas_dir": "/usr/local/SAS/xmmsas_20190531_1155",
     "ccf_dir": "/ccf/valid",
-    "target_dir": "/media/xmmsas/thesis/Markarian421/",
+    "target_dir": "/media/xmmsas/thesis/Markarian421",
     "use_grace": false
 }
