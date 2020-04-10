@@ -176,7 +176,7 @@ class Observation:
                     self.starttime = Time(line.split('/')[0], format='isot', scale='utc')
                 if line.endswith('Observation End Time'):
                     self.endtime = Time(line.split('/')[0], format='isot', scale='utc')
-        self.duration = round(((self.endtime - self.starttime)*86400).value)/1000.    #duration observation in seconds
+        self.duration = round(((self.endtime - self.starttime)*86400).value)/1000.    #duration observation in kiloseconds
 
 
     def rgsproc(self):
@@ -235,7 +235,7 @@ class Observation:
                     #Make sure exposure times overlap
                     if expos0.overlaps_with(expos1):   
                         logging.info(f"Running rgslccorr SAS command for observation number {self.obsid} and exposures {expo_num0}, {expo_num1} ...")
-                        rgslc_command = f"rgslccorr evlist='{expos0.evenli} {expos1.evenli}' srclist='{expos0.srcli} {expos1.srcli}' timebinsize=100 orders='1' sourceid=1 outputsrcfilename={self.obsid}_{expo_num0}+{expo_num1}_RGS_rates.ds"
+                        rgslc_command = f"rgslccorr evlist='{expos0.evenli} {expos1.evenli}' srclist='{expos0.srcli} {expos1.srcli}' timebinsize=1000 orders='1' sourceid=1 outputsrcfilename={self.obsid}_{expo_num0}+{expo_num1}_RGS_rates.ds"
                         status_rgslc = run_command(rgslc_command)
                     else:   #if the exposures do not overlap at least for 90% of their duration
                         logging.error(f"Exposures {expo_num0}, {expo_num1} do not overlap entirely.")
@@ -244,7 +244,7 @@ class Observation:
                 elif len(pairs_events[i])==1:
                     #Making the lightcurve for single RGS
                     logging.info(f"Running rgslccorr SAS command for observation number {self.obsid} and exposure {split_rgs_filename(pairs_events[i][0])['expo_number']} ...")
-                    rgslc_command = f"rgslccorr evlist='{pairs_events[i][0]}' srclist='{pairs_srcli[i][0]}' timebinsize=100 orders='1' sourceid=1 outputsrcfilename={self.obsid}_{split_rgs_filename(pairs_events[i][0])['expo_number']}_RGS_rates.ds"
+                    rgslc_command = f"rgslccorr evlist='{pairs_events[i][0]}' srclist='{pairs_srcli[i][0]}' timebinsize=1000 orders='1' sourceid=1 outputsrcfilename={self.obsid}_{split_rgs_filename(pairs_events[i][0])['expo_number']}_RGS_rates.ds"
                     status_rgslc = run_command(rgslc_command)
 
                 #If an error occurred try running on separate exposures rgslccorr
@@ -255,11 +255,11 @@ class Observation:
                         print(f'\033[91m Will try to run rgslccorr with a single exposure (the longest). \033[0m')
                         if expos0.longer_than(expos1):
                             logging.info(f"Running rgslccorr SAS command for observation number {self.obsid} and exposure {expo_num0} ...")
-                            rgslc_command2 = f"rgslccorr evlist='{expos0.evenli}' srclist='{expos0.srcli}' timebinsize=100 orders='1' sourceid=1 outputsrcfilename={self.obsid}_{expo_num0}_RGS_rates.ds"
+                            rgslc_command2 = f"rgslccorr evlist='{expos0.evenli}' srclist='{expos0.srcli}' timebinsize=1000 orders='1' sourceid=1 outputsrcfilename={self.obsid}_{expo_num0}_RGS_rates.ds"
                             status_rgslc2 = run_command(rgslc_command2)
                         else:
                             logging.info(f"Running rgslccorr SAS command for observation number {self.obsid} and exposure {expo_num1} ...")
-                            rgslc_command2 = f"rgslccorr evlist='{expos1.evenli}' srclist='{expos1.srcli}' timebinsize=100 orders='1' sourceid=1 outputsrcfilename={self.obsid}_{expo_num1}_RGS_rates.ds"
+                            rgslc_command2 = f"rgslccorr evlist='{expos1.evenli}' srclist='{expos1.srcli}' timebinsize=1000 orders='1' sourceid=1 outputsrcfilename={self.obsid}_{expo_num1}_RGS_rates.ds"
                             status_rgslc2 = run_command(rgslc_command2)
 
                     if status_rgslc2==0:
