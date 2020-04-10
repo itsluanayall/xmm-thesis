@@ -58,7 +58,7 @@ if __name__ == "__main__":
     #nobs = len(os.listdir(target_dir))
     mrk421_observation_list = []
     obs_table = Table(names=('ObsId', 'RevolutionId', 'Start', 'End', 'Duration[ksec]', 'RGS_Rate[count/s]'), 
-                    dtype=('object', 'object', 'object', 'object', 'f4', 'object'))
+                    dtype=('object', 'object', 'object', 'object', 'object', 'object'))
 
     counter = 0
     
@@ -77,7 +77,7 @@ if __name__ == "__main__":
             obs.lightcurve(use_grace=use_grace)
 
             #Save attributes of observable into a table
-            obs_table.add_row((str(obs.obsid), str(obs.revolution), str(obs.starttime), str(obs.endtime), obs.duration, obs.rgsrate))
+            obs_table.add_row((str(obs.obsid), str(obs.revolution), str(obs.starttime), str(obs.endtime), str(obs.duration), str(obs.rgsrate)))
 
             #Keep track of number of observations that have been processed so far
             counter += 1

@@ -176,7 +176,7 @@ class Observation:
                     self.starttime = Time(line.split('/')[0], format='isot', scale='utc')
                 if line.endswith('Observation End Time'):
                     self.endtime = Time(line.split('/')[0], format='isot', scale='utc')
-        self.duration = round(((self.endtime - self.starttime)*86400).value)/1000.    #duration observation in kiloseconds
+        self.duration = format( ((self.endtime - self.starttime)*86400).value/1000., '.3f')    #duration observation in kiloseconds
 
 
     def rgsproc(self):
@@ -313,7 +313,7 @@ class Observation:
                     #Store average rate into Observation attribute
                     avg_rate = mean(y)
                     if self.npairs!=0.:
-                        self.rgsrate = avg_rate
+                        self.rgsrate = format(avg_rate, '.3f')
                     else:
                         self.rgsrate = 'N/A'
                         
