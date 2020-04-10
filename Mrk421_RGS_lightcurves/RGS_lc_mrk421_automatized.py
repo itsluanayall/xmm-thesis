@@ -54,14 +54,17 @@ if __name__ == "__main__":
         if directory.endswith('.tar.gz'):
             os.remove(os.path.join(target_dir, directory))
     
+    #Create Products directory
+    if not os.path.isdir(f'{target_dir}/Products'):
+        os.makedirs(f'{target_dir}/Products')
+        os.makedirs(f'{target_dir}/Products/RGS_Lightcurves')
+    
     #Loop analysis for each observation
     #nobs = len(os.listdir(target_dir))
     mrk421_observation_list = []
-    obs_table = Table(names=('ObsId', 'RevolutionId', 'Start', 'End', 'Duration[ksec]', 'RGS_Rate[count/s]'), 
-                    dtype=('object', 'object', 'object', 'object', 'object', 'object'))
-
+    obs_table = Table(names=('ObsId', 'RevolutionId', 'Start', 'End', 'Duration[ksec]', 'RGS_Rate[count/s]', 'Discarded_Exposures'), 
+                    dtype=('object', 'object', 'object', 'object', 'object', 'object', 'object'))
     counter = 0
-    
     
     for obsid in os.listdir(target_dir):
         
@@ -77,7 +80,7 @@ if __name__ == "__main__":
             obs.lightcurve(use_grace=use_grace)
 
             #Save attributes of observable into a table
-            obs_table.add_row((str(obs.obsid), str(obs.revolution), str(obs.starttime), str(obs.endtime), str(obs.duration), str(obs.rgsrate)))
+            obs_table.add_row((str(obs.obsid), str(obs.revolution), str(obs.starttime), str(obs.endtime), str(obs.duration), str(obs.rgsrate), obs.discarded_expos ))
 
             #Keep track of number of observations that have been processed so far
             counter += 1
