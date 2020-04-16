@@ -69,6 +69,7 @@ if __name__ == "__main__":
     for obsid in os.listdir(target_dir):
         
         if obsid.startswith('0'):   #All observation folders start with 0
+            print('----------------')
             obs = Observation(obsid=obsid, target_dir=target_dir)   #instance of the observation
             mrk421_observation_list.append(obs)
             
@@ -80,12 +81,14 @@ if __name__ == "__main__":
             obs.lightcurve(use_grace=use_grace)
 
             #Save attributes of observable into a table
-            obs_table.add_row((str(obs.obsid), str(obs.revolution), str(obs.starttime), str(obs.endtime), str(obs.duration), str(obs.rgsrate), obs.discarded_expos ))
+            discarded_expos_str = ', '.join(obs.discarded_expos)
+            obs_table.add_row((str(obs.obsid), str(obs.revolution), str(obs.starttime), str(obs.endtime), str(obs.duration), str(obs.rgsrate),  discarded_expos_str))
 
             #Keep track of number of observations that have been processed so far
             counter += 1
             logging.info(f'Processed {counter} observations!')
-
+            print('----------------')
+            
     #Show and save in csv format the table with all the attributes of the observations
     print(obs_table)
     ascii.write(table=obs_table, output=f'{target_dir}/Products/obs_table.csv', format='csv', overwrite=True)
