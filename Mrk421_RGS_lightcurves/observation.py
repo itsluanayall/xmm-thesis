@@ -1,8 +1,9 @@
 import logging
 import os
-from statistics import mean
+from statistics import mean, stdev
 from datetime import datetime as dt
 from astropy.io import fits
+from astropy.table import Table
 from astropy.time import Time
 import glob
 from config import CONFIG
@@ -190,7 +191,9 @@ class Observation:
         #Check if the data has already been processed: if not, run the command.
         if not glob.glob('*EVENLI0000.FIT'):
             logging.info(f'Running rgsproc command for observation number {self.obsid}...')
-            rgs_command = 'rgsproc > my_rgsproc_logfile'
+            ra = CONFIG['target_RA']
+            dec = CONFIG['target_DEC']
+            rgs_command = f'rgsproc withsrc=yes srclabel=USER srcra={ra} srcdec=+{dec} > my_rgsproc_logfile'
             rgs_status = run_command(rgs_command)
             if (rgs_status != 0):
                 print(f'\033[91m An error has occurred running rgsproc for observation {self.obsid}! \033[0m')
@@ -235,7 +238,7 @@ class Observation:
                     #Make sure exposure times overlap
                     if expos0.overlaps_with(expos1):   
                         logging.info(f"Running rgslccorr SAS command for observation number {self.obsid} and exposures {expos0.expid}, {expos1.expid} ...")
-                        rgslc_command = f"rgslccorr evlist='{expos0.evenli} {expos1.evenli}' srclist='{expos0.srcli} {expos1.srcli}' withbkgsubtraction=yes timebinsize=1000 orders='1' sourceid=1 outputsrcfilename={self.obsid}_{expos0.expid}+{expos1.expid}_RGS_rates.ds outputbkgfilename={self.obsid}_{expos0.expid}+{expos1.expid}_bkg_rates.ds"
+                        rgslc_command = f"rgslccorr evlist='{expos0.evenli} {expos1.evenli}' srclist='{expos0.srcli} {expos1.srcli}' withbkgsubtraction=yes timebinsize=1000 orders='1' sourceid=3 outputsrcfilename={self.obsid}_{expos0.expid}+{expos1.expid}_RGS_rates.ds outputbkgfilename={self.obsid}_{expos0.expid}+{expos1.expid}_bkg_rates.ds"
                         status_rgslc = run_command(rgslc_command)
                     else:   #if the exposures do not overlap at least for 90% of their duration
                         logging.error(f"Exposures {expos0.expid}, {expos1.expid} do not overlap entirely.")
@@ -244,7 +247,7 @@ class Observation:
                 elif len(pairs_events[i])==1:
                     #Making the lightcurve for single RGS
                     logging.info(f"Running rgslccorr SAS command for observation number {self.obsid} and exposure {split_rgs_filename(pairs_events[i][0])['expo_number']} ...")
-                    rgslc_command = f"rgslccorr evlist='{pairs_events[i][0]}' srclist='{pairs_srcli[i][0]}' withbkgsubtraction=yes timebinsize=1000 orders='1' sourceid=1 outputsrcfilename={self.obsid}_{split_rgs_filename(pairs_events[i][0])['expo_number']}_RGS_rates.ds outputbkgfilename={self.obsid}_{split_rgs_filename(pairs_events[i][0])['expo_number']}_bkg_rates.ds"
+                    rgslc_command = f"rgslccorr evlist='{pairs_events[i][0]}' srclist='{pairs_srcli[i][0]}' withbkgsubtraction=yes timebinsize=1000 orders='1' sourceid=3 outputsrcfilename={self.obsid}_{split_rgs_filename(pairs_events[i][0])['expo_number']}_RGS_rates.ds outputbkgfilename={self.obsid}_{split_rgs_filename(pairs_events[i][0])['expo_number']}_bkg_rates.ds"
                     status_rgslc = run_command(rgslc_command)
 
                 #If an error occurred try running on separate exposures rgslccorr
@@ -256,12 +259,12 @@ class Observation:
                         if expos0.longer_than(expos1):
                             logging.info(f"Discarding exposure {expos1.expid} and running rgslccorr SAS command for observation number {self.obsid} and exposure {expos0.expid} ...")
                             self.discarded_expos.append(expos1.fullid)
-                            rgslc_command2 = f"rgslccorr evlist='{expos0.evenli}' srclist='{expos0.srcli}' withbkgsubtraction=yes timebinsize=1000 orders='1' sourceid=1 outputsrcfilename={self.obsid}_{expos0.expid}_RGS_rates.ds outputbkgfilename={self.obsid}_{expos0.expid}_bkg_rates.ds"
+                            rgslc_command2 = f"rgslccorr evlist='{expos0.evenli}' srclist='{expos0.srcli}' withbkgsubtraction=yes timebinsize=1000 orders='1' sourceid=3 outputsrcfilename={self.obsid}_{expos0.expid}_RGS_rates.ds outputbkgfilename={self.obsid}_{expos0.expid}_bkg_rates.ds"
                             status_rgslc2 = run_command(rgslc_command2)
                         else:
                             logging.info(f"Discarding exposure {expos0.expid} and running rgslccorr SAS command for observation number {self.obsid} and exposure {expos1.expid} ...")
                             self.discarded_expos.append(expos0.fullid)
-                            rgslc_command2 = f"rgslccorr evlist='{expos1.evenli}' srclist='{expos1.srcli}' withbkgsubtraction=yes timebinsize=1000 orders='1' sourceid=1 outputsrcfilename={self.obsid}_{expos1.expid}_RGS_rates.ds outputbkgfilename={self.obsid}_{expos1.expid}_bkg_rates.ds"
+                            rgslc_command2 = f"rgslccorr evlist='{expos1.evenli}' srclist='{expos1.srcli}' withbkgsubtraction=yes timebinsize=1000 orders='1' sourceid=3 outputsrcfilename={self.obsid}_{expos1.expid}_RGS_rates.ds outputbkgfilename={self.obsid}_{expos1.expid}_bkg_rates.ds"
                             status_rgslc2 = run_command(rgslc_command2)
 
                     if status_rgslc2==0:
