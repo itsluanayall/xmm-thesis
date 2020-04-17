@@ -6,8 +6,9 @@ from astropy.io import fits
 from astropy.table import Table
 from astropy.time import Time
 import glob
+import pandas as pd
 from config import CONFIG
-from tools import run_command, split_rgs_filename, sort_rgs_list
+from tools import *
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -94,6 +95,7 @@ class Observation:
         self.duration = 0.
         self.rgsrate = 0.
         self.discarded_expos = []
+        self.fracvardict = {}
 
     @property
     def target_dir(self):
@@ -346,3 +348,66 @@ class Observation:
 
             except Exception as e:
                 logging.error(e)
+
+    def fracvartest(self, screen=True):
+        """
+        """
+        os.chdir(self.rgsdir)
+
+        for filename in glob.glob('*_RGS_rates.ds'):
+            timeseries = filename
+            try:
+                #Get dataset(s) and table.
+                with fits.open(timeseries) as hdul:
+                    astro_table = Table(hdul['RATE'].data)
+                    dataset = astro_table.to_pandas()
+
+            #Check important keyword consistency (notably TSTART and TIMEDEL).
+
+            except Exception as e:
+                logging.error(e)
+
+            #Recover all light curves included in table :
+            # of dimension Nlightcurve * Nbins.
+
+            try:
+                #Delete gaps in data 
+                dataset_cleaned = dataset.dropna()
+                numnonnull = len(dataset_cleaned)
+
+                #Net source rates and errors and background rates and errors are recorded in arrays
+                rates = np.array(dataset_cleaned['RATE'])
+                errrates = np.array(dataset_cleaned['ERROR'])
+                backv = np.array(dataset_cleaned['BACKV'])
+                backe = np.array(dataset_cleaned['BACKE'])
+
+                #Sanity checks
+                if not len(rates)==len(errrates) and len(rates)==len(backv) and len(rates)==len(backe):
+                    raise RangeException('Different number of rows in columns between RATE, ERROR, BACKV and BACKE')
+                if not (rates>0).all() and (backv>0).all():
+                    raise ValueError('Negative count rates in Input File.')
+                
+            except RangeError as e:
+                # Output expected AssertionErrors.
+                logging.error(e)
+            except ValueError as e:
+                logging.error(e)
+
+
+            #and outside of GTIs.
+
+            #Perform variability tests on rebinned counts and background or the net source counts and the cumulative time distribution:
+
+            #Calculate Fractional Variability
+            xs = excess_variance(rates, errrates, normalized=False)
+            nxs, err_nxs = excess_variance(rates, errrates, normalized=True)
+
+            f_var, err_fvar = fractional_variability(rates, errrates)
+            self.fracvardict = {"Excess variance": xs, "Normalized excess variance": nxs,
+                                 "Normalized excess variance error": err_nxs, "Fractional Variability": f_var, 
+                                 "Fractional Variability Error": err_fvar,
+                                 "Number of non null data points": numnonnull}
+            #Write variability test results into header and/or to screen.
+            if screen:
+                for key, value in self.fracvardict.items():
+                    print(key, ' : ', value)
