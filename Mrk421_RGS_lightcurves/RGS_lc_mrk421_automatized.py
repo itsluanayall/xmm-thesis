@@ -62,8 +62,8 @@ if __name__ == "__main__":
     #Loop analysis for each observation
     #nobs = len(os.listdir(target_dir))
     mrk421_observation_list = []
-    obs_table = Table(names=('ObsId', 'RevolutionId', 'Start', 'End', 'Duration[ksec]', 'RGS_Rate[count/s]', 'Discarded_Exposures'), 
-                    dtype=('object', 'object', 'object', 'object', 'object', 'object', 'object'))
+    obs_table = Table(names=('ObsId', 'RevolutionId', 'Start', 'End', 'Duration[ksec]', 'RGS_Rate[count/s]', 'Discarded_Exposures', 'Fractional_Variability'), 
+                    dtype=('object', 'object', 'object', 'object', 'object', 'object', 'object', 'object'))
     counter = 0
     
     for obsid in os.listdir(target_dir):
@@ -79,10 +79,19 @@ if __name__ == "__main__":
             obs.rgsproc()
             obs.rgslccorr()
             obs.lightcurve(use_grace=use_grace)
+            obs.fracvartest(screen=True)
 
             #Save attributes of observable into a table
-            discarded_expos_str = ', '.join(obs.discarded_expos)
-            obs_table.add_row((str(obs.obsid), str(obs.revolution), str(obs.starttime), str(obs.endtime), str(obs.duration), str(obs.rgsrate),  discarded_expos_str))
+            try:
+                fracvar_str = f"{obs.fracvardict.get('Fractional Variability'):.4f} +- {obs.fracvardict.get('Fractional Variability Error'):.4f} "
+                discarded_expos_str = ', '.join(obs.discarded_expos)
+            except TypeError as e:
+                logging.error(e)
+                fracvar_str = '-'
+                discarded_expos_str = '-'
+
+            obs_table.add_row((str(obs.obsid), str(obs.revolution), str(obs.starttime), str(obs.endtime), str(obs.duration),
+                             str(obs.rgsrate),  discarded_expos_str, fracvar_str ))
 
             #Keep track of number of observations that have been processed so far
             counter += 1
