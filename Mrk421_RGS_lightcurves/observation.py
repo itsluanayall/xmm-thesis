@@ -86,15 +86,16 @@ class Observation:
         self._odfdir = os.path.join(self.obsdir, 'odf')
         self._rgsdir = os.path.join(self.obsdir, 'rgs')
         
-        #The following attributes will be modified in the following methods. 
+        #The following attributes will be modified in the class methods. 
         # For now, we just inizialize them
         self.revolution = 0    
         self.starttime = 0.
         self.endtime = 0.
         self.duration = 0.
         self.rgsrate = 0.
+        self.stdev = 0.
         self.discarded_expos = []
-        self.fracvardict = {}
+        self.fracvardict = []
 
     @property
     def target_dir(self):
@@ -355,6 +356,7 @@ class Observation:
         """
         os.chdir(self.rgsdir)
 
+        i = 0
         for filename in glob.glob('*_RGS_rates.ds'):
             timeseries = filename
             try:
@@ -404,11 +406,12 @@ class Observation:
             nxs, err_nxs = excess_variance(rates, errrates, normalized=True)
 
             f_var, err_fvar = fractional_variability(rates, errrates)
-            self.fracvardict = {"Excess variance": xs, "Normalized excess variance": nxs,
+            self.fracvardict.append({"Excess variance": xs, "Normalized excess variance": nxs,
                                  "Normalized excess variance error": err_nxs, "Fractional Variability": f_var, 
                                  "Fractional Variability Error": err_fvar,
-                                 "Number of non null data points": numnonnull}
+                                 "Number of non null data points": numnonnull})
             #Write variability test results into header and/or to screen.
             if screen:
-                for key, value in self.fracvardict.items():
+                for key, value in self.fracvardict[i].items():
                     print(key, ' : ', value)
+            i+=1

@@ -83,7 +83,11 @@ if __name__ == "__main__":
 
             #Save attributes of observable into a table
             try:
-                fracvar_str = f"{obs.fracvardict.get('Fractional Variability'):.4f} +- {obs.fracvardict.get('Fractional Variability Error'):.4f} "
+                fracvar_str = ""
+                for el in obs.fracvardict:
+                    str_var = f"{el.get('Fractional Variability'):.4f} +- {el.get('Fractional Variability Error'):.4f} "
+                    fracvar_str += f"{str_var},"
+                fracvar_str = fracvar_str[:-1]
                 discarded_expos_str = ', '.join(obs.discarded_expos)
             except TypeError as e:
                 logging.error(e)
