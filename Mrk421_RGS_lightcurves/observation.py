@@ -1,6 +1,5 @@
 import logging
 import os
-from statistics import mean, stdev
 from datetime import datetime as dt
 from astropy.io import fits
 from astropy.table import Table
@@ -318,9 +317,11 @@ class Observation:
                     yerr = yerr[mask_nan]
                     
                     #Store average rate into Observation attribute
-                    avg_rate = mean(y)
+                    avg_rate = np.mean(y)
+                    stdev_rate = np.std(y, ddof=1)
                     if self.npairs!=0.:
                         self.rgsrate = avg_rate
+                        self.stdev = stdev_rate
                     else:
                         self.rgsrate = 'N/A'
                         
@@ -328,7 +329,7 @@ class Observation:
                     fig = plt.figure(figsize=(20,10))
                     ax = fig.add_subplot(1, 1, 1)
                     plt.errorbar(x, y, yerr=yerr, color='black', marker='.', ecolor='gray', 
-                                label=f'RGS Lightcurve ObsId {self.obsid}')
+                                label=f'RGS Lightcurve ObsId {self.obsid} \n Start: {self.starttime} \n End: {self.endtime}')
                     plt.grid(True)
                     plt.title(output_name, fontsize=30)
                     plt.xlabel('TIME [s]', fontsize=25)
@@ -337,7 +338,7 @@ class Observation:
                     plt.yticks(fontsize=20)
 
                     #Plot average rate and legend
-                    plt.hlines(self.rgsrate, plt.xlim()[0], plt.xlim()[1] ,colors='red', label=f'Average rate: {self.rgsrate: .2f} [count/s]')
+                    plt.hlines(self.rgsrate, plt.xlim()[0], plt.xlim()[1] ,colors='red', label=f'Average rate: {self.rgsrate: .2f} [count/s] \n Stdev: {self.stdev:.2f} [count/s]')
                     ax.legend(loc='lower right', fontsize='x-large')
 
                     #Save figure in rgs directory of the current Observation
