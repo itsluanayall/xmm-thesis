@@ -1,8 +1,10 @@
 import subprocess
 import sys
 import os
+import numpy as np
 import logging
 from astropy.io import fits
+
 def setupSAS(sas_dir, ccf_dir):
     """
     Set up the fundamental environment variables for a new session of SAS: the directory in which SAS is installed
@@ -94,6 +96,56 @@ def sort_rgs_list(l, variable='expo_number'):
             final_list.append(sorted_l[x:x+1])
             x=x+1
     return final_list
-    '''
-    return [sorted_l[x:x+2] for x in range(0, len(sorted_l), 2)]
-    '''
+
+class RangeException(Exception):
+    """
+    Custom Exception to check if array lengths are the same.
+    """
+    def __init__(self, *args):
+        if args:
+            self.message = args[0]
+        else:
+            self.message = None
+
+    def __str__(self):
+        if self.message:
+            return 'RangeException, {0} '.format(self.message)
+        else:
+            return 'RangeException has been raised.'
+
+
+def excess_variance(rates, errrates, normalized=True):
+    """
+    Calculates the excess variance from the rates given as argument. 
+    If normalized = True, the function returns the normalized excess variance and its error.
+    """
+    mean = np.mean(rates)
+    variance = np.var(rates, ddof=1)
+    N = len(rates)
+    mse = np.mean(np.square(errrates))
+    xs = variance - mse
+    nxs = xs/(np.square(mean))
+    f_var = np.sqrt(nxs)
+
+    err_nxs = np.sqrt( np.square(np.sqrt(2/N)*mse/np.square(mean)) + np.square(np.sqrt(mse/N) *2*f_var/mean) )
+    if normalized:
+        return nxs, err_nxs
+    else:
+        return xs
+
+def fractional_variability(rates, errrates):
+    """
+    Returns the fractional variability and its error given the rates and error rates as arguments.
+    The fractional variability is the root square of excess variance, so if the excess variance is negative,
+    the functions sets the fractional variability and its error automatically to -1.
+    """
+    nxs, err_nxs = excess_variance(rates, errrates, True)
+    f_var = np.sqrt(nxs)
+    err_fvar = 1/(2*f_var) * err_nxs
+
+    if nxs<0:
+        logging.warning("Excess variance is negative. Fractional variability is its square root and will return -1.0")
+        f_var = -1.
+        err_fvar = -1.
+
+    return f_var, err_fvar
