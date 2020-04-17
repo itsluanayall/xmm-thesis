@@ -87,8 +87,8 @@ if __name__ == "__main__":
                 discarded_expos_str = ', '.join(obs.discarded_expos)
             except TypeError as e:
                 logging.error(e)
-                fracvar_str = '-'
-                discarded_expos_str = '-'
+                fracvar_str = 'None'
+                discarded_expos_str = 'None'
 
             obs_table.add_row((str(obs.obsid), str(obs.revolution), str(obs.starttime), str(obs.endtime), str(obs.duration),
                              str(obs.rgsrate),  discarded_expos_str, fracvar_str ))
