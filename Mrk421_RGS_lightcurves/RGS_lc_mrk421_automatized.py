@@ -65,7 +65,7 @@ if __name__ == "__main__":
     obs_table = Table(names=('ObsId', 'RevolutionId', 'Start', 'End', 'Duration[ksec]', 'RGS_Rate[count/s]', 'Discarded_Exposures', 'Fractional_Variability'), 
                     dtype=('object', 'object', 'object', 'object', 'object', 'object', 'object', 'object'))
     counter = 0
-    
+
     for obsid in os.listdir(target_dir):
         
         if obsid.startswith('0'):   #All observation folders start with 0
@@ -108,7 +108,7 @@ if __name__ == "__main__":
             
     '''
     #For a single observation
-    obs = Observation(obsid='0136541001', target_dir=target_dir)   #instance of the observation
+    obs = Observation(obsid='0162960101', target_dir=target_dir)   #instance of the observation
     
     
     #Process each observation
@@ -118,5 +118,5 @@ if __name__ == "__main__":
     obs.rgslccorr()
     
     obs.lightcurve(use_grace=use_grace)
-    
+    obs.fracvartest(screen=True, netlightcurve=True)
     '''
