@@ -27,6 +27,7 @@ class Exposure:
             self.obsid = hdul[1].header['OBS_ID']
             self.expid = str(hdul[1].header['EXP_ID']).split(self.obsid)[1]
             self.fullid = hdul[1].header['EXP_ID']
+
             #Extrapolate start time and date. 
             start_date_str = hdul[1].header['DATE-OBS']
             end_date_str = hdul[1].header['DATE-END']
@@ -351,33 +352,55 @@ class Observation:
             except Exception as e:
                 logging.error(e)
 
-    def fracvartest(self, screen=True):
+    def fracvartest(self, screen=True, netlightcurve=True):
         """
+        Reads the FITS file containing the RGS source and background timeseries produced by rgslccorr. 
+        It then calculates excess variance, normalized excess variance and fractional variability of the lightcurve,
+        storing all these values into a dictionary that will then be reported in the final .csv file.
         """
         os.chdir(self.rgsdir)
 
+        #Recover all lightcurves included in the rgs Observation directory
         i = 0
         for filename in glob.glob('*_RGS_rates.ds'):
             timeseries = filename
             try:
                 #Get dataset(s) and table.
                 with fits.open(timeseries) as hdul:
+                    header = hdul['RATE'].header
                     astro_table = Table(hdul['RATE'].data)
                     dataset = astro_table.to_pandas()
 
-            #Check important keyword consistency (notably TSTART and TIMEDEL).
+                #Check important keyword consistency 
+                if 'TIMEDEL' in header:
+                    if header['TIMEDEL']<=0:
+                        raise ValueError('\033[91m Null or negative Bin Width in Input File. This should be a positive value. \033[0m')
+                else:
+                    raise IOError('\033[91m The TIMEDEL keyword is missing in the timeseries FITS file, which is necessary to determine the binning factor of the data. \033[0m')
 
+                if 'TSTART' not in header:
+                    raise IOError('\033[91m Keyword TSTART missing in Input. There could be a problem with the input timeseries. \033[0m')
+                
+                if 'HDUCLASS' in header:
+                    if not header['HDUCLASS']=='OGIP':
+                        raise ValueError('\033[91m HDUCLASS is not equal to OGIP. \033[0m')
+                else:
+                    raise IOError('\033[91m Keyword HDUCLASS missing in Input File. There could be a problem with the input FITS timeseries. \033[0m')
+
+                if 'HDUCLAS1' in header:
+                    if not header['HDUCLASS']=='LIGHTCURVE':
+                        raise ValueError('\033[91m HDUCLAS1 is not equal to LIGHTCURVE. \033[0m')
+                else:
+                    raise IOError('\033[91m Keyword HDUCLAS1 missing in Input File. There could be a problem with the input FITS timeseries. \033[0m')
+                
             except Exception as e:
                 logging.error(e)
-
-            #Recover all light curves included in table :
-            # of dimension Nlightcurve * Nbins.
 
             try:
                 #Delete gaps in data 
                 dataset_cleaned = dataset.dropna()
                 numnonnull = len(dataset_cleaned)
-
+                
                 #Net source rates and errors and background rates and errors are recorded in arrays
                 rates = np.array(dataset_cleaned['RATE'])
                 errrates = np.array(dataset_cleaned['ERROR'])
@@ -385,13 +408,16 @@ class Observation:
                 backe = np.array(dataset_cleaned['BACKE'])
 
                 #Sanity checks
+                if numnonnull<2:
+                    raise NoDataException('\033[91m Less than two good values in the timeseries FITS file.')
                 if not len(rates)==len(errrates) and len(rates)==len(backv) and len(rates)==len(backe):
-                    raise RangeException('Different number of rows in columns between RATE, ERROR, BACKV and BACKE')
+                    raise RangeException('\033[91m Different number of rows in columns between RATE, ERROR, BACKV and BACKE. \033[0m')
                 if not (rates>0).all() and (backv>0).all():
-                    raise ValueError('Negative count rates in Input File.')
-                
-            except RangeError as e:
-                # Output expected AssertionErrors.
+                    raise ValueError('\033[91m Negative count rates in Input File. \033[0m')
+
+            except NoDataException as e:
+                logging.error(e)   
+            except RangeException as e:
                 logging.error(e)
             except ValueError as e:
                 logging.error(e)
@@ -399,17 +425,17 @@ class Observation:
 
             #and outside of GTIs.
 
-            #Perform variability tests on rebinned counts and background or the net source counts and the cumulative time distribution:
-
             #Calculate Fractional Variability
             xs = excess_variance(rates, errrates, normalized=False)
             nxs, err_nxs = excess_variance(rates, errrates, normalized=True)
-
-            f_var, err_fvar = fractional_variability(rates, errrates)
+            f_var, err_fvar = fractional_variability(rates, errrates, backv, backe, netlightcurve=netlightcurve)
+            
+            logging.info(f'Do you want to carry out the fractional varability amplitude test on the net lightcurve? {netlightcurve}.')
             self.fracvardict.append({"Excess variance": xs, "Normalized excess variance": nxs,
-                                 "Normalized excess variance error": err_nxs, "Fractional Variability": f_var, 
-                                 "Fractional Variability Error": err_fvar,
-                                 "Number of non null data points": numnonnull})
+                                "Normalized excess variance error": err_nxs, "Fractional Variability": f_var, 
+                                "Fractional Variability Error": err_fvar,
+                                "Number of non null data points": numnonnull})
+            
             #Write variability test results into header and/or to screen.
             if screen:
                 for key, value in self.fracvardict[i].items():
