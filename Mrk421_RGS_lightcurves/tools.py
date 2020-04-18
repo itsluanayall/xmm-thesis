@@ -113,13 +113,36 @@ class RangeException(Exception):
         else:
             return 'RangeException has been raised.'
 
+class NoDataException(Exception):
+    """
+    Custom Exception to check if there are enough datapoints.
+    """
+    def __init__(self, *args):
+        if args:
+            self.message = args[0]
+        else:
+            self.message = None
+
+    def __str__(self):
+        if self.message:
+            return 'NoDataException, {0} '.format(self.message)
+        else:
+            return 'NoDataException has been raised.'
+
+
 
 def excess_variance(rates, errrates, normalized=True):
     """
     Calculates the excess variance from the rates given as argument. 
     If normalized = True, the function returns the normalized excess variance and its error.
     """
-    mean = np.mean(rates)
+    try:
+        mean = np.mean(rates)
+        if mean<0:
+            raise ValueError('Negative count rates in Input File.')
+    except ValueError as e:
+        loggng.error(e)
+
     variance = np.var(rates, ddof=1)
     N = len(rates)
     mse = np.mean(np.square(errrates))
@@ -133,18 +156,26 @@ def excess_variance(rates, errrates, normalized=True):
     else:
         return xs
 
-def fractional_variability(rates, errrates):
+def fractional_variability(rates, errrates, backv, backe, netlightcurve=True):
     """
     Returns the fractional variability and its error given the rates and error rates as arguments.
     The fractional variability is the root square of excess variance, so if the excess variance is negative,
     the functions sets the fractional variability and its error automatically to -1.
     """
-    nxs, err_nxs = excess_variance(rates, errrates, True)
-    f_var = np.sqrt(nxs)
-    err_fvar = 1/(2*f_var) * err_nxs
+    if netlightcurve:
+        nxs, err_nxs = excess_variance(rates, errrates, True)
+        f_var = np.sqrt(nxs)
+        err_fvar = 1/(2*f_var) * err_nxs
+    else:
+        total_rate = rates + backv
+        total_errates = np.sqrt( np.square(errrates) + np.square(backe) )
+        nxs, err_nxs = excess_variance(total_rate, total_errates, True)
+        f_var = np.sqrt(nxs)
+        err_fvar = 1/(2*f_var) * err_nxs
 
+    #A value of -1 indicates that the noise of the data is much greater than the scatter of the data.
     if nxs<0:
-        logging.warning("Excess variance is negative. Fractional variability is its square root and will return -1.0")
+        logging.warning("Excess variance is negative - the noise of the data is much greater than the scatter of the data. Fractional variability is its square root and will return -1.0")
         f_var = -1.
         err_fvar = -1.
 
