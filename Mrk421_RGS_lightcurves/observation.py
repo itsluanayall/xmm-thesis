@@ -564,12 +564,12 @@ class Observation:
                 logging.error(e)
 
             #Calculate Fractional Variability
-            xs = excess_variance(rates, errrates, normalized=False)
+            xs, err_xs = excess_variance(rates, errrates, normalized=False)
             nxs, err_nxs = excess_variance(rates, errrates, normalized=True)
             f_var, err_fvar = fractional_variability(rates, errrates, backv, backe, netlightcurve=netlightcurve)
             
             logging.info(f'Do you want to carry out the fractional varability amplitude test on the net lightcurve? {netlightcurve}.')
-            self.fracvardict.append({"Excess variance": xs, "Normalized excess variance": nxs,
+            self.fracvardict.append({"Excess variance": xs, "Excess variance error": err_xs, "Normalized excess variance": nxs,
                                 "Normalized excess variance error": err_nxs, "Fractional Variability": f_var, 
                                 "Fractional Variability Error": err_fvar,
                                 "Number of non null data points": numnonnull})

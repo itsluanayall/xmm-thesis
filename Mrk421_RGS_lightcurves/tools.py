@@ -150,11 +150,13 @@ def excess_variance(rates, errrates, normalized=True):
     nxs = xs/(np.square(mean))
     f_var = np.sqrt(nxs)
 
+    err_xs = np.sqrt(2*np.square(mse)/N + 4*mse*np.square(xs)/N)
     err_nxs = np.sqrt( np.square(np.sqrt(2/N)*mse/np.square(mean)) + np.square(np.sqrt(mse/N) *2*f_var/mean) )
+    
     if normalized:
         return nxs, err_nxs
     else:
-        return xs
+        return xs, err_xs
 
 def fractional_variability(rates, errrates, backv, backe, netlightcurve=True):
     """

@@ -94,7 +94,7 @@ if __name__ == "__main__":
 
                 for el in obs.fracvardict:
                     str_var = f"{el.get('Fractional Variability'):.4f} +- {el.get('Fractional Variability Error'):.4f} "
-                    str_xs = f"{el.get('Excess variance'):.4f}"
+                    str_xs = f"{el.get('Excess variance'):.4f} +- {el.get('Excess variance error'):.4f}"
                     str_nxs = f"{el.get('Normalized excess variance'):.4f} +- {el.get('Normalized excess variance error'):.4f}"
 
                     fracvar_str += f"{str_var},"
