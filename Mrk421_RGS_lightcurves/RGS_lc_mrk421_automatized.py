@@ -62,8 +62,8 @@ if __name__ == "__main__":
     #Loop analysis for each observation
     #nobs = len(os.listdir(target_dir))
     mrk421_observation_list = []
-    obs_table = Table(names=('ObsId', 'RevolutionId', 'Start', 'End', 'Duration[ksec]', 'RGS_Rate[count/s]', 'Discarded_Exposures', 'Fractional_Variability'), 
-                    dtype=('object', 'object', 'object', 'object', 'object', 'object', 'object', 'object'))
+    obs_table = Table(names=('ObsId', 'RevolutionId', 'Start', 'End', 'Duration[s]', 'RGS_Rate[count/s]', 'Discarded_Exposures', 'Fractional_Variability', 'Excess_Variance', 'Norm_excess_variance'), 
+                    dtype=('object', 'object', 'object', 'object', 'object', 'object', 'object', 'object', 'object', 'object'))
     counter = 0
 
     for obsid in os.listdir(target_dir):
@@ -80,22 +80,34 @@ if __name__ == "__main__":
             obs.rgslccorr()
             obs.lightcurve(use_grace=use_grace)
             obs.fracvartest(screen=True)
+            #obs.bkg_lightcurve()
 
             #Save attributes of observable into a table
             try:
                 fracvar_str = ""
+                xs_str = ""
+                nxs_str = ""
                 for el in obs.fracvardict:
                     str_var = f"{el.get('Fractional Variability'):.4f} +- {el.get('Fractional Variability Error'):.4f} "
+                    str_xs = f"{el.get('Excess variance'):.4f}"
+                    str_nxs = f"{el.get('Normalized excess variance'):.4f} +- {el.get('Normalized excess variance error'):.4f}"
+
                     fracvar_str += f"{str_var},"
+                    xs_str += f"{str_xs},"
+                    nxs_str += f"{str_nxs},"
+
                 fracvar_str = fracvar_str[:-1]
+                xs_str = xs_str[:-1]
+                nxs_str = nxs_str[:-1]
                 discarded_expos_str = ', '.join(obs.discarded_expos)
+
             except TypeError as e:
                 logging.error(e)
                 fracvar_str = 'None'
                 discarded_expos_str = 'None'
 
             obs_table.add_row((str(obs.obsid), str(obs.revolution), str(obs.starttime), str(obs.endtime), str(obs.duration),
-                             str(obs.rgsrate),  discarded_expos_str, fracvar_str ))
+                             str(obs.rgsrate),  discarded_expos_str, fracvar_str, xs_str, nxs_str ))
 
             #Keep track of number of observations that have been processed so far
             counter += 1
