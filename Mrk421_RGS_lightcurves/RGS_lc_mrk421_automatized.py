@@ -106,8 +106,9 @@ if __name__ == "__main__":
                 fracvar_str = 'None'
                 discarded_expos_str = 'None'
 
-            obs_table.add_row((str(obs.obsid), str(obs.revolution), str(obs.starttime), str(obs.endtime), str(obs.duration),
-                             str(obs.rgsrate),  discarded_expos_str, fracvar_str, xs_str, nxs_str ))
+            #Write observation info into w csv table row
+            obs_table.add_row((str(obs.obsid), str(obs.revolution), str(obs.starttime), str(obs.endtime), str(int(obs.duration)),
+                             f"{obs.rgsrate:.2f}",  discarded_expos_str, fracvar_str, xs_str, nxs_str ))
 
             #Keep track of number of observations that have been processed so far
             counter += 1
