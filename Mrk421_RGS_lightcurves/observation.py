@@ -332,7 +332,7 @@ class Observation:
                     avg_rate = np.mean(y)
                     stdev_rate = np.std(y, ddof=1)
                     if self.npairs!=0.:
-                        self.rgsrate = avg_rate
+                        self.rgsrate = float(avg_rate)
                         self.stdev = stdev_rate
                     else:
                         self.rgsrate = 'N/A'
