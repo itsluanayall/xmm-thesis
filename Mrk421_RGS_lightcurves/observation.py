@@ -94,8 +94,8 @@ class Observation:
         self.starttime = 0.
         self.endtime = 0.
         self.duration = 0.
-        self.rgsrate = 0.
-        self.stdev = 0.
+        self.rgsrate = []
+        self.stdev = []
         self.discarded_expos = []
         self.fracvardict = []
 
@@ -331,11 +331,9 @@ class Observation:
                     #Store average rate into Observation attribute
                     avg_rate = np.mean(y)
                     stdev_rate = np.std(y, ddof=1)
-                    if self.npairs!=0.:
-                        self.rgsrate = float(avg_rate)
-                        self.stdev = stdev_rate
-                    else:
-                        self.rgsrate = 'N/A'
+                    if self.npairs!=0:
+                        self.rgsrate.append(round(float(avg_rate), 2))
+                        self.stdev.append(stdev_rate)
                         
                     #Plot data and add labels and title
                     fig = plt.figure(figsize=(20,10))
@@ -350,7 +348,7 @@ class Observation:
                     plt.yticks(fontsize=20)
 
                     #Plot average rate and legend
-                    plt.hlines(self.rgsrate, plt.xlim()[0], plt.xlim()[1] ,colors='red', label=f'Average rate: {self.rgsrate: .2f} [count/s] \n Stdev: {self.stdev:.2f} [count/s]')
+                    plt.hlines(avg_rate, plt.xlim()[0], plt.xlim()[1] ,colors='red', label=f'Average rate: {avg_rate: .2f} [count/s] \n Stdev: {stdev_rate:.2f} [count/s]')
                     ax.legend(loc='lower right', fontsize='x-large')
 
                     #Save figure in rgs directory of the current Observation

@@ -84,9 +84,14 @@ if __name__ == "__main__":
 
             #Save attributes of observable into a table
             try:
+                rgsrates = ""
                 fracvar_str = ""
                 xs_str = ""
                 nxs_str = ""
+                for el in obs.rgsrate:
+                    rgsrates += f"{el},"
+                rgsrates = rgsrates[:-1]
+
                 for el in obs.fracvardict:
                     str_var = f"{el.get('Fractional Variability'):.4f} +- {el.get('Fractional Variability Error'):.4f} "
                     str_xs = f"{el.get('Excess variance'):.4f}"
@@ -108,7 +113,7 @@ if __name__ == "__main__":
 
             #Write observation info into w csv table row
             obs_table.add_row((str(obs.obsid), str(obs.revolution), str(obs.starttime), str(obs.endtime), str(int(obs.duration)),
-                             f"{obs.rgsrate:.2f}",  discarded_expos_str, fracvar_str, xs_str, nxs_str ))
+                             rgsrates,  discarded_expos_str, fracvar_str, xs_str, nxs_str ))
 
             #Keep track of number of observations that have been processed so far
             counter += 1
