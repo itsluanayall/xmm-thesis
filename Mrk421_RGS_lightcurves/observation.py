@@ -27,6 +27,7 @@ class Exposure:
             self.obsid = hdul[1].header['OBS_ID']
             self.expid = str(hdul[1].header['EXP_ID']).split(self.obsid)[1]
             self.fullid = hdul[1].header['EXP_ID']
+            self.instrume = hdul[1].header['INSTRUME']
 
             #Extrapolate start time and date. 
             start_date_str = hdul[1].header['DATE-OBS']
@@ -182,7 +183,7 @@ class Observation:
                     self.starttime = Time(line.split('/')[0], format='isot', scale='utc')
                 if line.endswith('Observation End Time'):
                     self.endtime = Time(line.split('/')[0], format='isot', scale='utc')
-        self.duration = ((self.endtime - self.starttime)*86400).value/1000.    #duration observation in kiloseconds
+        self.duration = ((self.endtime - self.starttime)*86400).value    #duration observation in seconds
 
 
     def rgsproc(self):
@@ -223,11 +224,9 @@ class Observation:
         pairs_events = sort_rgs_list(self.rgsevlists, 'expo_number')
         self.npairs = len(pairs_events)
         logging.info(f'There is(are) {self.npairs} set(s) of exposures for observation {self.obsid}.')
-        print(pairs_events)
 
         #Sort RGS sourcelists according to exposure number
         pairs_srcli = sort_rgs_list(self.rgssrclists, 'expo_number')
-        print(pairs_srcli)
 
         if not glob.glob('*_RGS_rates.ds'):    #If the lightcurves haven't already been generated
             
@@ -278,8 +277,19 @@ class Observation:
                     logging.info(f'RGS lightcurves successfully extracted.')
                 
         else:   #if the Lightcurves have already beeen extracted
-            logging.info(f'Lightcurves already extracted.')
+            # Keep track of discarded exposures
+            for i in range(self.npairs):
+                if len(pairs_events[i])==2:
+                    
+                    expos0 = Exposure(pairs_events[i][0], pairs_srcli[i][0])
+                    expos1 = Exposure(pairs_events[i][1], pairs_srcli[i][1])
 
+                    if not expos0.overlaps_with(expos1):   
+                            if expos0.longer_than(expos1):
+                                self.discarded_expos.append(expos1.fullid)
+
+            logging.info(f'Lightcurves already extracted.')
+            
 
     def lightcurve(self, use_grace=False):
         """
@@ -352,6 +362,139 @@ class Observation:
             except Exception as e:
                 logging.error(e)
 
+    def bkg_lightcurve(self):
+
+        os.chdir(self.rgsdir)
+
+        #Sort RGS eventlists according to exposure number
+        pairs_events = sort_rgs_list(self.rgsevlists, 'expo_number')
+        self.npairs = len(pairs_events)
+
+        #Sort RGS sourcelists according to exposure number
+        pairs_srcli = sort_rgs_list(self.rgssrclists, 'expo_number')
+
+        for i in range(self.npairs):
+            
+            if len(pairs_events[i])==2:
+                expos0 = Exposure(pairs_events[i][0], pairs_srcli[i][0])
+                expos1 = Exposure(pairs_events[i][1], pairs_srcli[i][1])
+
+                if expos0.fullid not in self.discarded_expos:
+                    title_outputbkg0 = f"bkg{expos0.fullid}_check_rates.fit"
+                    select_bkg_cmmd0 = f"evselect table={expos0.evenli} timebinsize=1000 rateset={title_outputbkg0} makeratecolumn=yes maketimecolumn=yes expression='(CCDNR==9)&&(REGION({expos0.srcli}:{expos0.instrume}_BACKGROUND, M_LAMBDA, XDSP_CORR))'"
+                    status_cmmd0 = run_command(select_bkg_cmmd0)
+                    
+                    #back0_lc = f'dsplot table={title_outputbkg0} withx=yes x=TIME withy=yes y=RATE plotter="xmgrace -hardcopy -printfile {title_outputbkg0}.ps"'
+                    #plot0_status = run_command(back0_lc)
+                    
+                    data = fits.open(title_outputbkg0)
+                    x = data['RATE'].data['TIME']
+                    y = data['RATE'].data['RATE']               
+                    yerr = data['RATE'].data['ERROR']
+
+                    #Drop NaN values by making a numpy mask
+                    mask_nan = np.invert(np.isnan(y)) 
+                    x = x[mask_nan]
+                    y = y[mask_nan]
+                    yerr = yerr[mask_nan]
+                    
+                    #Store average rate into Observation attribute
+                    #avg_rate = np.mean(y)
+                        
+                    #Plot data and add labels and title
+                    fig = plt.figure(figsize=(20,10))
+                    ax = fig.add_subplot(1, 1, 1)
+                    plt.errorbar(x, y, yerr=yerr, color='black', marker='.', ecolor='gray')
+                    plt.grid(True)
+                    plt.title(title_outputbkg0, fontsize=30)
+                    plt.xlabel('TIME [s]', fontsize=25)
+                    plt.ylabel('RATE [count/s]', fontsize=25)
+                    plt.xticks(fontsize=20)
+                    plt.yticks(fontsize=20)
+
+                    #Save figure in rgs directory of the current Observation
+                    
+                    plt.savefig(f'{self.target_dir}/Products/Backgrnd_LC/{title_outputbkg0}.png')
+                    plt.close()
+
+                if expos1.fullid not in self.discarded_expos:
+                    title_outputbkg1 = f"bkg{expos1.fullid}_check_rates.fit"
+                    select_bkg_cmmd1 = f"evselect table={expos1.evenli} timebinsize=1000 rateset={title_outputbkg1} makeratecolumn=yes maketimecolumn=yes expression='(CCDNR==9)&&(REGION({expos1.srcli}:{expos1.instrume}_BACKGROUND, M_LAMBDA, XDSP_CORR))'"
+                    status_cmmd1 = run_command(select_bkg_cmmd1)
+
+                    #back1_lc = f'dsplot table={title_outputbkg1} withx=yes x=TIME withy=yes y=RATE plotter="xmgrace -hardcopy -printfile {title_outputbkg1}.ps"'
+                    #plot1_status = run_command(back1_lc)
+
+                    data = fits.open(title_outputbkg1)
+                    x = data['RATE'].data['TIME']
+                    y = data['RATE'].data['RATE']               
+                    yerr = data['RATE'].data['ERROR']
+
+                    #Drop NaN values by making a numpy mask
+                    mask_nan = np.invert(np.isnan(y)) 
+                    x = x[mask_nan]
+                    y = y[mask_nan]
+                    yerr = yerr[mask_nan]
+                    
+                    #Store average rate into Observation attribute
+                    #avg_rate = np.mean(y)
+                        
+                    #Plot data and add labels and title
+                    fig = plt.figure(figsize=(20,10))
+                    ax = fig.add_subplot(1, 1, 1)
+                    plt.errorbar(x, y, yerr=yerr, color='black', marker='.', ecolor='gray')
+                    plt.grid(True)
+                    plt.title(title_outputbkg1, fontsize=30)
+                    plt.xlabel('TIME [s]', fontsize=25)
+                    plt.ylabel('RATE [count/s]', fontsize=25)
+                    plt.xticks(fontsize=20)
+                    plt.yticks(fontsize=20)
+
+                    #Save figure in rgs directory of the current Observation
+                    
+                    plt.savefig(f'{self.target_dir}/Products/Backgrnd_LC/{title_outputbkg1}.png')
+                    plt.close()
+
+            elif len(pairs_events[i])==1:
+                expos0 = Exposure(pairs_events[i][0], pairs_srcli[i][0])
+
+                title_outputbkg0 = f"bkg{expos0.fullid}_check_rates.fit"
+                select_bkg_cmmd0 = f"evselect table={expos0.evenli} timebinsize=1000 rateset={title_outputbkg0} makeratecolumn=yes maketimecolumn=yes expression='(CCDNR==9)&&(REGION({expos0.srcli}:{expos0.instrume}_BACKGROUND, M_LAMBDA, XDSP_CORR))'"
+                status_cmmd0 = run_command(select_bkg_cmmd0)
+                
+                #back0_lc = f'dsplot table={title_outputbkg0} withx=yes x=TIME withy=yes y=RATE plotter="xmgrace -hardcopy -printfile {title_outputbkg0}.ps"'
+                #plot0_status = run_command(back0_lc)
+
+                data = fits.open(title_outputbkg0)
+                x = data['RATE'].data['TIME']
+                y = data['RATE'].data['RATE']               
+                yerr = data['RATE'].data['ERROR']
+
+                #Drop NaN values by making a numpy mask
+                mask_nan = np.invert(np.isnan(y)) 
+                x = x[mask_nan]
+                y = y[mask_nan]
+                yerr = yerr[mask_nan]
+                
+                #Store average rate into Observation attribute
+                #avg_rate = np.mean(y)
+                    
+                #Plot data and add labels and title
+                fig = plt.figure(figsize=(20,10))
+                ax = fig.add_subplot(1, 1, 1)
+                plt.errorbar(x, y, yerr=yerr, color='black', marker='.', ecolor='gray')
+                plt.grid(True)
+                plt.title(title_outputbkg0, fontsize=30)
+                plt.xlabel('TIME [s]', fontsize=25)
+                plt.ylabel('RATE [count/s]', fontsize=25)
+                plt.xticks(fontsize=20)
+                plt.yticks(fontsize=20)
+
+                #Save figure in rgs directory of the current Observation
+                
+                plt.savefig(f'{self.target_dir}/Products/Backgrnd_LC/{title_outputbkg0}.png')
+                plt.close()
+
     def fracvartest(self, screen=True, netlightcurve=True):
         """
         Reads the FITS file containing the RGS source and background timeseries produced by rgslccorr. 
@@ -388,7 +531,7 @@ class Observation:
                     raise IOError('\033[91m Keyword HDUCLASS missing in Input File. There could be a problem with the input FITS timeseries. \033[0m')
 
                 if 'HDUCLAS1' in header:
-                    if not header['HDUCLASS']=='LIGHTCURVE':
+                    if not header['HDUCLAS1']=='LIGHTCURVE':
                         raise ValueError('\033[91m HDUCLAS1 is not equal to LIGHTCURVE. \033[0m')
                 else:
                     raise IOError('\033[91m Keyword HDUCLAS1 missing in Input File. There could be a problem with the input FITS timeseries. \033[0m')
@@ -421,9 +564,6 @@ class Observation:
                 logging.error(e)
             except ValueError as e:
                 logging.error(e)
-
-
-            #and outside of GTIs.
 
             #Calculate Fractional Variability
             xs = excess_variance(rates, errrates, normalized=False)
