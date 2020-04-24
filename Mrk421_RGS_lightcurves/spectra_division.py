@@ -73,6 +73,8 @@ if __name__ == "__main__":
                 k += 1
         
     ## Spectra analysis with XSPEC
+    logFile = xspec.Xset.openLog("divided_spectra/XSPECLogFile.txt") #Create and open a log file for XSPEC
+    logFile = xspec.Xset.log
     spectra_table = Table(names=('ObsId', 'Instrument', 'Piece', 'Model', 'Parameters', 'Flux[erg/cm2/s]', 'Luminosity[e+44erg/s]'), dtype=('object', 'object', 'object', 'object', 'object', 'object', 'object'))
     os.chdir(f"{target_dir}/{observation}/rgs/divided_spectra")
     model_list = ['const*tbabs*zpowerlw', 'const*tbabs*zlogpar']
@@ -160,4 +162,6 @@ if __name__ == "__main__":
                 os.system('convert ' + filename + ' ' + pngfile)
 
             '''
-        break
+    # Close XSPEC's currently opened log file.
+    xspec.Xset.closeLog()
+    
