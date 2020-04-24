@@ -52,7 +52,7 @@ for model in model_list:
     #Define the model
     m = xspec.Model(model)
     if 'zlogpar' in m.componentNames:
-         m.zlogpar.Redshift = 0.3 #otherwise it is freezed to 0.
+         m.zlogpar.Redshift = 0.03 #otherwise it is freezed to 0.
 
     #Fit the model
     xspec.Fit.nIterations = 100
@@ -61,7 +61,7 @@ for model in model_list:
     
     #Calculate Flux and Luminosity
     xspec.AllModels.calcFlux('0, 1.9, err')
-    xspec.AllModels.calcLumin(', , 0.3, err')  #note: 0.3 is the redshift for Mrk421
+    xspec.AllModels.calcLumin(', , 0.03, err')  #note: 0.3 is the redshift for Mrk421
 
     #Plotting: set the device, set the axes and title and plot data
     xspec.Plot.device = f'{instr}_{model}.ps/cps'
