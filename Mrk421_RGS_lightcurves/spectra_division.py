@@ -97,7 +97,7 @@ if __name__ == "__main__":
         
         for model in model_list:
             m1 = xspec.Model(model)
-            m2 = xspec.AllModels(2)
+            m2 = xspec.AllModels(2) #Retrieve the model object assigned to data group 2
 
             #Freeze constant of RGS1 to 1 to account for calibration
             m1.constant.factor = 1
@@ -124,12 +124,15 @@ if __name__ == "__main__":
             xspec.Fit.criticalDelta = 1e-1
             xspec.Fit.query = 'yes'
             xspec.Fit.perform() 
-            xspec.Plot.device = f'{observation}_{model}_{i}.ps/cps'
+
+            #Plotting
+            xspec.Plot.splashPage = False   # XSPEC version and build data information will not be printed to the screen when the first plot window is initially opened
+            xspec.Plot.device = f'{observation}_{model}_{i}.gif/gif'
             xspec.Plot.xAxis = 'keV'
             xspec.Plot.setRebin(minSig=3, maxBins=4096) 
             xspec.Plot.addCommand(f'label top {observation} {model} Part {i}')
-            xspec.Plot('ldata res') 
-
+            xspec.Plot('ldata res model') 
+            
             #Calculate Flux and Luminosity and store their values 
             xspec.AllModels.calcFlux('0, , err')
             xspec.AllModels.calcLumin(f'0, , {target_redshift}, err') 
@@ -153,15 +156,6 @@ if __name__ == "__main__":
             spectra_table.add_row((observation,"RGS1+RGS2", i, m1.expression, str(parameter_dict), flux, lumin))
             ascii.write(table=spectra_table, output=f'spectra{observation}_table.csv', format='csv', overwrite=True)
             
-            
-            '''
-                #Convert ps to png
-                root = f'{observation}_{model}_{i}'
-                pngfile = root + '.png'
-                filename = f'{observation}_{model}_{i}.ps'
-                os.system('convert ' + filename + ' ' + pngfile)
-
-            '''
     # Close XSPEC's currently opened log file.
     xspec.Xset.closeLog()
     
