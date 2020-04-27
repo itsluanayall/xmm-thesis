@@ -105,11 +105,16 @@ if __name__ == "__main__":
         ## Spectra analysis with XSPEC
         
         logging.info(f"Starting spectral analysis with XSPEC for observation {observation}.")
-        xspec.Xset.chatter = 5
+        xspec.Xset.chatter = 10
         xspec.Xset.logChatter = 20
         logFile = xspec.Xset.openLog("divided_spectra/XSPECLogFile.txt") #Create and open a log file for XSPEC
         logFile = xspec.Xset.log
-        spectra_table = Table(names=('ObsId', 'Instrument', 'Piece', 'Model', 'Parameters', 'Flux[erg/cm2/s]', 'Luminosity[e+44erg/s]'), dtype=('object', 'object', 'object', 'object', 'object', 'object', 'object'))
+        spectra_table = Table(names=('ObsId', 'Instrument', 'Piece', 'Model',
+                                    'PhoIndex', 'PhoIndex_sigma', 'Alpha', 'Alpha_sigma', 'Beta', 'Beta_sigma',
+                                    'Flux[erg/cm2/s]', 'Flux_error_range',
+                                    'Luminosity[e+44erg/s]', 'Lumin_error_range',
+                                    'Fit_statistic'),
+                                    dtype=('object', 'object','object', 'object', 'object', 'object', 'object', 'object', 'object', 'object', 'object', 'object', 'object', 'object', 'object'))
         os.chdir(f"{target_dir}/{observation}/rgs/divided_spectra")
         model_list = ['const*tbabs*zpowerlw', 'const*tbabs*zlogpar']
 
@@ -174,23 +179,25 @@ if __name__ == "__main__":
                     xspec.AllModels.calcLumin(f'0, , {target_redshift}, err') 
                     flux = spectrum1.flux[0] #erg/cm2/s
                     lumin = spectrum1.lumin[0] #e+44 erg/s
+                    flux_range = f"{spectrum1.flux[1]} - {spectrum1.flux[2]}"
+                    lumin_range = f"{spectrum1.lumin[1]} - {spectrum1.lumin[2]}"
 
                     #Store parameter results of fit
                     if m1.expression=='constant*TBabs*zpowerlw':
                         phoindex = m1(3).values[0]
                         phoindex_sigma = m1(3).sigma
-                        parameter_dict = {"PhoIndex": phoindex, "PhoIndex_sigma": phoindex_sigma}
-                        print(parameter_dict)
+                        alpha, beta, alpha_sigma, beta_sigma = ('', '', '', '')
                     if m1.expression=='constant*TBabs*zlogpar':
                         alpha = m1(3).values[0]
                         beta = m1(4).values[0]
                         alpha_sigma = m1(3).sigma
                         beta_sigma = m1(4).sigma
-                        parameter_dict = {"Alpha": alpha, "Alpha_sigma": alpha_sigma, "Beta": beta, "Beta_sigma": beta_sigma}
-                        print(parameter_dict)
+                        phoindex, phoindex_sigma = ('', '')
+                    
+                    fit_statistic = xspec.Fit.statistic
 
                     #Save output table
-                    spectra_table.add_row((observation,"RGS1+RGS2", i, m1.expression, str(parameter_dict), flux, lumin))
+                    spectra_table.add_row((observation,"RGS1+RGS2", i, m1.expression, phoindex, phoindex_sigma, alpha, alpha_sigma, beta, beta_sigma, flux, flux_range, lumin, lumin_range, fit_statistic))
                     ascii.write(table=spectra_table, output=f'spectra{observation}_table.csv', format='csv', overwrite=True)
                     ascii.write(table=spectra_table, output=f'{target_dir}/Products/RGS_Spectra/{observation}/{observation}_table.csv', format='csv', overwrite=True)
 
