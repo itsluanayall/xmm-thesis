@@ -37,7 +37,7 @@ if __name__ == "__main__":
     if not os.path.isdir(f'{target_dir}/Products/RGS_Spectra'):
         os.makedirs(f'{target_dir}/Products/RGS_Spectra')
 
-    sample_observations = ['0099280301', '0411080101', '0502030101', '0658800701', '0791781201']
+    sample_observations = ['0099280301', '0411080101', '0502030101', '0658800701', '0791781201', '0411082701']
 
 
     for observation in sample_observations:
@@ -103,22 +103,23 @@ if __name__ == "__main__":
                     k += 1
             
         ## Spectra analysis with XSPEC
-        
-        logging.info(f"Starting spectral analysis with XSPEC for observation {observation}.")
-        xspec.Xset.chatter = 10
-        xspec.Xset.logChatter = 20
-        logFile = xspec.Xset.openLog("divided_spectra/XSPECLogFile.txt") #Create and open a log file for XSPEC
-        logFile = xspec.Xset.log
-        spectra_table = Table(names=('ObsId', 'Instrument', 'Piece', 'Model',
-                                    'PhoIndex', 'PhoIndex_sigma', 'Alpha', 'Alpha_sigma', 'Beta', 'Beta_sigma',
-                                    'Flux[erg/cm2/s]', 'Flux_error_range',
-                                    'Luminosity[e+44erg/s]', 'Lumin_error_range',
-                                    'Fit_statistic'),
-                                    dtype=('object', 'object','object', 'object', 'object', 'object', 'object', 'object', 'object', 'object', 'object', 'object', 'object', 'object', 'object'))
-        os.chdir(f"{target_dir}/{observation}/rgs/divided_spectra")
-        model_list = ['const*tbabs*zpowerlw', 'const*tbabs*zlogpar']
-
         if not glob.glob(f'{target_dir}/Products/RGS_Spectra/{observation}/*.gif'):
+            
+            logging.info(f"Starting spectral analysis with XSPEC for observation {observation}.")
+            xspec.Xset.chatter = 10
+            xspec.Xset.logChatter = 20
+            logFile = xspec.Xset.openLog("divided_spectra/XSPECLogFile.txt") #Create and open a log file for XSPEC
+            logFile = xspec.Xset.log
+            spectra_table = Table(names=('ObsId', 'Instrument', 'Piece', 'Model',
+                                        'PhoIndex', 'PhoIndex_sigma', 'Alpha', 'Alpha_sigma', 'Beta', 'Beta_sigma',
+                                        'Flux[erg/cm2/s]', 'Flux_error_range',
+                                        'Luminosity[e+44erg/s]', 'Lumin_error_range',
+                                        'Fit_statistic'),
+                                        dtype=('object', 'object','object', 'object', 'object', 'object', 'object', 'object', 'object', 'object', 'object', 'object', 'object', 'object', 'object'))
+            os.chdir(f"{target_dir}/{observation}/rgs/divided_spectra")
+            model_list = ['const*tbabs*zpowerlw', 'const*tbabs*zlogpar']
+
+        
             for i in range(1, n_intervals+1):
 
                 #Load RGS1 + RGS2 data
@@ -174,6 +175,48 @@ if __name__ == "__main__":
                     xspec.Plot('ldata res model') 
                     os.rename(f"{target_dir}/{observation}/rgs/divided_spectra/{observation}_{model}_{i}.gif" , f"{target_dir}/Products/RGS_Spectra/{observation}/{observation}_{model}_{i}.gif")
                     
+                    #use matplotlib 
+                    chans1 = xspec.Plot.x(1)
+                    chans1_err = xspec.Plot.xErr(1)
+                    rates1 = xspec.Plot.y(1)
+                    rates1_err = xspec.Plot.yErr(1)
+                    chans2 = xspec.Plot.x(2)
+                    chans2_err = xspec.Plot.xErr(2)
+                    rates2 = xspec.Plot.y(2)
+                    rates2_err = xspec.Plot.yErr(2)
+                    
+                    folded1 = xspec.Plot.model(1)
+                    folded2 = xspec.Plot.model(2)
+                    fig = plt.figure(figsize=(15,10))
+
+                    ax1 = plt.subplot(211)
+                    plt.errorbar(chans1, rates1, yerr=rates1_err, xerr=chans1_err, label='RGS1')
+                    plt.errorbar(chans2, rates2, yerr=rates2_err, xerr=chans2_err, label='RGS2')
+                    plt.yscale('log')
+                    plt.xscale('log')
+                    plt.ylim(1e-7, 150)
+                    plt.title(f"{observation} {model} Part {i}", fontsize=30)
+                    plt.xlabel('Energy [keV]', fontsize=17)
+                    plt.ylabel('Normalized counts [s-1 keV-1]', fontsize=17)
+                    ax1.legend(loc='lower right', fontsize='x-large')
+
+                    ax2 = plt.subplot(212, sharex=ax1)
+                    plt.title('Residuals', fontsize=30)
+                    rates1_array = np.array(rates1)
+                    rates2_array = np.array(rates2)
+                    folded1_array = np.array(folded1)
+                    folded2_array = np.array(folded2)
+                    res1 = rates1_array - folded1_array
+                    res2 = rates2_array - folded2_array
+                    plt.errorbar(chans1, res1, yerr=rates1_err, linestyle='', label='RGS1')
+                    plt.errorbar(chans2, res2, yerr=rates2_err, linestyle='', label='RGS2')
+                    plt.hlines(0, plt.xlim()[0], plt.xlim()[1], color='m')
+                    plt.xlabel('Energy [keV]', fontsize=17)
+                    plt.ylabel('Normalized counts [s-1 keV-1]', fontsize=17)
+                    ax2.legend(loc='lower right', fontsize='x-large')
+                    plt.tight_layout(pad=4.0)
+                    plt.savefig(f"{target_dir}/{observation}/rgs/divided_spectra/{observation}_{model}_{i}.png")
+
                     #Calculate Flux and Luminosity and store their values 
                     xspec.AllModels.calcFlux('0, , err')
                     xspec.AllModels.calcLumin(f'0, , {target_redshift}, err') 
