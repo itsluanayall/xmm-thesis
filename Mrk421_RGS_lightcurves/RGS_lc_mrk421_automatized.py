@@ -65,11 +65,16 @@ if __name__ == "__main__":
     obs_table = Table(names=('ObsId', 'RevolutionId', 'Start', 'End', 'Duration[s]', 'RGS_Rate[count/s]', 'Discarded_Exposures', 'Fractional_Variability', 'Excess_Variance', 'Norm_excess_variance'), 
                     dtype=('object', 'object', 'object', 'object', 'object', 'object', 'object', 'object', 'object', 'object'))
     counter = 0
-
+    mrk421_problematic_obs = ['0411082701', '0136540701', '0658802001']
+    
     for obsid in os.listdir(target_dir):
         
         if obsid.startswith('0'):   #All observation folders start with 0
             print('----------------')
+            if obsid in mrk421_problematic_obs:
+                print('This observation is triky. Please analyse individually. Moving forward to next observation.')
+                print('----------------')
+                continue
             obs = Observation(obsid=obsid, target_dir=target_dir)   #instance of the observation
             mrk421_observation_list.append(obs)
             
@@ -126,7 +131,7 @@ if __name__ == "__main__":
             
     '''
     #For a single observation
-    obs = Observation(obsid='0162960101', target_dir=target_dir)   #instance of the observation
+    obs = Observation(obsid='0658802001', target_dir=target_dir)   #instance of the observation
     
     
     #Process each observation

@@ -1,7 +1,6 @@
 """
 Spectra Division Doc. To complete.
 """
-
 import os
 from astropy.io import fits, ascii
 from tools import *
@@ -216,7 +215,8 @@ if __name__ == "__main__":
                     ax2.legend(loc='lower right', fontsize='x-large')
                     plt.tight_layout(pad=4.0)
                     plt.savefig(f"{target_dir}/{observation}/rgs/divided_spectra/{observation}_{model}_{i}.png")
-
+                    plt.close()
+                    
                     #Calculate Flux and Luminosity and store their values 
                     xspec.AllModels.calcFlux('0, , err')
                     xspec.AllModels.calcLumin(f'0, , {target_redshift}, err') 

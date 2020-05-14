@@ -28,7 +28,11 @@ class Exposure:
             self.expid = str(hdul[1].header['EXP_ID']).split(self.obsid)[1]
             self.fullid = hdul[1].header['EXP_ID']
             self.instrume = hdul[1].header['INSTRUME']
+            self.tstart = hdul[1].header['TSTART']
+            self.tstop = hdul[1].header['TSTOP']
+            self.telapse = hdul[1].header['TELAPSE']
 
+            '''
             #Extrapolate start time and date. 
             start_date_str = hdul[1].header['DATE-OBS']
             end_date_str = hdul[1].header['DATE-END']
@@ -40,6 +44,22 @@ class Exposure:
             self.end_exp = end_exp.timestamp()
             self.start_exp = start_exp.timestamp()
             self.duration_exp = duration_exp.total_seconds()
+            '''
+
+    def synchronous_times(self, exp2):
+        """
+        """
+        final_start = max(self.tstart, exp2.tstart)
+        final_stop = min(self.tstop, exp2.tstop)
+        overlap = max(0., final_stop-final_start)
+        try:
+            if overlap>0:
+                return final_start, final_stop
+            else:
+                raise Exception
+        except Exception as e:
+            logging.error("The given exposures do not overlap. Please check the if the input exposures are correct.")
+
 
     def overlaps_with(self, exp2):
         """
@@ -54,7 +74,7 @@ class Exposure:
         diff = abs(overlap - max_duration)
         diff_percent = (diff/max_duration)*100
 
-        print(f'Non-overlapping time percentage: {diff_percent}%')
+        logging.info(f'Non-overlapping time percentage: {diff_percent}%')
         if diff_percent>10: #Arbitrary value
             return False
         else:
@@ -215,42 +235,47 @@ class Observation:
         """
         Runs the rgslccorr SAS command for each pair (RGS1+RGS2) of exposures present in the observation.
         The products are the lightcurves .ds files.
-        It can occur that the exposures do not come in pairs (RGS1+RGS2): in this case 
-        the rgslccorr command takes as argument only one event list (either RGS1 or RGS2).
         """
         os.chdir(self.rgsdir)
-
+        
         #Sort RGS eventlists according to exposure number
         pairs_events = sort_rgs_list(self.rgsevlists, 'expo_number')
+        if self.obsid=='0510610101':
+            pairs_events = [['P0510610101R1S004EVENLI0000.FIT', 'P0510610101R2S005EVENLI0000.FIT'], ['P0510610101R1S004EVENLI0000.FIT', 'P0510610101R2S013EVENLI0000.FIT']]
+        if self.obsid=='0510610201':
+            pairs_events = [['P0510610201R1S004EVENLI0000.FIT', 'P0510610201R2S005EVENLI0000.FIT'], ['P0510610201R1S015EVENLI0000.FIT', 'P0510610201R2S005EVENLI0000.FIT']]
+        
         self.npairs = len(pairs_events)
         logging.info(f'There is(are) {self.npairs} set(s) of exposures for observation {self.obsid}.')
+        print(pairs_events)
 
         #Sort RGS sourcelists according to exposure number
         pairs_srcli = sort_rgs_list(self.rgssrclists, 'expo_number')
+        if self.obsid=='0510610101':
+            pairs_srcli = [['P0510610101R1S004SRCLI_0000.FIT', 'P0510610101R2S005SRCLI_0000.FIT'], ['P0510610101R1S004SRCLI_0000.FIT', 'P0510610101R2S013SRCLI_0000.FIT']]
+        if self.obsid=='0510610201':
+            pairs_srcli = [['P0510610201R1S004SRCLI_0000.FIT', 'P0510610201R2S005SRCLI_0000.FIT'], ['P0510610201R1S015SRCLI_0000.FIT', 'P0510610201R2S005SRCLI_0000.FIT']]
 
-        if not glob.glob('*_RGS_rates.ds'):    #If the lightcurves haven't already been generated
+        if self.obsid=='0510610201':#not glob.glob('*_RGS_rates.ds'):    #If the lightcurves haven't already been generated
             
             for i in range(self.npairs):
-                    
-                if len(pairs_events[i])==2:
-                    #Making the lightcurve for RGS1+RGS2 pairs
-                    expos0 = Exposure(pairs_events[i][0], pairs_srcli[i][0])
-                    expos1 = Exposure(pairs_events[i][1], pairs_srcli[i][1])
+                
+                #Making the lightcurve for RGS1+RGS2 pairs
+                expos0 = Exposure(pairs_events[i][0], pairs_srcli[i][0])
+                expos1 = Exposure(pairs_events[i][1], pairs_srcli[i][1])
 
-                    #Make sure exposure times overlap
-                    if expos0.overlaps_with(expos1):   
-                        logging.info(f"Running rgslccorr SAS command for observation number {self.obsid} and exposures {expos0.expid}, {expos1.expid} ...")
-                        rgslc_command = f"rgslccorr evlist='{expos0.evenli} {expos1.evenli}' srclist='{expos0.srcli} {expos1.srcli}' withbkgsubtraction=yes timebinsize=1000 orders='1' sourceid=3 outputsrcfilename={self.obsid}_{expos0.expid}+{expos1.expid}_RGS_rates.ds outputbkgfilename={self.obsid}_{expos0.expid}+{expos1.expid}_bkg_rates.ds"
-                        status_rgslc = run_command(rgslc_command)
-                    else:   #if the exposures do not overlap at least for 90% of their duration
-                        logging.error(f"Exposures {expos0.expid}, {expos1.expid} do not overlap entirely.")
-                        status_rgslc = 1
-                        
+                #Make sure exposure times overlap
+                start_time, stop_time = expos0.synchronous_times(expos1)
+                logging.info(f"Running rgslccorr SAS command for observation number {self.obsid} and exposures {expos0.expid}, {expos1.expid} ...")
+                rgslc_command = f"rgslccorr evlist='{expos0.evenli} {expos1.evenli}' srclist='{expos0.srcli} {expos1.srcli}' withbkgsubtraction=yes timebinsize=1000 timemin={start_time} timemax={stop_time} orders='1' sourceid=3 outputsrcfilename={self.obsid}_{expos0.expid}+{expos1.expid}_RGS_rates.ds outputbkgfilename={self.obsid}_{expos0.expid}+{expos1.expid}_bkg_rates.ds"
+                status_rgslc = run_command(rgslc_command)
+                '''       
                 elif len(pairs_events[i])==1:
                     #Making the lightcurve for single RGS
                     logging.info(f"Running rgslccorr SAS command for observation number {self.obsid} and exposure {split_rgs_filename(pairs_events[i][0])['expo_number']} ...")
                     rgslc_command = f"rgslccorr evlist='{pairs_events[i][0]}' srclist='{pairs_srcli[i][0]}' withbkgsubtraction=yes timebinsize=1000 orders='1' sourceid=3 outputsrcfilename={self.obsid}_{split_rgs_filename(pairs_events[i][0])['expo_number']}_RGS_rates.ds outputbkgfilename={self.obsid}_{split_rgs_filename(pairs_events[i][0])['expo_number']}_bkg_rates.ds"
                     status_rgslc = run_command(rgslc_command)
+                '''
 
                 #If an error occurred try running on separate exposures rgslccorr
                 if status_rgslc!=0:
@@ -275,7 +300,7 @@ class Observation:
                 #If no errors occurred, print to stdio success message
                 else:
                     logging.info(f'RGS lightcurves successfully extracted.')
-                
+        '''
         else:   #if the Lightcurves have already beeen extracted
             # Keep track of discarded exposures
             for i in range(self.npairs):
@@ -287,8 +312,10 @@ class Observation:
                     if not expos0.overlaps_with(expos1):   
                             if expos0.longer_than(expos1):
                                 self.discarded_expos.append(expos1.fullid)
-
-            logging.info(f'Lightcurves already extracted.')
+        '''
+       
+        
+        logging.info(f'Lightcurves already extracted.')
             
 
     def lightcurve(self, use_grace=False):
@@ -331,9 +358,6 @@ class Observation:
                     #Store average rate into Observation attribute
                     avg_rate = np.mean(y)
                     stdev_rate = np.std(y, ddof=1)
-                    if self.npairs!=0:
-                        self.rgsrate.append(round(float(avg_rate), 2))
-                        self.stdev.append(stdev_rate)
                         
                     #Plot data and add labels and title
                     fig = plt.figure(figsize=(20,10))
@@ -348,7 +372,7 @@ class Observation:
                     plt.yticks(fontsize=20)
 
                     #Plot average rate and legend
-                    plt.hlines(avg_rate, plt.xlim()[0], plt.xlim()[1] ,colors='red', label=f'Average rate: {avg_rate: .2f} [count/s] \n Stdev: {stdev_rate:.2f} [count/s]')
+                    plt.hlines(avg_rate, plt.xlim()[0], plt.xlim()[1] ,colors='red', label=f'Average rate: {avg_rate: .2f} [ct/s] \n Stdev: {stdev_rate:.2f} [ct/s]')
                     ax.legend(loc='lower right', fontsize='x-large')
 
                     #Save figure in rgs directory of the current Observation
