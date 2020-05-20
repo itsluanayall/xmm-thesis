@@ -31,12 +31,10 @@ class Exposure:
             self.tstart = hdul[1].header['TSTART']
             self.tstop = hdul[1].header['TSTOP']
             self.telapse = hdul[1].header['TELAPSE']
+            self.start_date_str = hdul[1].header['DATE-OBS']
+            self.end_date_str = hdul[1].header['DATE-END']
 
             '''
-            #Extrapolate start time and date. 
-            start_date_str = hdul[1].header['DATE-OBS']
-            end_date_str = hdul[1].header['DATE-END']
-
             start_exp = dt.strptime(start_date_str, "%Y-%m-%dT%H:%M:%S")
             end_exp = end_date = dt.strptime(end_date_str, "%Y-%m-%dT%H:%M:%S")
             duration_exp = end_exp - start_exp
@@ -52,6 +50,7 @@ class Exposure:
         final_start = max(self.tstart, exp2.tstart)
         final_stop = min(self.tstop, exp2.tstop)
         overlap = max(0., final_stop-final_start)
+
         try:
             if overlap>0:
                 return final_start, final_stop
@@ -59,36 +58,6 @@ class Exposure:
                 raise Exception
         except Exception as e:
             logging.error("The given exposures do not overlap. Please check the if the input exposures are correct.")
-
-
-    def overlaps_with(self, exp2):
-        """
-        Method that returns True if the Exposure's operating time overlaps
-        at least 90% with another exposure exp2.
-        """
-        #Define overlapping interval of the two exposures
-        overlap = max(0., min(self.end_exp, exp2.end_exp) - max(self.start_exp, exp2.start_exp))
-        #Save the longest duration  
-        max_duration = max(self.duration_exp, exp2.duration_exp) 
-        #Calculate the non-overlapping interval 
-        diff = abs(overlap - max_duration)
-        diff_percent = (diff/max_duration)*100
-
-        logging.info(f'Non-overlapping time percentage: {diff_percent}%')
-        if diff_percent>10: #Arbitrary value
-            return False
-        else:
-            return True
-
-    def longer_than(self, exp2):
-        """
-        Method that returns True if self.duration is longer than exposure2's duration.
-        """
-        max_duration = max(self.duration_exp, exp2.duration_exp)
-        if max_duration == self.duration_exp:
-            return True
-        else: 
-            return False
 
 
 class Observation:
@@ -116,8 +85,9 @@ class Observation:
         self.duration = 0.
         self.rgsrate = []
         self.stdev = []
-        self.discarded_expos = []
         self.fracvardict = []
+        self.expoid = []
+        self.longterm_lc_times = []
 
     @property
     def target_dir(self):
@@ -256,69 +226,36 @@ class Observation:
         if self.obsid=='0510610201':
             pairs_srcli = [['P0510610201R1S004SRCLI_0000.FIT', 'P0510610201R2S005SRCLI_0000.FIT'], ['P0510610201R1S015SRCLI_0000.FIT', 'P0510610201R2S005SRCLI_0000.FIT']]
 
-        if self.obsid=='0510610201':#not glob.glob('*_RGS_rates.ds'):    #If the lightcurves haven't already been generated
+        if True:#not glob.glob('*_RGS_rates.ds'):    #If the lightcurves haven't already been generated
             
             for i in range(self.npairs):
                 
                 #Making the lightcurve for RGS1+RGS2 pairs
                 expos0 = Exposure(pairs_events[i][0], pairs_srcli[i][0])
                 expos1 = Exposure(pairs_events[i][1], pairs_srcli[i][1])
-
+                self.expoid.append([expos0.expid, expos1.expid])
+                
                 #Make sure exposure times overlap
                 start_time, stop_time = expos0.synchronous_times(expos1)
+
+                '''
                 logging.info(f"Running rgslccorr SAS command for observation number {self.obsid} and exposures {expos0.expid}, {expos1.expid} ...")
                 rgslc_command = f"rgslccorr evlist='{expos0.evenli} {expos1.evenli}' srclist='{expos0.srcli} {expos1.srcli}' withbkgsubtraction=yes timebinsize=1000 timemin={start_time} timemax={stop_time} orders='1' sourceid=3 outputsrcfilename={self.obsid}_{expos0.expid}+{expos1.expid}_RGS_rates.ds outputbkgfilename={self.obsid}_{expos0.expid}+{expos1.expid}_bkg_rates.ds"
                 status_rgslc = run_command(rgslc_command)
-                '''       
-                elif len(pairs_events[i])==1:
-                    #Making the lightcurve for single RGS
-                    logging.info(f"Running rgslccorr SAS command for observation number {self.obsid} and exposure {split_rgs_filename(pairs_events[i][0])['expo_number']} ...")
-                    rgslc_command = f"rgslccorr evlist='{pairs_events[i][0]}' srclist='{pairs_srcli[i][0]}' withbkgsubtraction=yes timebinsize=1000 orders='1' sourceid=3 outputsrcfilename={self.obsid}_{split_rgs_filename(pairs_events[i][0])['expo_number']}_RGS_rates.ds outputbkgfilename={self.obsid}_{split_rgs_filename(pairs_events[i][0])['expo_number']}_bkg_rates.ds"
-                    status_rgslc = run_command(rgslc_command)
-                '''
+              
 
                 #If an error occurred try running on separate exposures rgslccorr
                 if status_rgslc!=0:
                     print(f'\033[91m An error has occurred running rgslccorr for observation {self.obsid}! \033[0m')
-
-                    if len(pairs_events[i])==2:
-                        print(f'\033[91m Will try to run rgslccorr with a single exposure (the longest). \033[0m')
-                        if expos0.longer_than(expos1):
-                            logging.info(f"Discarding exposure {expos1.expid} and running rgslccorr SAS command for observation number {self.obsid} and exposure {expos0.expid} ...")
-                            self.discarded_expos.append(expos1.fullid)
-                            rgslc_command2 = f"rgslccorr evlist='{expos0.evenli}' srclist='{expos0.srcli}' withbkgsubtraction=yes timebinsize=1000 orders='1' sourceid=3 outputsrcfilename={self.obsid}_{expos0.expid}_RGS_rates.ds outputbkgfilename={self.obsid}_{expos0.expid}_bkg_rates.ds"
-                            status_rgslc2 = run_command(rgslc_command2)
-                        else:
-                            logging.info(f"Discarding exposure {expos0.expid} and running rgslccorr SAS command for observation number {self.obsid} and exposure {expos1.expid} ...")
-                            self.discarded_expos.append(expos0.fullid)
-                            rgslc_command2 = f"rgslccorr evlist='{expos1.evenli}' srclist='{expos1.srcli}' withbkgsubtraction=yes timebinsize=1000 orders='1' sourceid=3 outputsrcfilename={self.obsid}_{expos1.expid}_RGS_rates.ds outputbkgfilename={self.obsid}_{expos1.expid}_bkg_rates.ds"
-                            status_rgslc2 = run_command(rgslc_command2)
-
-                    if status_rgslc2==0:
-                        print(f'\33[32m Error solved for {self.obsid}! \033[0m ')
-                        logging.info(f"RGS lightcurves extracted.")
+                
                 #If no errors occurred, print to stdio success message
                 else:
                     logging.info(f'RGS lightcurves successfully extracted.')
-        '''
-        else:   #if the Lightcurves have already beeen extracted
-            # Keep track of discarded exposures
-            for i in range(self.npairs):
-                if len(pairs_events[i])==2:
-                    
-                    expos0 = Exposure(pairs_events[i][0], pairs_srcli[i][0])
-                    expos1 = Exposure(pairs_events[i][1], pairs_srcli[i][1])
-
-                    if not expos0.overlaps_with(expos1):   
-                            if expos0.longer_than(expos1):
-                                self.discarded_expos.append(expos1.fullid)
-        '''
-       
-        
+                '''
         logging.info(f'Lightcurves already extracted.')
             
 
-    def lightcurve(self, use_grace=False):
+    def lightcurve(self, mjdref, use_grace=False):
         """
         Makes the lightcurve plot and saves it in the rgs directory of the current observation
         The user here has two options: you can either save the lightcurve using the dsplot command
@@ -327,6 +264,7 @@ class Observation:
         You can choose the desired option setting the USE_GRACE boolean in the config.json file.
         """
         os.chdir(self.rgsdir)
+
 
         for filename in glob.glob('*_RGS_rates.ds'):
             output_name = filename
@@ -356,14 +294,23 @@ class Observation:
                     yerr = yerr[mask_nan]
                     
                     #Store average rate into Observation attribute
+                    self.rgsrate.append(np.mean(y))
+                    
                     avg_rate = np.mean(y)
                     stdev_rate = np.std(y, ddof=1)
-                        
+                    avg_time = np.mean((x[0], x[-1]))
+
+                    #Conversion in MJD (note that 86400 are the seconds in one day)
+                    avg_time_mjd = mjdref + (avg_time/86400.0)
+
+                    self.longterm_lc_times.append(avg_time_mjd)
+
+
                     #Plot data and add labels and title
                     fig = plt.figure(figsize=(20,10))
                     ax = fig.add_subplot(1, 1, 1)
                     plt.errorbar(x, y, yerr=yerr, color='black', marker='.', ecolor='gray', 
-                                label=f'RGS Lightcurve ObsId {self.obsid} \n Start: {self.starttime} \n End: {self.endtime}')
+                                label=f'RGS Lightcurve ObsId {self.obsid} ')
                     plt.grid(True)
                     plt.title(output_name, fontsize=30)
                     plt.xlabel('TIME [s]', fontsize=25)
@@ -587,15 +534,18 @@ class Observation:
             except ValueError as e:
                 logging.error(e)
 
-            #Calculate Fractional Variability
+            #Calculate Variability parameters and respective errors
             xs, err_xs = excess_variance(rates, errrates, normalized=False)
             nxs, err_nxs = excess_variance(rates, errrates, normalized=True)
             f_var, err_fvar = fractional_variability(rates, errrates, backv, backe, netlightcurve=netlightcurve)
-            
+            va = (max(rates) - min(rates))/ (min(rates))
+            err_va = va* ( (errrates[rates.argmax()] + errrates[rates.argmin()])/(max(rates) - min(rates)) +  (errrates[rates.argmin()] / min(rates) ))
+
             logging.info(f'Do you want to carry out the fractional varability amplitude test on the net lightcurve? {netlightcurve}.')
             self.fracvardict.append({"Excess variance": xs, "Excess variance error": err_xs, "Normalized excess variance": nxs,
                                 "Normalized excess variance error": err_nxs, "Fractional Variability": f_var, 
                                 "Fractional Variability Error": err_fvar,
+                                "Variability Amplitude": va, "Variability amplitude error": err_va,
                                 "Number of non null data points": numnonnull})
             
             #Write variability test results into header and/or to screen.

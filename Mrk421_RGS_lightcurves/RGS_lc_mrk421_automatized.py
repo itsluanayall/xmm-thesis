@@ -44,6 +44,7 @@ if __name__ == "__main__":
     version = CONFIG['version']
     sas_dir = CONFIG['sas_dir']
     ccf_dir = CONFIG['ccf_dir']
+    mjdref = CONFIG['MJDREF']
     target_dir = CONFIG['target_dir']
     use_grace = CONFIG['use_grace']
     logging.info(f'MRK421 Analysis - version:{version}')
@@ -62,8 +63,14 @@ if __name__ == "__main__":
     #Loop analysis for each observation
     #nobs = len(os.listdir(target_dir))
     mrk421_observation_list = []
-    obs_table = Table(names=('ObsId', 'RevolutionId', 'Start', 'End', 'Duration[s]', 'RGS_Rate[count/s]', 'Discarded_Exposures', 'Fractional_Variability', 'Excess_Variance', 'Norm_excess_variance'), 
-                    dtype=('object', 'object', 'object', 'object', 'object', 'object', 'object', 'object', 'object', 'object'))
+    obs_table = Table(names=('ObsId', 'RevolutionId', 'ExposureID', 'Start', 
+                            'End', 'Duration_Obs[s]', 'RGS_Rate[count/s]', 'MJD_avg_time',
+                            'F_var', 'F_var_sigma', 'Excess_Variance', 
+                             'xs_sigma',   'Norm_excess_variance', 'nxs_sigma', 'VA', 'VA_sigma'), 
+                    dtype=('object', 'object', 'object', 'object',
+                            'object', 'object', 'object', 'object',
+                            'object', 'object', 'object', 
+                            'object', 'object', 'object', 'object', 'object'))
     counter = 0
     mrk421_problematic_obs = ['0411082701', '0136540701', '0658802001']
     
@@ -72,7 +79,7 @@ if __name__ == "__main__":
         if obsid.startswith('0'):   #All observation folders start with 0
             print('----------------')
             if obsid in mrk421_problematic_obs:
-                print('This observation is triky. Please analyse individually. Moving forward to next observation.')
+                print('This observation is tricky. Please analyse individually. Moving forward to next observation.')
                 print('----------------')
                 continue
             obs = Observation(obsid=obsid, target_dir=target_dir)   #instance of the observation
@@ -83,43 +90,34 @@ if __name__ == "__main__":
             obs.odfingest()
             obs.rgsproc()
             obs.rgslccorr()
-            obs.lightcurve(use_grace=use_grace)
+            obs.lightcurve(mjdref=mjdref, use_grace=use_grace)
             obs.fracvartest(screen=True)
+
+            
             #obs.bkg_lightcurve()
 
             #Save attributes of observable into a table
-            try:
-                rgsrates = ""
-                fracvar_str = ""
-                xs_str = ""
-                nxs_str = ""
-                for el in obs.rgsrate:
-                    rgsrates += f"{el},"
-                rgsrates = rgsrates[:-1]
+        
+            if len(obs.rgsrate)==0:
+                obs_table.add_row((str(obs.obsid), str(obs.revolution),  "None" , str(obs.starttime), str(obs.endtime), str(int(obs.duration)),
+                                None, None, None, None,
+                                None , None,
+                                None, None, None, None))
 
-                for el in obs.fracvardict:
-                    str_var = f"{el.get('Fractional Variability'):.4f} +- {el.get('Fractional Variability Error'):.4f} "
-                    str_xs = f"{el.get('Excess variance'):.4f} +- {el.get('Excess variance error'):.4f}"
-                    str_nxs = f"{el.get('Normalized excess variance'):.4f} +- {el.get('Normalized excess variance error'):.4f}"
+            else:
+                obs_table.add_row((str(obs.obsid), str(obs.revolution),  f"{obs.expoid[0][0]}+{obs.expoid[0][1]}" , str(obs.starttime), str(obs.endtime), str(int(obs.duration)),
+                                obs.rgsrate[0], obs.longterm_lc_times[0], obs.fracvardict[0].get('Fractional Variability'), obs.fracvardict[0].get('Fractional Variability Error'),
+                                obs.fracvardict[0].get('Excess variance'),obs.fracvardict[0].get('Excess variance error'),
+                                obs.fracvardict[0].get('Normalized excess variance'), obs.fracvardict[0].get('Normalized excess variance error'),
+                                obs.fracvardict[0].get('Variability Amplitude'), obs.fracvardict[0].get('Variability amplitude error')))
+                if len(obs.rgsrate)>1:
+                    obs_table.add_row((str(obs.obsid), str(obs.revolution),  f"{obs.expoid[1][0]}+{obs.expoid[1][1]}" , str(obs.starttime), str(obs.endtime), str(int(obs.duration)),
+                                        obs.rgsrate[1], obs.longterm_lc_times[1], obs.fracvardict[1].get('Fractional Variability'), obs.fracvardict[1].get('Fractional Variability Error'),
+                                        obs.fracvardict[1].get('Excess variance'),obs.fracvardict[1].get('Excess variance error'),
+                                        obs.fracvardict[1].get('Normalized excess variance'), obs.fracvardict[1].get('Normalized excess variance error'),
+                                        obs.fracvardict[1].get('Variability Amplitude'), obs.fracvardict[1].get('Variability amplitude error')))
 
-                    fracvar_str += f"{str_var},"
-                    xs_str += f"{str_xs},"
-                    nxs_str += f"{str_nxs},"
-
-                fracvar_str = fracvar_str[:-1]
-                xs_str = xs_str[:-1]
-                nxs_str = nxs_str[:-1]
-                discarded_expos_str = ', '.join(obs.discarded_expos)
-
-            except TypeError as e:
-                logging.error(e)
-                fracvar_str = 'None'
-                discarded_expos_str = 'None'
-
-            #Write observation info into w csv table row
-            obs_table.add_row((str(obs.obsid), str(obs.revolution), str(obs.starttime), str(obs.endtime), str(int(obs.duration)),
-                             rgsrates,  discarded_expos_str, fracvar_str, xs_str, nxs_str ))
-
+            
             #Keep track of number of observations that have been processed so far
             counter += 1
             logging.info(f'Processed {counter} observations!')

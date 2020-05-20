@@ -119,6 +119,11 @@ def excess_variance(rates, errrates, normalized=True):
     """
     Calculates the excess variance from the rates given as argument. 
     If normalized = True, the function returns the normalized excess variance and its error.
+    
+    :param rates: rate lightcurve [ct/s]
+    :param errrates: error on rates
+    :param normalized: if set to True, returns the normalized excess variance otherwise returns the excess variance.
+
     """
     try:
         mean = np.mean(rates)
@@ -127,13 +132,15 @@ def excess_variance(rates, errrates, normalized=True):
     except ValueError as e:
         loggng.error(e)
 
-    variance = np.var(rates, ddof=1)
+    #Calculation of excess variance beginning from the rates (definitions taken from Aggrawal et al., 2018)
+    variance = np.var(rates, ddof=1)     #variance
     N = len(rates)
-    mse = np.mean(np.square(errrates))
-    xs = variance - mse
-    nxs = xs/(np.square(mean))
-    f_var = np.sqrt(nxs)
+    mse = np.mean(np.square(errrates))   #mean square error
+    xs = variance - mse                 #excess variance
+    nxs = xs/(np.square(mean))          #normalized excess variance
+    f_var = np.sqrt(nxs)                #fractional variability
 
+    # Errors on excess variance (taken from Aggrawal et al., 2018)
     err_xs = np.sqrt(2*np.square(mse)/N + 4*mse*np.square(xs)/N)
     err_nxs = np.sqrt( np.square(np.sqrt(2/N)*mse/np.square(mean)) + np.square(np.sqrt(mse/N) *2*f_var/mean) )
     
@@ -147,6 +154,12 @@ def fractional_variability(rates, errrates, backv, backe, netlightcurve=True):
     Returns the fractional variability and its error given the rates and error rates as arguments.
     The fractional variability is the root square of excess variance, so if the excess variance is negative,
     the functions sets the fractional variability and its error automatically to -1.
+
+    :param rates: rate lightcurve [ct/s]
+    :param errrates: error on rates
+    :param backv: background rate lightcurve
+    :param backe: errors on background  rate
+    :param netlightcurve: if set to True, consider the net lightcurve, if set to False consider the total (source+background) lightcurve
     """
     if netlightcurve:
         nxs, err_nxs = excess_variance(rates, errrates, True)
