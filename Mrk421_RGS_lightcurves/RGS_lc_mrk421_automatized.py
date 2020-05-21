@@ -64,7 +64,7 @@ if __name__ == "__main__":
     #nobs = len(os.listdir(target_dir))
     mrk421_observation_list = []
     obs_table = Table(names=('ObsId', 'RevolutionId', 'ExposureID', 'Start', 
-                            'End', 'Duration_Obs[s]', 'RGS_Rate[count/s]',
+                            'End', 'Duration_Obs', 'RGS_Rate',
                             'Stdev_rate', 'MJD_avg_time',
                             'F_var', 'F_var_sigma', 'Excess_Variance', 
                              'xs_sigma',   'Norm_excess_variance', 'nxs_sigma', 'VA', 'VA_sigma'), 
@@ -125,6 +125,12 @@ if __name__ == "__main__":
             
     #Show and save in csv format the table with all the attributes of the observations
     print(obs_table)
+    obs_table['Duration_Obs'].unit = 's'
+    obs_table['RGS_Rate'].unit = 'ct/s'
+    obs_table['Stdev_rate'].unit = 'ct/s'
+    obs_table['MJD_avg_time'].unit = 'd'
+    obs_table['Excess_Variance'].unit = 'ct2/s2'
+    obs_table['xs_sigma'].unit = 'ct2/s2'
     obs_table.write(output=f'{target_dir}/Products/obs_table.fits', format='fits', overwrite=True)
     '''
     #For a single observation
