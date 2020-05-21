@@ -226,7 +226,7 @@ class Observation:
         if self.obsid=='0510610201':
             pairs_srcli = [['P0510610201R1S004SRCLI_0000.FIT', 'P0510610201R2S005SRCLI_0000.FIT'], ['P0510610201R1S015SRCLI_0000.FIT', 'P0510610201R2S005SRCLI_0000.FIT']]
 
-        if True:#not glob.glob('*_RGS_rates.ds'):    #If the lightcurves haven't already been generated
+        if True: #not glob.glob('*_RGS_rates.ds'):    #If the lightcurves haven't already been generated
             
             for i in range(self.npairs):
                 
@@ -238,21 +238,22 @@ class Observation:
                 #Make sure exposure times overlap
                 start_time, stop_time = expos0.synchronous_times(expos1)
 
-                '''
-                logging.info(f"Running rgslccorr SAS command for observation number {self.obsid} and exposures {expos0.expid}, {expos1.expid} ...")
-                rgslc_command = f"rgslccorr evlist='{expos0.evenli} {expos1.evenli}' srclist='{expos0.srcli} {expos1.srcli}' withbkgsubtraction=yes timebinsize=1000 timemin={start_time} timemax={stop_time} orders='1' sourceid=3 outputsrcfilename={self.obsid}_{expos0.expid}+{expos1.expid}_RGS_rates.ds outputbkgfilename={self.obsid}_{expos0.expid}+{expos1.expid}_bkg_rates.ds"
-                status_rgslc = run_command(rgslc_command)
-              
-
-                #If an error occurred try running on separate exposures rgslccorr
-                if status_rgslc!=0:
-                    print(f'\033[91m An error has occurred running rgslccorr for observation {self.obsid}! \033[0m')
+                if self.obsid in ['0411082701', '0658802001']:
+                    logging.info(f"Running rgslccorr SAS command for observation number {self.obsid} and exposures {expos0.expid}, {expos1.expid} ...")
+                    rgslc_command = f"rgslccorr evlist='{expos0.evenli} {expos1.evenli}' srclist='{expos0.srcli} {expos1.srcli}' withbkgsubtraction=yes timebinsize=1000 timemin={start_time} timemax={stop_time} orders='1' sourceid=3 outputsrcfilename={self.obsid}_{expos0.expid}+{expos1.expid}_RGS_rates.ds outputbkgfilename={self.obsid}_{expos0.expid}+{expos1.expid}_bkg_rates.ds"
+                    status_rgslc = run_command(rgslc_command)
                 
-                #If no errors occurred, print to stdio success message
-                else:
-                    logging.info(f'RGS lightcurves successfully extracted.')
-                '''
-        logging.info(f'Lightcurves already extracted.')
+
+                    #If an error occurred try running on separate exposures rgslccorr
+                    if status_rgslc!=0:
+                        print(f'\033[91m An error has occurred running rgslccorr for observation {self.obsid}! \033[0m')
+                    
+                    #If no errors occurred, print to stdio success message
+                    else:
+                        logging.info(f'RGS lightcurves successfully extracted.')
+                    
+        else:
+            logging.info(f'Lightcurves already extracted.')
             
 
     def lightcurve(self, mjdref, use_grace=False):

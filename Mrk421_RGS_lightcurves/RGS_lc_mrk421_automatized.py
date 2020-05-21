@@ -73,9 +73,9 @@ if __name__ == "__main__":
                             'd', 'd',
                             'd', 'd', 'd',
                             'd', 'd', 'd', 'd', 'd'))
+
     counter = 0
-    mrk421_problematic_obs = ['0411082701', '0136540701', '0658802001']
-    
+    mrk421_problematic_obs = ['0136540701']
     for obsid in os.listdir(target_dir):
         
         if obsid.startswith('0'):   #All observation folders start with 0
@@ -94,12 +94,9 @@ if __name__ == "__main__":
             obs.rgslccorr()
             obs.lightcurve(mjdref=mjdref, use_grace=use_grace)
             obs.fracvartest(screen=True)
-
-            
             #obs.bkg_lightcurve()
 
             #Save attributes of observable into a table
-        
             if len(obs.rgsrate)==0:
                 obs_table.add_row((str(obs.obsid), str(obs.revolution),  None , str(obs.starttime), str(obs.endtime), str(int(obs.duration)),
                                 None, None, None, None,
@@ -107,11 +104,12 @@ if __name__ == "__main__":
                                 None, None, None, None))
 
             else:
+                
                 obs_table.add_row((str(obs.obsid), str(obs.revolution),  f"{obs.expoid[0][0]}+{obs.expoid[0][1]}" , str(obs.starttime), str(obs.endtime), str(int(obs.duration)),
-                                obs.rgsrate[0], obs.stdev[0], obs.longterm_lc_times[0], obs.fracvardict[0].get('Fractional Variability'), obs.fracvardict[0].get('Fractional Variability Error'),
-                                obs.fracvardict[0].get('Excess variance'),obs.fracvardict[0].get('Excess variance error'),
-                                obs.fracvardict[0].get('Normalized excess variance'), obs.fracvardict[0].get('Normalized excess variance error'),
-                                obs.fracvardict[0].get('Variability Amplitude'), obs.fracvardict[0].get('Variability amplitude error')))
+                                    obs.rgsrate[0], obs.stdev[0], obs.longterm_lc_times[0], obs.fracvardict[0].get('Fractional Variability'), obs.fracvardict[0].get('Fractional Variability Error'),
+                                    obs.fracvardict[0].get('Excess variance'),obs.fracvardict[0].get('Excess variance error'),
+                                    obs.fracvardict[0].get('Normalized excess variance'), obs.fracvardict[0].get('Normalized excess variance error'),
+                                    obs.fracvardict[0].get('Variability Amplitude'), obs.fracvardict[0].get('Variability amplitude error')))
                 if len(obs.rgsrate)>1:
                     obs_table.add_row((str(obs.obsid), str(obs.revolution),  f"{obs.expoid[1][0]}+{obs.expoid[1][1]}" , str(obs.starttime), str(obs.endtime), str(int(obs.duration)),
                                         obs.rgsrate[1], obs.stdev[1], obs.longterm_lc_times[1], obs.fracvardict[1].get('Fractional Variability'), obs.fracvardict[1].get('Fractional Variability Error'),
