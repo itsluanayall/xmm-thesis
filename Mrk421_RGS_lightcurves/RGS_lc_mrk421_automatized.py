@@ -64,13 +64,15 @@ if __name__ == "__main__":
     #nobs = len(os.listdir(target_dir))
     mrk421_observation_list = []
     obs_table = Table(names=('ObsId', 'RevolutionId', 'ExposureID', 'Start', 
-                            'End', 'Duration_Obs[s]', 'RGS_Rate[count/s]', 'MJD_avg_time',
+                            'End', 'Duration_Obs[s]', 'RGS_Rate[count/s]',
+                            'Stdev_rate', 'MJD_avg_time',
                             'F_var', 'F_var_sigma', 'Excess_Variance', 
                              'xs_sigma',   'Norm_excess_variance', 'nxs_sigma', 'VA', 'VA_sigma'), 
-                    dtype=('object', 'object', 'object', 'object',
-                            'object', 'object', 'object', 'object',
-                            'object', 'object', 'object', 
-                            'object', 'object', 'object', 'object', 'object'))
+                    dtype=('i', 'i', 'U9', 'U9',
+                            'U9', 'd', 'd', 
+                            'd', 'd',
+                            'd', 'd', 'd',
+                            'd', 'd', 'd', 'd', 'd'))
     counter = 0
     mrk421_problematic_obs = ['0411082701', '0136540701', '0658802001']
     
@@ -99,20 +101,20 @@ if __name__ == "__main__":
             #Save attributes of observable into a table
         
             if len(obs.rgsrate)==0:
-                obs_table.add_row((str(obs.obsid), str(obs.revolution),  "None" , str(obs.starttime), str(obs.endtime), str(int(obs.duration)),
+                obs_table.add_row((str(obs.obsid), str(obs.revolution),  None , str(obs.starttime), str(obs.endtime), str(int(obs.duration)),
                                 None, None, None, None,
-                                None , None,
+                                None , None, None,
                                 None, None, None, None))
 
             else:
                 obs_table.add_row((str(obs.obsid), str(obs.revolution),  f"{obs.expoid[0][0]}+{obs.expoid[0][1]}" , str(obs.starttime), str(obs.endtime), str(int(obs.duration)),
-                                obs.rgsrate[0], obs.longterm_lc_times[0], obs.fracvardict[0].get('Fractional Variability'), obs.fracvardict[0].get('Fractional Variability Error'),
+                                obs.rgsrate[0], obs.stdev[0], obs.longterm_lc_times[0], obs.fracvardict[0].get('Fractional Variability'), obs.fracvardict[0].get('Fractional Variability Error'),
                                 obs.fracvardict[0].get('Excess variance'),obs.fracvardict[0].get('Excess variance error'),
                                 obs.fracvardict[0].get('Normalized excess variance'), obs.fracvardict[0].get('Normalized excess variance error'),
                                 obs.fracvardict[0].get('Variability Amplitude'), obs.fracvardict[0].get('Variability amplitude error')))
                 if len(obs.rgsrate)>1:
                     obs_table.add_row((str(obs.obsid), str(obs.revolution),  f"{obs.expoid[1][0]}+{obs.expoid[1][1]}" , str(obs.starttime), str(obs.endtime), str(int(obs.duration)),
-                                        obs.rgsrate[1], obs.longterm_lc_times[1], obs.fracvardict[1].get('Fractional Variability'), obs.fracvardict[1].get('Fractional Variability Error'),
+                                        obs.rgsrate[1], obs.stdev[1], obs.longterm_lc_times[1], obs.fracvardict[1].get('Fractional Variability'), obs.fracvardict[1].get('Fractional Variability Error'),
                                         obs.fracvardict[1].get('Excess variance'),obs.fracvardict[1].get('Excess variance error'),
                                         obs.fracvardict[1].get('Normalized excess variance'), obs.fracvardict[1].get('Normalized excess variance error'),
                                         obs.fracvardict[1].get('Variability Amplitude'), obs.fracvardict[1].get('Variability amplitude error')))
@@ -125,8 +127,7 @@ if __name__ == "__main__":
             
     #Show and save in csv format the table with all the attributes of the observations
     print(obs_table)
-    ascii.write(table=obs_table, output=f'{target_dir}/Products/obs_table.csv', format='csv', overwrite=True)
-            
+    obs_table.write(output=f'{target_dir}/Products/obs_table.fits', format='fits', overwrite=True)
     '''
     #For a single observation
     obs = Observation(obsid='0658802001', target_dir=target_dir)   #instance of the observation

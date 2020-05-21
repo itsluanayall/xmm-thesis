@@ -298,6 +298,7 @@ class Observation:
                     
                     avg_rate = np.mean(y)
                     stdev_rate = np.std(y, ddof=1)
+                    self.stdev.append(stdev_rate)
                     avg_time = np.mean((x[0], x[-1]))
 
                     #Conversion in MJD (note that 86400 are the seconds in one day)
