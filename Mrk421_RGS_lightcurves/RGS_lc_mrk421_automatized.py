@@ -75,7 +75,7 @@ if __name__ == "__main__":
                             'd', 'd', 'd', 'd', 'd'))
 
     counter = 0
-    mrk421_problematic_obs = ['0136540701']
+    mrk421_problematic_obs = ['']
     for obsid in os.listdir(target_dir):
         
         if obsid.startswith('0'):   #All observation folders start with 0
@@ -111,13 +111,14 @@ if __name__ == "__main__":
                                     obs.fracvardict[0].get('Normalized excess variance'), obs.fracvardict[0].get('Normalized excess variance error'),
                                     obs.fracvardict[0].get('Variability Amplitude'), obs.fracvardict[0].get('Variability amplitude error')))
                 if len(obs.rgsrate)>1:
-                    obs_table.add_row((str(obs.obsid), str(obs.revolution),  f"{obs.expoid[1][0]}+{obs.expoid[1][1]}" , str(obs.starttime), str(obs.endtime), str(int(obs.duration)),
-                                        obs.rgsrate[1], obs.stdev[1], obs.longterm_lc_times[1], obs.fracvardict[1].get('Fractional Variability'), obs.fracvardict[1].get('Fractional Variability Error'),
-                                        obs.fracvardict[1].get('Excess variance'),obs.fracvardict[1].get('Excess variance error'),
-                                        obs.fracvardict[1].get('Normalized excess variance'), obs.fracvardict[1].get('Normalized excess variance error'),
-                                        obs.fracvardict[1].get('Variability Amplitude'), obs.fracvardict[1].get('Variability amplitude error')))
+                    for i in range(1, len(obs.rgsrate)):
+                        obs_table.add_row((str(obs.obsid), str(obs.revolution),  f"{obs.expoid[i][0]}+{obs.expoid[i][1]}" , str(obs.starttime), str(obs.endtime), str(int(obs.duration)),
+                                            obs.rgsrate[i], obs.stdev[i], obs.longterm_lc_times[i], obs.fracvardict[i].get('Fractional Variability'), obs.fracvardict[i].get('Fractional Variability Error'),
+                                            obs.fracvardict[i].get('Excess variance'),obs.fracvardict[i].get('Excess variance error'),
+                                            obs.fracvardict[i].get('Normalized excess variance'), obs.fracvardict[i].get('Normalized excess variance error'),
+                                            obs.fracvardict[i].get('Variability Amplitude'), obs.fracvardict[i].get('Variability amplitude error')))
 
-            
+                
             #Keep track of number of observations that have been processed so far
             counter += 1
             logging.info(f'Processed {counter} observations!')
