@@ -360,18 +360,6 @@ if __name__ == "__main__":
                 hdul = Table.read(filename, hdu=1)    
                 data = hdul.to_pandas()
                 data.dropna()
-
-                #with fits.open(filename) as hdul: 
-                #    x = hdul[1].data['TIME']
-                #    y = hdul[1].data['RATE']               
-                #    yerr = hdul[1].data['ERROR']
-
-                #Drop NaN values by making a numpy mask
-                #mask_nan = np.invert(np.isnan(y)) 
-                #x = x[mask_nan]
-                #y = y[mask_nan]
-                #yerr = yerr[mask_nan]
-                
                 total_lightcurve_rates.extend(data['RATE'].values)
                 total_lightcurve_errates.extend(data['ERROR'].values)
                 total_lightcurve_times.extend(data['TIME'].values)
@@ -385,15 +373,70 @@ if __name__ == "__main__":
     
     data_lc = pd.DataFrame({"RATE":total_lightcurve_rates, "MJD":total_lightcurve_times_mjd, "ERROR":total_lightcurve_errates})
     data_lc = data_lc.sort_values(by=['MJD'])
-    #sns.catplot(x='MJD', y='RATE',  data=data_lc)
-    #plt.show()
-    #plt.savefig(f"{target_dir}/Products/seaborn.png")
     """
-    plot_total_lc(total_lightcurve_times_mjd, total_lightcurve_rates, 
-        title="Historical lightcurve evolution Mrk421", xlabel='MJD', 
-        ylabel='Rate [ct/s]', dy=total_lightcurve_errates, output_folder=f"{target_dir}/Products")
-                
-    """
+    import pickle
+    with open(r"./data_lc.pickle", "wb") as output_file:
+        pickle.dump(data_lc, output_file)
+
+    import sys
+    sys.exit(0)
+`   """
+
     plot_total_lc(data_lc['MJD'].values, data_lc['RATE'].values, dy=data_lc['ERROR'].values,title="Historical lightcurve evolution Mrk421", xlabel='MJD', 
         ylabel='Rate [ct/s]',  output_folder=f"{target_dir}/Products")
 
+    #Plot time distribution
+    year_array = []
+    for mjd in data_lc['MJD'].values:
+        if mjd<51910:
+            year_array.append(int(2000))
+        elif mjd<52275:
+            year_array.append(int(2001))
+        elif mjd<52640:
+            year_array.append(int(2002))
+        elif mjd<53005:
+            year_array.append(int(2003))
+        elif mjd<53371:
+            year_array.append(int(2004))
+        elif mjd<53736:
+            year_array.append(int(2005))
+        elif mjd<54101:
+            year_array.append(int(2006))
+        elif mjd<54466:
+            year_array.append(int(2007))
+        elif mjd<54832:
+            year_array.append(int(2008))
+        elif mjd<55197:
+            year_array.append(int(2009))
+        elif mjd<55562:
+            year_array.append(int(2010))
+        elif mjd<55927:
+            year_array.append(int(2011))
+        elif mjd<56293:
+            year_array.append(int(2012))
+        elif mjd<56658:
+            year_array.append(int(2013))
+        elif mjd<57023:
+            year_array.append(int(2014))
+        elif mjd<57388:
+            year_array.append(int(2015))
+        elif mjd<57754:
+            year_array.append(int(2016))
+        elif mjd<58119:
+            year_array.append(int(2017))
+        elif mjd<58484:
+            year_array.append(int(2018))
+        elif mjd<58849:
+            year_array.append(int(2019))
+    from collections import Counter
+    cnt = Counter(year_array)
+    labels = ['2000', '2001', '2002', '2003', '2004', '2005', '2006', '2007',
+        '2008', '2009', '2010', '2011',  '2014', '2015', '2016',
+        '2017', '2018', '2019']
+
+    fig = plt.figure(figsize=(20,20))
+    ax = fig.add_subplot(111)
+    ax.bar(labels, cnt.values())
+    ax.tick_params( rotation = 60)
+    ax.set_ylabel('# datapoints')  
+    plt.show()
