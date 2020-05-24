@@ -373,17 +373,9 @@ if __name__ == "__main__":
     
     data_lc = pd.DataFrame({"RATE":total_lightcurve_rates, "MJD":total_lightcurve_times_mjd, "ERROR":total_lightcurve_errates})
     data_lc = data_lc.sort_values(by=['MJD'])
-    """
-    import pickle
-    with open(r"./data_lc.pickle", "wb") as output_file:
-        pickle.dump(data_lc, output_file)
 
-    import sys
-    sys.exit(0)
-`   """
-
-    plot_total_lc(data_lc['MJD'].values, data_lc['RATE'].values, dy=data_lc['ERROR'].values,title="Historical lightcurve evolution Mrk421", xlabel='MJD', 
-        ylabel='Rate [ct/s]',  output_folder=f"{target_dir}/Products")
+    #plot_total_lc(data_lc['MJD'].values, data_lc['RATE'].values, dy=data_lc['ERROR'].values,title="Historical lightcurve evolution Mrk421", xlabel='MJD', 
+    #    ylabel='Rate [ct/s]',  output_folder=f"{target_dir}/Products")
 
     #Plot time distribution
     year_array = []
@@ -428,7 +420,13 @@ if __name__ == "__main__":
             year_array.append(int(2018))
         elif mjd<58849:
             year_array.append(int(2019))
+
+    data_lc['YEAR'] = year_array  
+    df = df.reset_index(drop=True)
+    df = df.reset_index()     
+    
     from collections import Counter
+    import seaborn as sns
     cnt = Counter(year_array)
     labels = ['2000', '2001', '2002', '2003', '2004', '2005', '2006', '2007',
         '2008', '2009', '2010', '2011',  '2014', '2015', '2016',
@@ -438,5 +436,12 @@ if __name__ == "__main__":
     ax = fig.add_subplot(111)
     ax.bar(labels, cnt.values())
     ax.tick_params( rotation = 60)
-    ax.set_ylabel('# datapoints')  
+    ax.set_ylabel('# datapoints') 
+    plt.savefig(f"{target_dir}/Products/distrib_data.png")
+    plt.show()
+
+
+    g = sns.FacetGrid(data=data_lc, hue='YEAR', height=8, aspect=2)
+    g.map(plt.errorbar, 'index', 'RATE', 'ERROR', fmt='.', elinewidth=1, capsize=2, capthick=1)
+    g.add_legend()
     plt.show()
