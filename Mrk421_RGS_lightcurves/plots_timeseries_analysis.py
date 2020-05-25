@@ -15,7 +15,7 @@ MJDREF = 50814.0
 def plot(x, y, title, xlabel, ylabel, output_folder, dy, dx=[]):
     """
     """
-    fig = plt.figure(figsize=(60,20))
+    fig = plt.figure(figsize=(15,5))
     ax = fig.add_subplot(1, 1, 1)
 
     #Drop NaN values by making a numpy mask
@@ -26,12 +26,12 @@ def plot(x, y, title, xlabel, ylabel, output_folder, dy, dx=[]):
 
     if len(dx)==0:
         
-        plt.errorbar(x,y, yerr=dy, color='black', marker='.', ecolor='gray', linestyle='-')
+        plt.errorbar(x,y, yerr=dy, color='black', marker='.', ecolor='gray', linestyle='')
     
     else:
 
         dx = dx[mask_nan]
-        plt.errorbar(x,y, yerr=dy, xerr=dx, color='black', marker='.', ecolor='gray', linestyle='-')
+        plt.errorbar(x,y, yerr=dy, xerr=dx, color='black', marker='.', ecolor='gray', linestyle='')
     
     plt.grid(True)
     plt.title(title, fontsize=20)
@@ -314,7 +314,6 @@ def plot_total_lc(x, y, title, xlabel, ylabel, output_folder, dy, dx=[]):
 
 if __name__ == "__main__":
     
-    """
     # LONG TERM VARIABILITY PLOT
     path_log = "/media/xmmsas/thesis/Markarian421/Products"
     os.chdir(path_log)
@@ -325,7 +324,6 @@ if __name__ == "__main__":
 
     title = 'Long-term X-ray Variability Lightcurve'
     plot(data['MJD_avg_time'].values ,data['RGS_Rate'].values, dy=data['Stdev_rate'].values, title=title, xlabel='MJD', ylabel='Mean Rate [ct/s]', output_folder=f"{target_dir}/Products" )
-
     
 
     # FRACTIONAL VARIABILITY PLOTS
@@ -344,7 +342,6 @@ if __name__ == "__main__":
     title = 'Fractional Variability vs time'
     plot(data['MJD_avg_time'].values, data['F_var'].values, dx=data['F_var_sigma'].values, dy=data['Stdev_rate'].values, title=title, output_folder=f"{target_dir}/Products", xlabel='MJD [d]', ylabel='Fractional Variability [%]')
     
-    """
     
     #TOTAL LIGHT CURVE
     os.chdir(target_dir)
@@ -422,8 +419,8 @@ if __name__ == "__main__":
             year_array.append(int(2019))
 
     data_lc['YEAR'] = year_array  
-    df = df.reset_index(drop=True)
-    df = df.reset_index()     
+    data_lc = data_lc.reset_index(drop=True)
+    data_lc = data_lc.reset_index()     
     
     from collections import Counter
     import seaborn as sns
@@ -432,7 +429,7 @@ if __name__ == "__main__":
         '2008', '2009', '2010', '2011',  '2014', '2015', '2016',
         '2017', '2018', '2019']
 
-    fig = plt.figure(figsize=(20,20))
+    fig = plt.figure(figsize=(15,15))
     ax = fig.add_subplot(111)
     ax.bar(labels, cnt.values())
     ax.tick_params( rotation = 60)
@@ -440,8 +437,20 @@ if __name__ == "__main__":
     plt.savefig(f"{target_dir}/Products/distrib_data.png")
     plt.show()
 
+    #Plot rate distribution 
+    fig_hist_rate = plt.figure(figsize=(15,15))
+    plt.hist(data_lc['RATE'], histtype="stepfilled", facecolor='c', linewidth=2, edgecolor='k')
+    plt.xlabel("Rate [ct/s]")
+    plt.title("Rate Histogram")
+    plt.xticks()
+    plt.savefig(f"{target_dir}/Products/rate_histogram.png")
+    plt.show()
 
+    #Plot compact lightcurve (x=index, y=rate, hue=year)
     g = sns.FacetGrid(data=data_lc, hue='YEAR', height=8, aspect=2)
-    g.map(plt.errorbar, 'index', 'RATE', 'ERROR', fmt='.', elinewidth=1, capsize=2, capthick=1)
+    g.map(plt.errorbar, 'index', 'RATE', 'ERROR', fmt='.', ecolor='gray', elinewidth=1, capsize=2, capthick=1)
+    g.fig.suptitle("Mrk421 total data")
+    plt.grid(True)
     g.add_legend()
+    plt.savefig(f"{target_dir}/Products/compact_lightcurve.png")
     plt.show()
