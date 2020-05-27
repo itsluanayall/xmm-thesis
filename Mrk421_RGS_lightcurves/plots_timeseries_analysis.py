@@ -459,7 +459,7 @@ if __name__ == "__main__":
         (58076, 58077.5), (58239.5, 58241), (58247.5, 58249), (58443, 58444.5),
         (58609, 58610), (58816, 58817))
 
-    fig_brkax = plt.figure(figsize=(60,6))
+    fig_brkax = plt.figure(figsize=(60,8))
     bax = brokenaxes(xlims=lims, wspace=0.2, tilt=90, diag_color='red', d=0.0015)
 
 
@@ -482,8 +482,8 @@ if __name__ == "__main__":
                             58609, 58610, 58816, 58817]
     
 
-    bax.set_xlabel('MJD', labelpad=60, ha="right")
-    bax.set_ylabel('Rate [ct/s]')
+    bax.set_xlabel('MJD', labelpad=60, ha="right", fontsize=20)
+    bax.set_ylabel('Rate [ct/s]', fontsize=20)
 
     bax.tick_params(rotation=60)
     bax.ticklabel_format(useOffset=False, style='plain')
@@ -499,17 +499,33 @@ if __name__ == "__main__":
         if data_lc['YEAR'][i] != data_lc['YEAR'][i-1]:
             year_endpoints.append(data_lc['MJD'][i])
             
-    
+    print(year_endpoints)
     bax.vlines(year_endpoints, 0, 60, colors='r', linestyles='solid')
+    """   i=0
     for time in year_endpoints:
-        bax.text(x=time, y=57, s=2000)
-    import matplotlib.patches as patches
-    # Create a Rectangle patch
-    #rect = patches.Rectangle(xy=(0,0),width=0.005,height=5,edgecolor='r',facecolor='k')
-    #plt.gca().add_patch(rect)
+        plt.text(x=time, y=57, s=str(2000))
+        i+=1"""
+    bax.axs[0].text(x=data_lc['MJD'][0], y=57, s=str(2000))
+    bax.text(x=year_endpoints[0], y=57, s=str(2001))
+    bax.text(x=year_endpoints[1], y=57, s=str(2002))
+    bax.axs[8].text(x=year_endpoints[2], y=57, s=str(2003))
+    bax.text(x=year_endpoints[3], y=57, s=str(2004))
+    bax.text(x=year_endpoints[4], y=57, s=str(2005))
+    bax.axs[14].text(x=year_endpoints[5], y=57, s=str(2006))
+    bax.text(x=year_endpoints[6], y=57, s=str(2007))
+    bax.axs[19].text(x=year_endpoints[7], y=57, s=str(2008))
+    bax.text(x=year_endpoints[8], y=57, s=str(2009))
+    bax.text(x=year_endpoints[9], y=57, s=str(2010))
+    bax.text(x=year_endpoints[10], y=57, s=str(2011))
+    bax.text(x=year_endpoints[11], y=57, s=str(2014))
+    bax.text(x=year_endpoints[12], y=57, s=str(2015))
+    bax.axs[35].text(x=year_endpoints[13], y=57, s=str(2016))
+    bax.axs[41].text(x=year_endpoints[14], y=57, s=str(2017))
+    bax.axs[44].text(x=year_endpoints[15], y=57, s=str(2018))
+    bax.text(x=year_endpoints[16], y=57, s=str(2019))
 
-    plt.suptitle('Lightcurve Mrk421')
-
+    bax.margins(0)
+    plt.suptitle('Historical Lightcurve Mrk421', fontsize=25)
     plt.savefig(f"{target_dir}/Products/lc_broken_axis.png")
     
     
