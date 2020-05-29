@@ -123,8 +123,10 @@ def excess_variance(rates, errrates, normalized=True):
     :param rates: rate lightcurve [ct/s]
     :param errrates: error on rates
     :param normalized: if set to True, returns the normalized excess variance otherwise returns the excess variance.
-
+    :param timescale: portion of lightcurve in kiloseconds on which we calculate the excess variance
     """
+
+
     try:
         mean = np.mean(rates)
         if mean<0:

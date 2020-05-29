@@ -89,6 +89,8 @@ class Observation:
         self.expoid = []
         self.longterm_lc_times = []
 
+        self.duration_lc_ks = []
+
     @property
     def target_dir(self):
         return self._target_dir
@@ -302,11 +304,11 @@ class Observation:
                     
                     #Store average rate into Observation attribute
                     self.rgsrate.append(np.mean(y))
-                    
                     avg_rate = np.mean(y)
                     stdev_rate = np.std(y, ddof=1)
                     self.stdev.append(stdev_rate)
                     avg_time = np.mean((x[0], x[-1]))
+                    self.duration_lc_ks.append((x[-1] - x[0])/1000.)
 
                     #Conversion in MJD (note that 86400 are the seconds in one day)
                     avg_time_mjd = mjdref + (avg_time/86400.0)
@@ -338,6 +340,7 @@ class Observation:
 
             except Exception as e:
                 logging.error(e)
+
 
     def bkg_lightcurve(self):
 
@@ -472,7 +475,8 @@ class Observation:
                 plt.savefig(f'{self.target_dir}/Products/Backgrnd_LC/{title_outputbkg0}.png')
                 plt.close()
 
-    def fracvartest(self, screen=True, netlightcurve=True):
+
+    def fracvartest(self, screen=True, netlightcurve=True, timescale=9):
         """
         Reads the FITS file containing the RGS source and background timeseries produced by rgslccorr. 
         It then calculates excess variance, normalized excess variance and fractional variability of the lightcurve,
@@ -490,6 +494,7 @@ class Observation:
                     header = hdul['RATE'].header
                     astro_table = Table(hdul['RATE'].data)
                     dataset = astro_table.to_pandas()
+                    dataset = dataset.sort_values(by=['TIME'])
 
                 #Check important keyword consistency 
                 if 'TIMEDEL' in header:
@@ -519,13 +524,31 @@ class Observation:
             try:
                 #Delete gaps in data 
                 dataset_cleaned = dataset.dropna()
-                numnonnull = len(dataset_cleaned)
+
+                #Trim the lightcurve so to calculate the F_var for the chosen timescale
+                duration_lc = (dataset_cleaned['TIME'].values[-1]-dataset_cleaned['TIME'].values[0])/1000.  #in kiloseconds
                 
+                if duration_lc < timescale:
+                    logging.info(f'Lightcurve is not long enough to calculate fractional variability on a timescale of {timescale} kiloseconds. Moving on.') 
+                    self.fracvardict.append({"Excess variance": np.nan, "Excess variance error": np.nan, "Normalized excess variance": np.nan,
+                                "Normalized excess variance error": np.nan, "Fractional Variability": np.nan, 
+                                "Fractional Variability Error": np.nan,
+                                "Variability Amplitude": np.nan, "Variability amplitude error": np.nan,
+                                "Number of non null data points": np.nan})
+                    continue 
+                
+                elif duration_lc >= timescale:
+                    logging.info(f'The lightcurve can be used to calculate fractional variability on a timescale of {timescale} kiloseconds.')
+                    max_time = dataset_cleaned['TIME'].values[0] + (timescale*1000)
+                    dataset_cleaned = dataset_cleaned[dataset_cleaned['TIME'] <= max_time]
+
                 #Net source rates and errors and background rates and errors are recorded in arrays
+                numnonnull = len(dataset_cleaned)
                 rates = np.array(dataset_cleaned['RATE'])
                 errrates = np.array(dataset_cleaned['ERROR'])
                 backv = np.array(dataset_cleaned['BACKV'])
                 backe = np.array(dataset_cleaned['BACKE'])
+                time = np.array(dataset_cleaned['TIME'])
 
                 #Sanity checks
                 if numnonnull<2:
