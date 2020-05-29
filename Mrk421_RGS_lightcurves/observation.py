@@ -305,7 +305,7 @@ class Observation:
                     #Store average rate into Observation attribute
                     self.rgsrate.append(np.mean(y))
                     avg_rate = np.mean(y)
-                    stdev_rate = np.std(y, ddof=1)
+                    stdev_rate = np.std(y)/np.sqrt(len(y))
                     self.stdev.append(stdev_rate)
                     avg_time = np.mean((x[0], x[-1]))
                     self.duration_lc_ks.append((x[-1] - x[0])/1000.)
@@ -329,7 +329,7 @@ class Observation:
                     plt.yticks(fontsize=20)
 
                     #Plot average rate and legend
-                    plt.hlines(avg_rate, plt.xlim()[0], plt.xlim()[1] ,colors='red', label=f'Average rate: {avg_rate: .2f} [ct/s] \n Stdev: {stdev_rate:.2f} [ct/s]')
+                    plt.hlines(avg_rate, plt.xlim()[0], plt.xlim()[1], colors='red', label=f'Average rate: {avg_rate: .2f} +- {stdev_rate:.2f} [ct/s]')
                     ax.legend(loc='lower right', fontsize='x-large')
 
                     #Save figure in rgs directory of the current Observation
@@ -476,7 +476,7 @@ class Observation:
                 plt.close()
 
 
-    def fracvartest(self, screen=True, netlightcurve=True, timescale=9):
+    def fracvartest(self, screen=True, netlightcurve=True, timescale=10):
         """
         Reads the FITS file containing the RGS source and background timeseries produced by rgslccorr. 
         It then calculates excess variance, normalized excess variance and fractional variability of the lightcurve,
@@ -536,7 +536,7 @@ class Observation:
                                 "Variability Amplitude": np.nan, "Variability amplitude error": np.nan,
                                 "Number of non null data points": np.nan})
                     continue 
-                
+
                 elif duration_lc >= timescale:
                     logging.info(f'The lightcurve can be used to calculate fractional variability on a timescale of {timescale} kiloseconds.')
                     max_time = dataset_cleaned['TIME'].values[0] + (timescale*1000)

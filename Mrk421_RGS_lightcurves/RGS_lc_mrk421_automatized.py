@@ -48,8 +48,10 @@ if __name__ == "__main__":
     mjdref = CONFIG['MJDREF']
     target_dir = CONFIG['target_dir']
     use_grace = CONFIG['use_grace']
+    timescale_fvar = CONFIG['timescale_fvar']
     logging.info(f'MRK421 Analysis - version:{version}')
     setupSAS(sas_dir=sas_dir, ccf_dir=ccf_dir)
+    logging.info(f'Timescale chosen for fractional variability: {timescale_fvar} ks')
 
     #Remove the .tar files from which we extracted the data
     for directory in os.listdir(target_dir):
@@ -66,7 +68,7 @@ if __name__ == "__main__":
     mrk421_observation_list = []
     obs_table = Table(names=('ObsId', 'RevolutionId', 'ExposureID', 'Start', 
                             'End', 'Duration_Obs', 'RGS_Rate',
-                            'Stdev_rate', 'MJD_avg_time',
+                            'RGS_erate', 'MJD_avg_time',
                             'F_var', 'F_var_sigma', 'Excess_Variance', 
                              'xs_sigma',   'Norm_excess_variance', 'nxs_sigma', 'VA', 'VA_sigma'), 
                     dtype=('i', 'i', 'U9', 'U30',
@@ -95,7 +97,7 @@ if __name__ == "__main__":
             obs.rgsproc()
             obs.rgslccorr()
             obs.lightcurve(mjdref=mjdref, use_grace=use_grace)
-            obs.fracvartest(screen=True, timescale=9)
+            obs.fracvartest(screen=True, timescale=timescale_fvar)
             #obs.bkg_lightcurve()
 
             #Save attributes of observable into a table
@@ -133,7 +135,7 @@ if __name__ == "__main__":
     print(obs_table)
     obs_table['Duration_Obs'].unit = 's'
     obs_table['RGS_Rate'].unit = 'ct/s'
-    obs_table['Stdev_rate'].unit = 'ct/s'
+    obs_table['RGS_erate'].unit = 'ct/s'
     obs_table['MJD_avg_time'].unit = 'd'
     obs_table['Excess_Variance'].unit = 'ct2/s2'
     obs_table['xs_sigma'].unit = 'ct2/s2'
@@ -141,8 +143,9 @@ if __name__ == "__main__":
 
     # Duration_lc_ks distribution
     plt.hist(duration_lc_ks, bins=40)
-    plt.show()
     plt.savefig(f'{target_dir}/Products/RGS_Lightcurves/distribution_expos_duration_ks.png')
+    plt.show()
+    
     
     '''
     #For a single observation
