@@ -310,7 +310,7 @@ class Observation:
                     #Store average rate into Observation attribute
                     self.rgsrate.append(np.mean(y))
                     avg_rate = np.mean(y)
-                    stdev_rate = np.std(y)/np.sqrt(len(y))
+                    stdev_rate = np.sqrt(1/(np.sum(1/np.square(yerr))))  #weighted error of mean
                     self.stdev.append(stdev_rate)
                     avg_time = np.mean((x[0], x[-1]))
                     self.duration_lc_ks.append((x[-1] - x[0])/1000.)

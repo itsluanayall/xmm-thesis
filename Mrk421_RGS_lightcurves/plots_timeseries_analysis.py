@@ -399,7 +399,7 @@ if __name__ == "__main__":
             print(segment)
 
             xs_mean = np.mean(segment['Excess_Variance'].values)
-            sem = np.std(segment['Excess_Variance'].values)/np.sqrt(len(segment))
+            sem = np.sqrt(1 / (np.sum(1/np.square(segment['xs_sigma'].values))))
             time_mean = np.mean([i, i+1000])
 
             mean_xs_arr.append(xs_mean)
