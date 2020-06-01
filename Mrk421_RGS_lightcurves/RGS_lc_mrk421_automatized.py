@@ -47,6 +47,7 @@ if __name__ == "__main__":
     ccf_dir = CONFIG['ccf_dir']
     mjdref = CONFIG['MJDREF']
     target_dir = CONFIG['target_dir']
+    target_REDSHIFT = CONFIG['target_REDSHIFT']
     use_grace = CONFIG['use_grace']
     timescale_fvar = CONFIG['timescale_fvar']
     logging.info(f'MRK421 Analysis - version:{version}')
@@ -80,6 +81,7 @@ if __name__ == "__main__":
     counter = 0
     mrk421_problematic_obs = ['']
     duration_lc_ks = []
+    
     for obsid in os.listdir(target_dir):
         
         if obsid.startswith('0'):   #All observation folders start with 0
@@ -99,6 +101,9 @@ if __name__ == "__main__":
             obs.lightcurve(mjdref=mjdref, use_grace=use_grace)
             obs.fracvartest(screen=True, timescale=timescale_fvar)
             #obs.bkg_lightcurve()
+            obs.divide_spectrum()
+            obs.xspec_divided_spectra_average(target_REDSHIFT)
+            obs.xspec_divided_spectra(target_REDSHIFT)
 
             #Save attributes of observable into a table
             if len(obs.rgsrate)==0:
@@ -149,7 +154,7 @@ if __name__ == "__main__":
     
     '''
     #For a single observation
-    obs = Observation(obsid='0658802001', target_dir=target_dir)   #instance of the observation
+    obs = Observation(obsid='0411082101', target_dir=target_dir)   #instance of the observation
     
     
     #Process each observation
@@ -157,7 +162,9 @@ if __name__ == "__main__":
     obs.odfingest()
     obs.rgsproc()
     obs.rgslccorr()
-    
-    obs.lightcurve(use_grace=use_grace)
-    obs.fracvartest(screen=True, netlightcurve=True)
+    obs.lightcurve(mjdref=mjdref, use_grace=use_grace)
+    obs.fracvartest(screen=True, timescale=timescale_fvar)
+    obs.divide_spectrum()
+    obs.xspec_divided_spectra_average(target_REDSHIFT)
+    obs.xspec_divided_spectra(target_REDSHIFT)
     '''

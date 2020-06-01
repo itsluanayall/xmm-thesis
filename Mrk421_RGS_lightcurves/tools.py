@@ -4,6 +4,8 @@ import os
 import numpy as np
 import logging
 from astropy.io import fits
+import xspec
+import matplotlib.pyplot as plt
 
 def setupSAS(sas_dir, ccf_dir):
     """
@@ -179,3 +181,66 @@ def fractional_variability(rates, errrates, backv, backe, netlightcurve=True):
         err_fvar = -1.
 
     return f_var, err_fvar
+
+def spectrum_plot_xspec(observation, expid0, expid1, model, target_dir, i=0):
+    """
+    """
+    xspec.Plot.device = '/null'
+    xspec.Plot.xAxis = 'keV'
+    xspec.Plot.setRebin(minSig=3, maxBins=4096) 
+    xspec.Plot('data')
+
+    # Using matplotlib
+    # Store x and y for RGS1 and RGS2
+    chans1 = xspec.Plot.x(1)
+    chans1_err = xspec.Plot.xErr(1)
+    rates1 = xspec.Plot.y(1)
+    rates1_err = xspec.Plot.yErr(1)
+    chans2 = xspec.Plot.x(2)
+    chans2_err = xspec.Plot.xErr(2)
+    rates2 = xspec.Plot.y(2)
+    rates2_err = xspec.Plot.yErr(2)
+
+    # Store model (to calculate residuals)
+    folded1 = xspec.Plot.model(1)
+    folded2 = xspec.Plot.model(2)
+
+
+    fig = plt.figure(figsize=(15,10))
+
+    # First panel: Spectrum
+    ax1 = plt.subplot(211)
+    plt.errorbar(chans1, rates1, yerr=rates1_err, xerr=chans1_err, label='RGS1')
+    plt.errorbar(chans2, rates2, yerr=rates2_err, xerr=chans2_err, label='RGS2')
+    plt.yscale('log')
+    plt.xscale('log')
+    plt.ylim(1e-7, 150)
+    if i==0:
+        plt.title(f"Average spectra {observation}, expo {expid0}+{expid1}, {model} ", fontsize=25)
+    else:
+        plt.title(f"{observation} expo {expid0}+{expid1} {model} Part {i}", fontsize=30)
+    plt.xlabel('Energy [keV]', fontsize=17)
+    plt.ylabel('Normalized counts [s-1 keV-1]', fontsize=17)
+    ax1.legend(loc='lower right', fontsize='x-large')
+
+    # Second panel: Residuals
+    ax2 = plt.subplot(212, sharex=ax1)
+    plt.title('Residuals', fontsize=30)
+    rates1_array = np.array(rates1)   #cast into numpy array to perform element-wise operation
+    rates2_array = np.array(rates2)
+    folded1_array = np.array(folded1)
+    folded2_array = np.array(folded2)
+    res1 = rates1_array - folded1_array  #calculate residuals
+    res2 = rates2_array - folded2_array
+    plt.errorbar(chans1, res1, yerr=rates1_err, linestyle='', label='RGS1')
+    plt.errorbar(chans2, res2, yerr=rates2_err, linestyle='', label='RGS2')
+    plt.hlines(0, plt.xlim()[0], plt.xlim()[1], color='m')   
+    plt.xlabel('Energy [keV]', fontsize=17)
+    plt.ylabel('Normalized counts [s-1 keV-1]', fontsize=17)
+    ax2.legend(loc='lower right', fontsize='x-large')
+    plt.tight_layout(pad=4.0)
+    if i==0:
+        plt.savefig(f"{target_dir}/Products/RGS_Spectra/{observation}/average_{observation}_{expid0}+{expid1}_{model}.png")
+    else:
+        plt.savefig(f"{target_dir}/Products/RGS_Spectra/{observation}/{observation}_{expid0}+{expid1}_{model}_{i}.png")
+    plt.close()

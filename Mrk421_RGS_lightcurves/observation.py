@@ -10,19 +10,24 @@ from config import CONFIG
 from tools import *
 import numpy as np
 import matplotlib.pyplot as plt
+import xspec
 
 class Exposure:
     """
     Class for an Exposure of an Observation.
     """
 
-    def __init__(self, evenli, srcli):
+    def __init__(self, evenli, srcli, specli=[], bkgli=[], respli=[]):
         """
         Constructor. evenli is the Eventlist of the exposure, which contains all the information
         that will be stored as attributes of the Exposure.
         """
         self.evenli = evenli
         self.srcli = srcli
+        self.specli = specli
+        self.bkgli = bkgli
+        self.respli = respli
+
         with fits.open(evenli) as hdul:
             self.obsid = hdul[1].header['OBS_ID']
             self.expid = str(hdul[1].header['EXP_ID']).split(self.obsid)[1]
@@ -584,3 +589,446 @@ class Observation:
                 for key, value in self.fracvardict[i].items():
                     print(key, ' : ', value)
             i+=1
+
+    def divide_spectrum(self):
+        """
+        Splits the spectrum into pieces of 1000 seconds each. To do this, I use a while loop with 2 indices:
+        - j represents the end_time of each piece, so after an iteration you just add 1000 seconds to it;
+        - i represents the start_time of each piece, so after an iteration you just set it to j.
+        At the end of the processing, we will have cut into pieces of 1000s each exposure. For instance, if there are 50 pieces for each exposure, the output will be 50 spectra for RGS1 and 50 spectra for RGS2. The nomenclature of the output spectra is the following:
+
+        sourcespec{instrume}_gti{k}.fits for the source spectrum
+        bkgspec{instrume}_gti{k}.fits for the background spectrum
+
+        where instrume can be RGS1 or RGS2, and k=1,2,3...50 is the piece we are considering.
+        """
+
+        #Store the eventlists and sourcelists
+        os.chdir(self.rgsdir)
+        evenli = glob.glob('*EVENLI0000.FIT')
+        srcli = glob.glob('*SRCLI_0000.FIT')
+        respli = glob.glob('*RSPMAT1*')
+        total_spectra = glob.glob('*SRSPEC1*')
+        total_bkgr = glob.glob('*BGSPEC1*')
+
+        # Pair the events (RGS1+RGS2) and sort them according to the exposure number(first RGS1, second RGS2)
+        pairs_events = sort_rgs_list(evenli, 'expo_number')
+        pairs_srcli = sort_rgs_list(srcli, "expo_number")
+        pairs_respli = sort_rgs_list(respli, "expo_number")
+        pairs_spectra = sort_rgs_list(total_spectra, "expo_number")
+        pairs_bkg = sort_rgs_list(total_bkgr, "expo_number")
+        self.npairs = len(pairs_events)
+        print("Event lists: ", pairs_events)
+        print("Source lists: ", pairs_srcli)
+        print("Response matrices: ", pairs_respli)
+        print("Spectra: ", pairs_spectra)
+        print("Bkgrounds: ", pairs_bkg)
+
+        if not os.path.isdir(f'divided_spectra'):
+            os.mkdir('divided_spectra')
+
+        #Check if the exposures are synchronous
+        for l in range(self.npairs):  
+            expos0 = Exposure(pairs_events[l][0], pairs_srcli[l][0], pairs_spectra[l][0])
+            expos1 = Exposure(pairs_events[l][1], pairs_srcli[l][1], pairs_spectra[l][1])
+            start_time, stop_time = expos0.synchronous_times(expos1)
+            print(f"Synchronous start and stop times for exposures {expos0.evenli}, {expos1.evenli}: {start_time} - {stop_time}")
+
+        #Divide each eventlist into pieces of 1000 seconds
+    
+            if not glob.glob('divided_spectra/sourcespec*'):                
+                
+                # Loop on the exposures 
+                for exposure in [expos0, expos1]:
+                    print(f"Processing {exposure.evenli}...")
+
+                    # Initialize indices for loop
+                    step = 1000 #seconds
+                    i = start_time
+                    j = i + step
+                    k = 1   #counter of pieces
+
+                    # Divide evenlist in parts of 1000s
+                    while (i<j) and (j<=stop_time):
+
+                        # Cut and save each piece using SAS command tabgtigen and save output in rgs/divided_spectra/gti{instrume}_file{k}.fits
+                        tabgtigen_cmd = f"tabgtigen table={exposure.evenli} expression='TIME in [{i}:{j}]' " \
+                                        f"gtiset=divided_spectra/gti{exposure.instrume}_{exposure.expid}_file{k}.fits prefraction=0 postfraction=0" 
+                        status_tabgtigen = run_command(tabgtigen_cmd)
+                        if status_tabgtigen !=0:    #Debug
+                            print(f'Exception occured with piece n.{k}, tabgtigen command')
+
+                        # Filter the piece that we just created
+                        rgsfilter_cmd = f"rgsfilter mergedset={exposure.evenli} " \
+                                        f"evlist=divided_spectra/event_gti{exposure.instrume}_{exposure.expid}_file{k}.fits " \
+                                        f"auxgtitables=divided_spectra/gti{exposure.instrume}_{exposure.expid}_file{k}.fits" 
+                        status_rgsfilter = run_command(rgsfilter_cmd)
+                        if status_rgsfilter !=0:    #Debug
+                            print(f'Exception occured with piece n.{k}, rgsfilter command')
+
+                        # Extract spectrum from the piece and save ouput as rgs/divided_spectra/sourcespec{instrume}_gti{k}.fits
+                        rgsspectrum_cmd = f"rgsspectrum evlist=divided_spectra/event_gti{exposure.instrume}_{exposure.expid}_file{k}.fits " \
+                                        f"srclist={exposure.srcli} withspectrum=yes bkgcorrect=no " \
+                                        f"spectrumset=divided_spectra/sourcespec{exposure.instrume}_{exposure.expid}_gti{k}.fits withbkgset=yes " \
+                                        f"bkgset=divided_spectra/bgspec{exposure.instrume}_{exposure.expid}_gti{k}.fits order=1 rebin=1 edgechannels=2 "\
+                                        f"spectrumbinning=lambda withfracexp=no badquality=1"
+                        status_rgsspectrum = run_command(rgsspectrum_cmd)
+                        if status_rgsspectrum !=0:    #Debug
+                            print(f'Exception occured with piece n.{k}, rgsspectrum command')
+                        else:
+                            print(f'Extracted piece number {k}.')
+                        
+                        # Change index after each iteration
+                        i = j
+                        j = i + step
+                        if j>stop_time:
+                            j = stop_time
+                        k += 1
+
+                    print(f"Done dividing {exposure.evenli}!")
+            else:
+                print(f"Divided spectra already extracted.")
+                
+    def xspec_divided_spectra_average(self, target_REDSHIFT):
+        """
+        """
+        logging.info(f"Starting spectral analysis with XSPEC for observation {self.obsid} (total, average spectra).")
+        os.chdir(f"{self.target_dir}/{self.obsid}/rgs")
+        evenli = glob.glob('*EVENLI0000.FIT')
+        srcli = glob.glob('*SRCLI_0000.FIT')
+        respli = glob.glob('*RSPMAT1*')
+        total_spectra = glob.glob('*SRSPEC1*')
+        total_bkgr = glob.glob('*BGSPEC1*')
+        pairs_events = sort_rgs_list(evenli, 'expo_number')
+        pairs_srcli = sort_rgs_list(srcli, "expo_number")
+        pairs_respli = sort_rgs_list(respli, "expo_number")
+        pairs_spectra = sort_rgs_list(total_spectra, "expo_number")
+        pairs_bkg = sort_rgs_list(total_bkgr, "expo_number")
+        if not os.path.isdir(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}'):
+            os.mkdir(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}')
+
+        #Set XSPEC verbosity and create xspec log file
+        xspec.Xset.chatter = 10
+        xspec.Xset.logChatter = 20
+        logFile = xspec.Xset.openLog(f"{self.target_dir}/Products/RGS_Spectra/{self.obsid}/XSPECLogFile_average_spectrum.txt") 
+        logFile = xspec.Xset.log
+
+        # Create Table that we will fill with the output (parameters, flux, luminosity...)
+        self.spectra_table = Table(names=('obsid', 'instrid', 'exposures_id',
+                                    'tbinid', 'tbinstart', 'tbinstop', 'exposure', 'model',
+                                    'nH', 'nH_low', 'nH_up', 'phoindex', 'phoindex_low', 'phoindex_up',
+                                    'beta', 'beta_low', 'beta_up', 'norm', 'norm_low', 'norm_up',
+                                    'cstat', 'chi2', 'dof', 
+                                    'src_cts', 'esrc_cts', 'bkg_cts', 'ebkg_cts',
+                                    'rate', 'erate', 
+                                    'flux', 'flux_up', 'flux_low',
+                                    'lumin', 'lumin_up', 'lumin_low'
+                                    ),
+                                    dtype=('i','U9', 'U9',
+                                        'i', 'd', 'd', 'd','U20',
+                                        'd','d', 'd','d', 'd', 'd',
+                                        'd','d','d','d', 'd', 'd',
+                                        'd','d','i', 
+                                        'd', 'd', 'd', 'd',
+                                        'd', 'd',
+                                        'd', 'd', 'd', 
+                                        'd', 'd', 'd'))
+
+        
+        # Xspec models we want to use for fitting
+        model_list = ['const*tbabs*zlogpar', 'const*tbabs*zpowerlw']  
+
+        for i in range(self.npairs):
+            expos0 = Exposure(pairs_events[i][0], pairs_srcli[i][0], pairs_spectra[i][0], pairs_bkg[i][0], pairs_respli[i][0])
+            expos1 = Exposure(pairs_events[i][1], pairs_srcli[i][1], pairs_spectra[i][1], pairs_bkg[i][1], pairs_respli[i][1])
+            start_time, stop_time = expos0.synchronous_times(expos1)
+            #Load RGS1 + RGS2 data                
+            os.chdir(f"{self.target_dir}/{self.obsid}/rgs/divided_spectra")
+            xspec.AllData(f"1:1 ../{expos0.specli} 2:2 ../{expos1.specli}")
+
+            spectrum1 = xspec.AllData(1)
+            spectrum1.background = f"../{expos0.bkgli}"
+            spectrum1.response = f"../{expos0.respli}"
+
+            spectrum2 = xspec.AllData(2)
+            spectrum2.background = f"../{expos1.bkgli}"
+            spectrum2.response = f"../{expos1.respli}"
+
+            # Ignore bad channels
+            xspec.AllData.ignore("bad")
+            xspec.AllData.ignore('**-0.331 2.001-**')
+
+            for model in model_list:
+                m1 = xspec.Model(model)
+                m2 = xspec.AllModels(2) #Retrieve the model object assigned to data group 2
+
+                if m1.expression=='constant*TBabs*zlogpar':
+                    m1.setPars("1.0 -1", {5:0.331, 6:0.0308})
+                    m2.setPars("1.0", "/*")
+
+                if m1.expression=='constant*TBabs*zpowerlw':
+                    m1.setPars("1.0 -1", {4:0.0308})
+                    m2.setPars("1.0", "/*")
+
+                xspec.AllModels.show()
+
+                #Perform Fit using cstat as statistic for parameter estimation
+                xspec.Fit.statMethod = "cstat" 
+                xspec.Fit.statTest = "pchi"
+                xspec.Fit.renorm()    #renormalize model to minimize statistic with current parameters
+                xspec.Fit.query = 'yes'
+                xspec.Fit.perform() 
+
+                #Error calculation (confidence intervals)
+                if m1.expression=='constant*TBabs*zlogpar':
+                    xspec.Fit.error("stopat 1000,, maximum 1000.0 2,3,4,7")    
+
+                if m1.expression=='constant*TBabs*zpowerlw':
+                    xspec.Fit.error("stopat 1000,, maximum 1000.0 2,3,5")
+
+                #Plot
+                spectrum_plot_xspec(self.obsid, expos0.expid, expos1.expid, model, self.target_dir, 0)
+
+                #Calculate Flux and Luminosity and store their values 
+                xspec.AllModels.calcFlux('0.331 2.001 err 100 90')
+                xspec.AllModels.calcLumin(f'0.331 2.001 {target_REDSHIFT} err') 
+                flux = spectrum1.flux[0] #erg/cm2/s
+                lumin = spectrum1.lumin[0] #e+44 erg/s
+                flux_up = spectrum1.flux[2]
+                flux_low = spectrum1.flux[1]
+                lumin_up = spectrum1.lumin[2]
+                lumin_low = spectrum1.lumin[1]
+
+                #Store parameter results of fit
+                if m1.expression=='constant*TBabs*zpowerlw':
+                    nH = m1(2).values[0]
+                    phoindex = m1(3).values[0]
+                    norm = m1(5).values[0]
+                    #Confidence intervals
+                    nH_low = m1(2).error[0]
+                    nH_up = m1(2).error[1]
+                    phoindex_low = m1(3).error[0]
+                    phoindex_up = m1(3).error[1]
+                    norm_low = m1(5).error[0]
+                    norm_up = m1(5).error[1]
+                    beta, beta_up, beta_low = (np.nan, np.nan, np.nan)
+
+                if m1.expression=='constant*TBabs*zlogpar':
+                    nH = m1(2).values[0]
+                    phoindex = m1(3).values[0]
+                    beta = m1(4).values[0]
+                    norm = m1(7).values[0]
+                    #Confidence intervals
+                    nH_low = m1(2).error[0]
+                    nH_up = m1(2).error[1]
+                    phoindex_low = m1(3).error[0]
+                    phoindex_up = m1(3).error[1]
+                    beta_low = m1(4).error[0]
+                    beta_up = m1(4).error[1]
+                    norm_low = m1(7).error[0]
+                    norm_up = m1(7).error[1]
+
+                fit_statistic = xspec.Fit.statistic
+                test_statistic = xspec.Fit.testStatistic
+                dof = xspec.Fit.dof
+
+                # Retrieve rates and counts from xspec
+                exposure_time = max(spectrum1.exposure, spectrum2.exposure)
+                src_rate = spectrum1.rate[0] + spectrum2.rate[0]  #net rate
+                src_rate_std = spectrum1.rate[1] + spectrum2.rate[1]
+                frac = spectrum1.rate[3] + spectrum2.rate[3] #model rate
+
+                src_cts = spectrum1.exposure*spectrum1.rate[0] + spectrum2.exposure*spectrum2.rate[0]
+                src_ects = spectrum1.exposure*spectrum1.rate[1] + spectrum2.exposure*spectrum2.rate[1] 
+                bkg_cts = (1. - frac/100) *src_cts
+                bkg_ects = (1. - frac/100) *src_ects
+
+                #Save output table
+                self.spectra_table.add_row((self.obsid, "rgs12", f"{expos0.expid}+{expos1.expid}", 0, start_time, stop_time,  exposure_time, m1.expression, nH, nH_low, nH_up,
+                                    phoindex, phoindex_low, phoindex_up, beta, beta_low, beta_up, norm, norm_low, norm_up, fit_statistic, test_statistic,
+                                    dof, src_cts, src_ects, bkg_cts, bkg_ects, src_rate, src_rate_std, 
+                                    flux, flux_up, flux_low, lumin, lumin_up, lumin_low))
+
+                # Set column units
+                self.spectra_table['tbinstart'].unit = 's'
+                self.spectra_table['tbinstop'].unit = 's'
+                self.spectra_table['exposure'].unit = 's'
+                self.spectra_table['nH'].unit = '10**(22) g / (cm2)'
+                self.spectra_table['nH_up'].unit = '10**(22) g/ (cm2)'
+                self.spectra_table['nH_low'].unit = '10**(22) g/ (cm2)'
+                self.spectra_table['norm'].unit = 'ph /(cm2 s)'
+                self.spectra_table['norm_low'].unit = 'ph/(cm2 s)'
+                self.spectra_table['norm_up'].unit = 'ph/(cm2 s)'
+                self.spectra_table['src_cts'].unit = 'ct'
+                self.spectra_table['bkg_cts'].unit = 'ct'
+                self.spectra_table['ebkg_cts'].unit = 'ct'
+                self.spectra_table['esrc_cts'].unit = 'ct'
+                self.spectra_table['rate'].unit = 'ct/s'
+                self.spectra_table['flux'].unit = 'erg/(cm2 s)'
+                self.spectra_table['flux_up'].unit = 'erg/(cm2 s)'
+                self.spectra_table['flux_low'].unit = 'erg/(cm2 s)'
+                self.spectra_table['lumin'].unit = '10**(44) erg /s'
+                self.spectra_table['lumin_up'].unit = '10**(44) erg/s'
+                self.spectra_table['lumin_low'].unit = '10**(44) erg/s'
+
+
+        # Close XSPEC's currently opened log file.
+        xspec.Xset.closeLog()
+
+        # Write FITS output file 
+        if glob.glob(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}/{self.obsid}_table.fits'):
+            os.remove(glob.glob(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}/{self.obsid}_table.fits')[0])
+
+        self.spectra_table.write(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}/{self.obsid}_table.fits', format='fits', overwrite=True)
+        logging.info('Done average spectral analysis. Please check your Products directory.')
+
+    def xspec_divided_spectra(self, target_REDSHIFT):
+        """
+        """
+        logging.info(f"Starting spectral analysis with XSPEC for observation {self.obsid}, split spectrum.")
+        os.chdir(f"{self.target_dir}/{self.obsid}/rgs")
+        evenli = glob.glob('*EVENLI0000.FIT')
+        srcli = glob.glob('*SRCLI_0000.FIT')
+        respli = glob.glob('*RSPMAT1*')
+        total_spectra = glob.glob('*SRSPEC1*')
+        total_bkgr = glob.glob('*BGSPEC1*')
+        pairs_events = sort_rgs_list(evenli, 'expo_number')
+        pairs_srcli = sort_rgs_list(srcli, "expo_number")
+        pairs_respli = sort_rgs_list(respli, "expo_number")
+        pairs_spectra = sort_rgs_list(total_spectra, "expo_number")
+        pairs_bkg = sort_rgs_list(total_bkgr, "expo_number")
+
+        #Set XSPEC verbosity and create xspec log file
+        xspec.Xset.chatter = 10
+        xspec.Xset.logChatter = 20
+        logFile = xspec.Xset.openLog(f"{self._target_dir}/Products/RGS_Spectra/{self.obsid}/XSPECLogFile_divided_spectra.txt") 
+        logFile = xspec.Xset.log
+        
+        for s in range(len(pairs_spectra)):
+            expos0 = Exposure(pairs_events[s][0], pairs_srcli[s][0], pairs_spectra[s][0], pairs_bkg[s][0], pairs_respli[s][0])
+            expos1 = Exposure(pairs_events[s][1], pairs_srcli[s][1], pairs_spectra[s][1], pairs_bkg[s][1], pairs_respli[s][1])
+            start_time, stop_time = expos0.synchronous_times(expos1)
+            n_intervals = int(np.ceil((stop_time-start_time)/1000))
+            os.chdir(f"{self.target_dir}/{self.obsid}/rgs/divided_spectra")
+
+            # Perform spectral analysis looping over the pieces
+            for i in range(1, n_intervals):
+                    
+                with fits.open(f'gtiRGS1_{expos0.expid}_file{i}.fits') as hdul:
+                    tstart = hdul['STDGTI'].header['TSTART']
+                    tstop = hdul['STDGTI'].header['TSTOP']
+
+                #Load RGS1 + RGS2 data
+                xspec.AllData(f"1:1 sourcespecRGS1_{expos0.expid}_gti{i}.fits 2:2 sourcespecRGS2_{expos1.expid}_gti{i}.fits")
+
+                spectrum1 = xspec.AllData(1)
+                spectrum1.background = f"bgspecRGS1_{expos0.expid}_gti{i}.fits"
+                spectrum1.response = f"../{expos0.respli}"
+
+                spectrum2 = xspec.AllData(2)
+                spectrum2.background = f"bgspecRGS2_{expos1.expid}_gti{i}.fits"
+                spectrum2.response = f"../{expos1.respli}"
+
+                # Ignore bad channels
+                xspec.AllData.ignore("bad")
+                xspec.AllData.ignore('**-0.331 2.001-**')
+
+                #Calculate exposure time: if not at least 500 s, skip interval
+                exposure_time = max(spectrum1.exposure, spectrum2.exposure)
+                if exposure_time<500:
+                    continue
+                #Loop over models
+                model_list = ['const*tbabs*zlogpar', 'const*tbabs*zpowerlw']
+                for model in model_list:
+                    m1 = xspec.Model(model)
+                    m2 = xspec.AllModels(2) #Retrieve the model object assigned to data group 2
+
+                    if m1.expression=='constant*TBabs*zlogpar':
+                        m1.setPars("1.0 -1", {5:0.331, 6:0.0308})
+                        m2.setPars("1.0", "/*")
+
+                    if m1.expression=='constant*TBabs*zpowerlw':
+                        m1.setPars("1.0 -1", {4:0.0308})
+                        m2.setPars("1.0", "/*")
+
+                    #Perform Fit using cstat as statistic for parameter estimation
+                    xspec.Fit.statMethod = "cstat" 
+                    xspec.Fit.statTest = "pchi"
+                    xspec.Fit.renorm()    #renormalize model to minimize statistic with current parameters
+                    xspec.Fit.query = 'yes' 
+                    xspec.Fit.perform() 
+
+                    #Error calculation (confidence intervals)
+                    if m1.expression=='constant*TBabs*zlogpar':
+                        xspec.Fit.error("stopat 1000,, maximum 1000.0 2,3,4,7")    
+
+                    if m1.expression=='constant*TBabs*zpowerlw':
+                        xspec.Fit.error("stopat 1000,, maximum 1000.0 2,3,5")
+
+                    #Plotting
+                    spectrum_plot_xspec(self.obsid, expos0.expid, expos1.expid, model, self.target_dir, i)
+
+                    #Calculate Flux and Luminosity and store their values 
+                    xspec.AllModels.calcFlux('0.331 2.001 err 100 90')
+                    xspec.AllModels.calcLumin(f'0.331 2.001 {target_REDSHIFT} err') 
+                    flux = spectrum1.flux[0] #erg/cm2/s
+                    lumin = spectrum1.lumin[0] #e+44 erg/s
+                    flux_up = spectrum1.flux[2]
+                    flux_low = spectrum1.flux[1]
+                    lumin_up = spectrum1.lumin[2]
+                    lumin_low = spectrum1.lumin[1]
+
+
+                    #Store parameter results of fit
+                    if m1.expression=='constant*TBabs*zpowerlw':
+                        nH = m1(2).values[0]
+                        phoindex = m1(3).values[0]
+                        norm = m1(5).values[0]
+                        #Confidence intervals
+                        nH_low = m1(2).error[0]
+                        nH_up = m1(2).error[1]
+                        phoindex_low = m1(3).error[0]
+                        phoindex_up = m1(3).error[1]
+                        norm_low = m1(5).error[0]
+                        norm_up = m1(5).error[1]
+                        beta, beta_up, beta_low = (np.nan, np.nan, np.nan)
+
+                    if m1.expression=='constant*TBabs*zlogpar':
+                        nH = m1(2).values[0]
+                        phoindex = m1(3).values[0]
+                        beta = m1(4).values[0]
+                        norm = m1(7).values[0]
+                        #Confidence intervals
+                        nH_low = m1(2).error[0]
+                        nH_up = m1(2).error[1]
+                        phoindex_low = m1(3).error[0]
+                        phoindex_up = m1(3).error[1]
+                        beta_low = m1(4).error[0]
+                        beta_up = m1(4).error[1]
+                        norm_low = m1(7).error[0]
+                        norm_up = m1(7).error[1]
+
+                    fit_statistic = xspec.Fit.statistic
+                    test_statistic = xspec.Fit.testStatistic
+                    dof = xspec.Fit.dof
+
+                    # Retrieve rates and counts from xspec
+                    src_rate = spectrum1.rate[0] + spectrum2.rate[0]  #net rate
+                    src_rate_std = spectrum1.rate[1] + spectrum2.rate[1]
+                    frac = spectrum1.rate[3] + spectrum2.rate[3] #model rate
+
+                    src_cts = spectrum1.exposure*spectrum1.rate[0] + spectrum2.exposure*spectrum2.rate[0]
+                    src_ects = spectrum1.exposure*spectrum1.rate[1] + spectrum2.exposure*spectrum2.rate[1] 
+                    bkg_cts = (1. - frac/100) *src_cts
+                    bkg_ects = (1. - frac/100) *src_ects
+
+                    #Save output table
+                    self.spectra_table.add_row((self.obsid,"rgs12", f"{expos0.expid}+{expos1.expid}", i, tstart, tstop,  exposure_time, m1.expression, nH, nH_low, nH_up,
+                                    phoindex, phoindex_low, phoindex_up, beta, beta_low, beta_up, norm, norm_low, norm_up, fit_statistic, test_statistic,
+                                    dof, src_cts, src_ects, bkg_cts, bkg_ects, src_rate, src_rate_std,
+                                    flux, flux_up, flux_low, lumin, lumin_up, lumin_low))
+
+        # Close XSPEC's currently opened log file.
+        xspec.Xset.closeLog()
+        self.spectra_table.write(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}/{self.obsid}_table.fits', format='fits', overwrite=True)
+        logging.info('Done spectral analysis. Please check your Products directory.')
