@@ -350,135 +350,42 @@ class Observation:
     def bkg_lightcurve(self):
 
         os.chdir(self.rgsdir)
-
-        #Sort RGS eventlists according to exposure number
-        pairs_events = sort_rgs_list(self.rgsevlists, 'expo_number')
-        self.npairs = len(pairs_events)
-
-        #Sort RGS sourcelists according to exposure number
-        pairs_srcli = sort_rgs_list(self.rgssrclists, 'expo_number')
-
-        for i in range(self.npairs):
+        evenli_srcli = set(zip(self.rgsevlists, self.rgssrclists))
+        for (evenli, srcli) in evenli_srcli:
+        
+            expos0 = Exposure(evenli, srcli)
+            title_outputbkg0 = f"bkg{expos0.fullid}_check_rates.fit"
+            select_bkg_cmmd0 = f"evselect table={expos0.evenli} timebinsize=1000 rateset={title_outputbkg0} makeratecolumn=yes maketimecolumn=yes expression='(CCDNR==9)&&(REGION({expos0.srcli}:{expos0.instrume}_BACKGROUND, M_LAMBDA, XDSP_CORR))'"
+            status_cmmd0 = run_command(select_bkg_cmmd0)
             
-            if len(pairs_events[i])==2:
-                expos0 = Exposure(pairs_events[i][0], pairs_srcli[i][0])
-                expos1 = Exposure(pairs_events[i][1], pairs_srcli[i][1])
+            #back0_lc = f'dsplot table={title_outputbkg0} withx=yes x=TIME withy=yes y=RATE plotter="xmgrace -hardcopy -printfile {title_outputbkg0}.ps"'
+            #plot0_status = run_command(back0_lc)
+            
+            data = fits.open(title_outputbkg0)
+            x = data['RATE'].data['TIME']
+            y = data['RATE'].data['RATE']               
+            yerr = data['RATE'].data['ERROR']
 
-                if expos0.fullid not in self.discarded_expos:
-                    title_outputbkg0 = f"bkg{expos0.fullid}_check_rates.fit"
-                    select_bkg_cmmd0 = f"evselect table={expos0.evenli} timebinsize=1000 rateset={title_outputbkg0} makeratecolumn=yes maketimecolumn=yes expression='(CCDNR==9)&&(REGION({expos0.srcli}:{expos0.instrume}_BACKGROUND, M_LAMBDA, XDSP_CORR))'"
-                    status_cmmd0 = run_command(select_bkg_cmmd0)
-                    
-                    #back0_lc = f'dsplot table={title_outputbkg0} withx=yes x=TIME withy=yes y=RATE plotter="xmgrace -hardcopy -printfile {title_outputbkg0}.ps"'
-                    #plot0_status = run_command(back0_lc)
-                    
-                    data = fits.open(title_outputbkg0)
-                    x = data['RATE'].data['TIME']
-                    y = data['RATE'].data['RATE']               
-                    yerr = data['RATE'].data['ERROR']
-
-                    #Drop NaN values by making a numpy mask
-                    mask_nan = np.invert(np.isnan(y)) 
-                    x = x[mask_nan]
-                    y = y[mask_nan]
-                    yerr = yerr[mask_nan]
-                    
-                    #Store average rate into Observation attribute
-                    #avg_rate = np.mean(y)
-                        
-                    #Plot data and add labels and title
-                    fig = plt.figure(figsize=(20,10))
-                    ax = fig.add_subplot(1, 1, 1)
-                    plt.errorbar(x, y, yerr=yerr, color='black', marker='.', ecolor='gray')
-                    plt.grid(True)
-                    plt.title(title_outputbkg0, fontsize=30)
-                    plt.xlabel('TIME [s]', fontsize=25)
-                    plt.ylabel('RATE [count/s]', fontsize=25)
-                    plt.xticks(fontsize=20)
-                    plt.yticks(fontsize=20)
-
-                    #Save figure in rgs directory of the current Observation
-                    
-                    plt.savefig(f'{self.target_dir}/Products/Backgrnd_LC/{title_outputbkg0}.png')
-                    plt.close()
-
-                if expos1.fullid not in self.discarded_expos:
-                    title_outputbkg1 = f"bkg{expos1.fullid}_check_rates.fit"
-                    select_bkg_cmmd1 = f"evselect table={expos1.evenli} timebinsize=1000 rateset={title_outputbkg1} makeratecolumn=yes maketimecolumn=yes expression='(CCDNR==9)&&(REGION({expos1.srcli}:{expos1.instrume}_BACKGROUND, M_LAMBDA, XDSP_CORR))'"
-                    status_cmmd1 = run_command(select_bkg_cmmd1)
-
-                    #back1_lc = f'dsplot table={title_outputbkg1} withx=yes x=TIME withy=yes y=RATE plotter="xmgrace -hardcopy -printfile {title_outputbkg1}.ps"'
-                    #plot1_status = run_command(back1_lc)
-
-                    data = fits.open(title_outputbkg1)
-                    x = data['RATE'].data['TIME']
-                    y = data['RATE'].data['RATE']               
-                    yerr = data['RATE'].data['ERROR']
-
-                    #Drop NaN values by making a numpy mask
-                    mask_nan = np.invert(np.isnan(y)) 
-                    x = x[mask_nan]
-                    y = y[mask_nan]
-                    yerr = yerr[mask_nan]
-                    
-                    #Store average rate into Observation attribute
-                    #avg_rate = np.mean(y)
-                        
-                    #Plot data and add labels and title
-                    fig = plt.figure(figsize=(20,10))
-                    ax = fig.add_subplot(1, 1, 1)
-                    plt.errorbar(x, y, yerr=yerr, color='black', marker='.', ecolor='gray')
-                    plt.grid(True)
-                    plt.title(title_outputbkg1, fontsize=30)
-                    plt.xlabel('TIME [s]', fontsize=25)
-                    plt.ylabel('RATE [count/s]', fontsize=25)
-                    plt.xticks(fontsize=20)
-                    plt.yticks(fontsize=20)
-
-                    #Save figure in rgs directory of the current Observation
-                    
-                    plt.savefig(f'{self.target_dir}/Products/Backgrnd_LC/{title_outputbkg1}.png')
-                    plt.close()
-
-            elif len(pairs_events[i])==1:
-                expos0 = Exposure(pairs_events[i][0], pairs_srcli[i][0])
-
-                title_outputbkg0 = f"bkg{expos0.fullid}_check_rates.fit"
-                select_bkg_cmmd0 = f"evselect table={expos0.evenli} timebinsize=1000 rateset={title_outputbkg0} makeratecolumn=yes maketimecolumn=yes expression='(CCDNR==9)&&(REGION({expos0.srcli}:{expos0.instrume}_BACKGROUND, M_LAMBDA, XDSP_CORR))'"
-                status_cmmd0 = run_command(select_bkg_cmmd0)
+            #Drop NaN values by making a numpy mask
+            mask_nan = np.invert(np.isnan(y)) 
+            x = x[mask_nan]
+            y = y[mask_nan]
+            yerr = yerr[mask_nan]
                 
-                #back0_lc = f'dsplot table={title_outputbkg0} withx=yes x=TIME withy=yes y=RATE plotter="xmgrace -hardcopy -printfile {title_outputbkg0}.ps"'
-                #plot0_status = run_command(back0_lc)
+            #Plot data and add labels and title
+            fig = plt.figure(figsize=(20,10))
+            ax = fig.add_subplot(1, 1, 1)
+            plt.errorbar(x, y, yerr=yerr, color='black', marker='.', ecolor='gray')
+            plt.grid(True)
+            plt.title(title_outputbkg0, fontsize=30)
+            plt.xlabel('TIME [s]', fontsize=25)
+            plt.ylabel('RATE [count/s]', fontsize=25)
+            plt.xticks(fontsize=20)
+            plt.yticks(fontsize=20)
 
-                data = fits.open(title_outputbkg0)
-                x = data['RATE'].data['TIME']
-                y = data['RATE'].data['RATE']               
-                yerr = data['RATE'].data['ERROR']
-
-                #Drop NaN values by making a numpy mask
-                mask_nan = np.invert(np.isnan(y)) 
-                x = x[mask_nan]
-                y = y[mask_nan]
-                yerr = yerr[mask_nan]
-                
-                #Store average rate into Observation attribute
-                #avg_rate = np.mean(y)
-                    
-                #Plot data and add labels and title
-                fig = plt.figure(figsize=(20,10))
-                ax = fig.add_subplot(1, 1, 1)
-                plt.errorbar(x, y, yerr=yerr, color='black', marker='.', ecolor='gray')
-                plt.grid(True)
-                plt.title(title_outputbkg0, fontsize=30)
-                plt.xlabel('TIME [s]', fontsize=25)
-                plt.ylabel('RATE [count/s]', fontsize=25)
-                plt.xticks(fontsize=20)
-                plt.yticks(fontsize=20)
-
-                #Save figure in rgs directory of the current Observation
-                
-                plt.savefig(f'{self.target_dir}/Products/Backgrnd_LC/{title_outputbkg0}.png')
-                plt.close()
+            #Save figure in rgs directory of the current Observation
+            plt.savefig(f'{self.target_dir}/Products/Backgrnd_LC/{title_outputbkg0}.png')
+            plt.close()
 
 
     def fracvartest(self, screen=True, netlightcurve=True, timescale=10):

@@ -10,8 +10,9 @@ from scipy.optimize import curve_fit
 target_dir = CONFIG['target_dir'] 
 sas_dir = CONFIG['sas_dir']
 ccf_dir = CONFIG['ccf_dir']
-observations = [ '0791782001'] 
-
+observations = [ '0136541001'] 
+N = 12
+M = 12
 def linear_fit(x, q):
     return 0*x+q
 
@@ -58,11 +59,11 @@ for observation in observations:
     print('Final start and stop time for rgslccorr:', start_time, stop_time)
     #Run rgslccorr
     timebinsize = 25 #s
-    '''
+    
     logging.info(f"Running rgslccorr SAS command for observation number {observation}.")
     rgslc_command = f"rgslccorr evlist='{pairs_events[0][0]} {pairs_events[0][1]}' srclist='{pairs_srcli[0][0]} {pairs_srcli[0][1]}' withbkgsubtraction=yes timemin={start_time} timemax={stop_time} timebinsize={timebinsize} orders='1' sourceid=3 outputsrcfilename={observation}_RGS_rates_{timebinsize}bin.ds outputbkgfilename={observation}_bkg_rates_{timebinsize}bin.ds"
     status_rgslc = run_command(rgslc_command)
-    '''
+    
     #Read LC data
     hdul = Table.read(f"{target_dir}/{observation}/rgs/{observation}_RGS_rates_{timebinsize}bin.ds", hdu=1)    
     data = hdul.to_pandas()
@@ -71,7 +72,7 @@ for observation in observations:
     
     ## PANEL 
     fig, axs = plt.subplots(6, 1, figsize=(15,20), sharex=True, gridspec_kw={'hspace':0})
-    fig.suptitle(f'RGS Lightcurve ObsId {observation} binsize {timebinsize}s', fontsize=15, y=0.92)
+    fig.suptitle(f'RGS Lightcurve ObsId {observation} binsize {timebinsize}s \n N ={N}, M = {M}', fontsize=15, y=0.92)
     
     #Subplot x (lightcurve)
     axs[0].errorbar(data['TIME'].values, data['RATE'].values, yerr=data['ERROR'].values, linestyle='', color='black', marker='.', ecolor='gray', 
@@ -85,10 +86,10 @@ for observation in observations:
     mean_time = []
     mean_time_err = []
     i = 0
-    M = 10
     while(i+M<len(data)):
         mean_data.append(np.mean(data[i:i+M]['RATE'].values))
-        mean_error_data.append(np.sqrt(1/ (1/np.square(data[i:i+M]['ERROR'].values)).sum()))
+        #mean_error_data.append(np.sqrt(1/ (1/np.square(data[i:i+M]['ERROR'].values)).sum()))
+        mean_error_data.append(np.std(data[i:i+M]['RATE'].values)/np.sqrt(len(data[i:i+M]['RATE'].values)))
         mean_time.append(np.mean([data['TIME'].values[i], data['TIME'].values[i+M]]))
         i+=M
 
@@ -133,10 +134,11 @@ for observation in observations:
     mean_xs_err = []
     meanx2_times = []
     meanx2_times_err = []
-    N = 10
+
     while (i+N< len(xs_arr)):
         mean_xs.append(np.mean(xs_arr[i:i+N]))
-        mean_xs_err.append(np.sqrt(1/ (1/np.square(xs_err_arr[i:i+M])).sum()))
+        #mean_xs_err.append(np.sqrt(1/ (1/np.square(xs_err_arr[i:i+M])).sum()))
+        mean_xs_err.append(np.std(xs_arr[i:i+M])/np.sqrt(len(xs_arr[i:i+M])))
         meanx2_times.append(np.mean([mean_time_nonneg[i], mean_time_nonneg[i+N]]))
         i+=N
     for i in range(len(meanx2_times)):
@@ -178,7 +180,8 @@ for observation in observations:
     fvar_err_mean_arr = []
     while(i+N<len(fvar_arr)):
         fvar_mean_arr.append(np.mean(fvar_arr[i:i+N]))
-        fvar_err_mean_arr.append(np.sqrt(1/ (1/np.square(fvar_err_arr[i:i+M])).sum()))
+        #fvar_err_mean_arr.append(np.sqrt(1/ (1/np.square(fvar_err_arr[i:i+M])).sum()))
+        fvar_err_mean_arr.append(np.std(fvar_arr[i:i+M])/np.sqrt(len(fvar_arr[i:i+M])))
         i+=N
     
     axs[5].errorbar(meanx2_times, fvar_mean_arr, fvar_err_mean_arr, xerr=meanx2_times_err, linestyle='', color='black', marker='.', ecolor='gray')
