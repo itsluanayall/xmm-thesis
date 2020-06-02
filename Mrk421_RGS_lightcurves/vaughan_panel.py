@@ -5,12 +5,32 @@ import glob
 from astropy.table import Table
 import numpy as np
 from itertools import compress
-
+from scipy.optimize import curve_fit
 
 target_dir = CONFIG['target_dir'] 
 sas_dir = CONFIG['sas_dir']
 ccf_dir = CONFIG['ccf_dir']
-observations = ['0150498701']
+observations = [ '0791782001'] 
+
+def linear_fit(x, q):
+    return 0*x+q
+
+def synchronous_times(tstart1, tstart2, tstop1, tstop2):
+    """
+    Function that compares tstart1 and tstart2, and tstop1 and tstop2. The output is a list of two values:
+    the maximum between tstart1 and tstart2 and the minimum between tstop1 and stop2.
+    """    
+    final_start = max(tstart1, tstart2)
+    final_stop = min(tstop1, tstop2)
+    overlap = max(0., final_stop-final_start)
+    try:
+        if overlap>0:
+            return final_start, final_stop
+        else:
+            raise Exception
+    except Exception as e:
+        logging.error("The given exposures do not overlap. Please check the if the input exposures are correct.")
+
 
 for observation in observations:
     os.chdir(f'{target_dir}/{observation}')
@@ -21,17 +41,33 @@ for observation in observations:
     pairs_events = sort_rgs_list(rgsevlists, 'expo_number')
     pairs_srcli = sort_rgs_list(rgssrclists, "expo_number")
 
+    with fits.open(pairs_events[0][0]) as hdul:
+        expid0 = hdul[1].header['EXP_ID']
+        tstart0 = hdul[1].header['TSTART']
+        tstop0 = hdul[1].header['TSTOP']
+    print(f'RGS1 exposure {expid0} start and stop times:', tstart0,'-', tstop0)
+
+    # Open RGS2 evelist and save tstart and tstop
+    with fits.open(pairs_events[0][1]) as hdul:
+        expid1 = hdul[1].header['EXP_ID']
+        tstart1 = hdul[1].header['TSTART']
+        tstop1 = hdul[1].header['TSTOP']
+    print(f'RGS2 exposure {expid1} start and stop times:', tstart1,'-', tstop1)
+
+    start_time, stop_time = synchronous_times(tstart0, tstart1, tstop0, tstop1)
+    print('Final start and stop time for rgslccorr:', start_time, stop_time)
     #Run rgslccorr
     timebinsize = 25 #s
     '''
     logging.info(f"Running rgslccorr SAS command for observation number {observation}.")
-    rgslc_command = f"rgslccorr evlist='{pairs_events[0][0]} {pairs_events[0][1]}' srclist='{pairs_srcli[0][0]} {pairs_srcli[0][1]}' withbkgsubtraction=yes timebinsize={timebinsize} orders='1' sourceid=3 outputsrcfilename={observation}_RGS_rates_{timebinsize}bin.ds outputbkgfilename={observation}_bkg_rates_{timebinsize}bin.ds"
+    rgslc_command = f"rgslccorr evlist='{pairs_events[0][0]} {pairs_events[0][1]}' srclist='{pairs_srcli[0][0]} {pairs_srcli[0][1]}' withbkgsubtraction=yes timemin={start_time} timemax={stop_time} timebinsize={timebinsize} orders='1' sourceid=3 outputsrcfilename={observation}_RGS_rates_{timebinsize}bin.ds outputbkgfilename={observation}_bkg_rates_{timebinsize}bin.ds"
     status_rgslc = run_command(rgslc_command)
     '''
     #Read LC data
     hdul = Table.read(f"{target_dir}/{observation}/rgs/{observation}_RGS_rates_{timebinsize}bin.ds", hdu=1)    
     data = hdul.to_pandas()
     data = data.dropna()
+    data = data.iloc[3:]
     
     ## PANEL 
     fig, axs = plt.subplots(6, 1, figsize=(15,20), sharex=True, gridspec_kw={'hspace':0})
@@ -49,11 +85,11 @@ for observation in observations:
     mean_time = []
     mean_time_err = []
     i = 0
-    M = 20
+    M = 10
     while(i+M<len(data)):
         mean_data.append(np.mean(data[i:i+M]['RATE'].values))
-        mean_error_data.append(np.sqrt(1/ (np.sum(1/np.square(data[i:i+M]['ERROR'].values)))))
-        mean_time.append(np.mean([data['TIME'].loc[i], data['TIME'].loc[i+M]]))
+        mean_error_data.append(np.sqrt(1/ (1/np.square(data[i:i+M]['ERROR'].values)).sum()))
+        mean_time.append(np.mean([data['TIME'].values[i], data['TIME'].values[i+M]]))
         i+=M
 
     for i in range(len(mean_time)):
@@ -97,10 +133,10 @@ for observation in observations:
     mean_xs_err = []
     meanx2_times = []
     meanx2_times_err = []
-    N=17
+    N = 10
     while (i+N< len(xs_arr)):
         mean_xs.append(np.mean(xs_arr[i:i+N]))
-        mean_xs_err.append(np.sqrt(1/ (np.sum(1/np.square(xs_err_arr[i:i+M])))))
+        mean_xs_err.append(np.sqrt(1/ (1/np.square(xs_err_arr[i:i+M])).sum()))
         meanx2_times.append(np.mean([mean_time_nonneg[i], mean_time_nonneg[i+N]]))
         i+=N
     for i in range(len(meanx2_times)):
@@ -142,7 +178,7 @@ for observation in observations:
     fvar_err_mean_arr = []
     while(i+N<len(fvar_arr)):
         fvar_mean_arr.append(np.mean(fvar_arr[i:i+N]))
-        fvar_err_mean_arr.append(np.sqrt(1/ (np.sum(1/np.square(fvar_err_arr[i:i+M])))))
+        fvar_err_mean_arr.append(np.sqrt(1/ (1/np.square(fvar_err_arr[i:i+M])).sum()))
         i+=N
     
     axs[5].errorbar(meanx2_times, fvar_mean_arr, fvar_err_mean_arr, xerr=meanx2_times_err, linestyle='', color='black', marker='.', ecolor='gray')
@@ -153,5 +189,25 @@ for observation in observations:
     plt.savefig(f'{target_dir}/Products/{observation}_variability_panel.png')
     plt.show()
 
+    fvar_mean_arr = np.array(fvar_mean_arr)
+    meanx2_times = np.array(meanx2_times)
+    meanx2_times_err = np.array(meanx2_times_err)
+    fvar_err_mean_arr = np.array(fvar_err_mean_arr)
+    print(fvar_err_mean_arr)
+    #meanx2_times = meanx2_times - meanx2_times[0]
+    # Fit constant
+    #valori iniziali e fit
+    initial_values =(0.03)
+    pars, covm = curve_fit(linear_fit, meanx2_times, fvar_mean_arr, initial_values, fvar_err_mean_arr) 
 
+    q0 = pars    #a0 e b0 sono i valori dei parametri della curva del fit
+    dq = np.sqrt(covm.diagonal())   #e i loro rispettivi errori (dalla matrice di covaranza covm)
 
+    #stampa risultati e plot 
+    #print('m = %f +- %f' % (m0,dm))
+    print('q = %f +- %f' % (q0, dq))
+    
+    #chi2
+    chisq =(((fvar_mean_arr-linear_fit(meanx2_times, q0) )/fvar_err_mean_arr)**2).sum()
+    ndof = len(meanx2_times) - 1
+    print('Chisquare/ndof = %f/%d' % (chisq, ndof))
