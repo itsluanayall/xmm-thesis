@@ -216,27 +216,27 @@ class Observation:
         os.chdir(self.rgsdir)
         
         #Sort RGS eventlists according to exposure number
-        pairs_events = sort_rgs_list(self.rgsevlists, 'expo_number')
+        self.pairs_events = sort_rgs_list(self.rgsevlists, 'expo_number')
         if self.obsid=='0510610101':
-            pairs_events = [['P0510610101R1S004EVENLI0000.FIT', 'P0510610101R2S005EVENLI0000.FIT'], ['P0510610101R1S004EVENLI0000.FIT', 'P0510610101R2S013EVENLI0000.FIT']]
+            self.pairs_events = [['P0510610101R1S004EVENLI0000.FIT', 'P0510610101R2S005EVENLI0000.FIT'], ['P0510610101R1S004EVENLI0000.FIT', 'P0510610101R2S013EVENLI0000.FIT']]
         if self.obsid=='0510610201':
-            pairs_events = [['P0510610201R1S004EVENLI0000.FIT', 'P0510610201R2S005EVENLI0000.FIT'], ['P0510610201R1S015EVENLI0000.FIT', 'P0510610201R2S005EVENLI0000.FIT']]
+            self.pairs_events = [['P0510610201R1S004EVENLI0000.FIT', 'P0510610201R2S005EVENLI0000.FIT'], ['P0510610201R1S015EVENLI0000.FIT', 'P0510610201R2S005EVENLI0000.FIT']]
         if self.obsid=='0136540701':
-            pairs_events = [['P0136540701R1S001EVENLI0000.FIT','P0136540701R2S002EVENLI0000.FIT' ], ['P0136540701R1S001EVENLI0000.FIT', 'P0136540701R2S018EVENLI0000.FIT'],
+            self.pairs_events = [['P0136540701R1S001EVENLI0000.FIT','P0136540701R2S002EVENLI0000.FIT' ], ['P0136540701R1S001EVENLI0000.FIT', 'P0136540701R2S018EVENLI0000.FIT'],
                             ['P0136540701R1S011EVENLI0000.FIT','P0136540701R2S018EVENLI0000.FIT'], ['P0136540701R1S020EVENLI0000.FIT', 'P0136540701R2S018EVENLI0000.FIT'],
                             ['P0136540701R1S021EVENLI0000.FIT', 'P0136540701R2S019EVENLI0000.FIT'], ['P0136540701R1S022EVENLI0000.FIT','P0136540701R2S019EVENLI0000.FIT']]
-        self.npairs = len(pairs_events)
+        self.npairs = len(self.pairs_events)
         logging.info(f'There is(are) {self.npairs} set(s) of exposures for observation {self.obsid}.')
-        print(pairs_events)
+        print(self.pairs_events)
 
         #Sort RGS sourcelists according to exposure number
-        pairs_srcli = sort_rgs_list(self.rgssrclists, 'expo_number')
+        self.pairs_srcli = sort_rgs_list(self.rgssrclists, 'expo_number')
         if self.obsid=='0510610101':
-            pairs_srcli = [['P0510610101R1S004SRCLI_0000.FIT', 'P0510610101R2S005SRCLI_0000.FIT'], ['P0510610101R1S004SRCLI_0000.FIT', 'P0510610101R2S013SRCLI_0000.FIT']]
+            self.pairs_srcli = [['P0510610101R1S004SRCLI_0000.FIT', 'P0510610101R2S005SRCLI_0000.FIT'], ['P0510610101R1S004SRCLI_0000.FIT', 'P0510610101R2S013SRCLI_0000.FIT']]
         if self.obsid=='0510610201':
-            pairs_srcli = [['P0510610201R1S004SRCLI_0000.FIT', 'P0510610201R2S005SRCLI_0000.FIT'], ['P0510610201R1S015SRCLI_0000.FIT', 'P0510610201R2S005SRCLI_0000.FIT']]
+            self.pairs_srcli = [['P0510610201R1S004SRCLI_0000.FIT', 'P0510610201R2S005SRCLI_0000.FIT'], ['P0510610201R1S015SRCLI_0000.FIT', 'P0510610201R2S005SRCLI_0000.FIT']]
         if self.obsid=='0136540701':
-            pairs_srcli = [['P0136540701R1S001SRCLI_0000.FIT', 'P0136540701R2S002SRCLI_0000.FIT'], ['P0136540701R1S001SRCLI_0000.FIT', 'P0136540701R2S018SRCLI_0000.FIT'],
+            self.pairs_srcli = [['P0136540701R1S001SRCLI_0000.FIT', 'P0136540701R2S002SRCLI_0000.FIT'], ['P0136540701R1S001SRCLI_0000.FIT', 'P0136540701R2S018SRCLI_0000.FIT'],
                            ['P0136540701R1S011SRCLI_0000.FIT', 'P0136540701R2S018SRCLI_0000.FIT'], ['P0136540701R1S020SRCLI_0000.FIT', 'P0136540701R2S018SRCLI_0000.FIT'],
                            ['P0136540701R1S021SRCLI_0000.FIT', 'P0136540701R2S019SRCLI_0000.FIT'], ['P0136540701R1S022SRCLI_0000.FIT', 'P0136540701R2S019SRCLI_0000.FIT']]
         
@@ -244,8 +244,8 @@ class Observation:
         for i in range(self.npairs):
             
             # Istance of the exposures
-            expos0 = Exposure(pairs_events[i][0], pairs_srcli[i][0])
-            expos1 = Exposure(pairs_events[i][1], pairs_srcli[i][1])
+            expos0 = Exposure(self.pairs_events[i][0], self.pairs_srcli[i][0])
+            expos1 = Exposure(self.pairs_events[i][1], self.pairs_srcli[i][1])
             self.expoid.append([expos0.expid, expos1.expid])
             
             # Make sure exposure times overlap
@@ -605,32 +605,51 @@ class Observation:
 
         #Store the eventlists and sourcelists
         os.chdir(self.rgsdir)
-        evenli = glob.glob('*EVENLI0000.FIT')
-        srcli = glob.glob('*SRCLI_0000.FIT')
         respli = glob.glob('*RSPMAT1*')
         total_spectra = glob.glob('*SRSPEC1*')
         total_bkgr = glob.glob('*BGSPEC1*')
 
         # Pair the events (RGS1+RGS2) and sort them according to the exposure number(first RGS1, second RGS2)
-        pairs_events = sort_rgs_list(evenli, 'expo_number')
-        pairs_srcli = sort_rgs_list(srcli, "expo_number")
-        pairs_respli = sort_rgs_list(respli, "expo_number")
-        pairs_spectra = sort_rgs_list(total_spectra, "expo_number")
-        pairs_bkg = sort_rgs_list(total_bkgr, "expo_number")
-        self.npairs = len(pairs_events)
-        print("Event lists: ", pairs_events)
-        print("Source lists: ", pairs_srcli)
-        print("Response matrices: ", pairs_respli)
-        print("Spectra: ", pairs_spectra)
-        print("Bkgrounds: ", pairs_bkg)
+        self.pairs_respli = sort_rgs_list(respli, "expo_number")
+        self.pairs_spectra = sort_rgs_list(total_spectra, "expo_number")
+        self.pairs_bkg = sort_rgs_list(total_bkgr, "expo_number")
+        
+        
+        if self.obsid=='0510610101':
+            self.pairs_respli = [['P0510610101R1S004RSPMAT1003.FIT', 'P0510610101R2S005RSPMAT1003.FIT'], ['P0510610101R1S004RSPMAT1003.FIT', 'P0510610101R2S013RSPMAT1003.FIT']]
+            self.pairs_spectra = [['P0510610101R1S004SRSPEC1003.FIT', 'P0510610101R2S005SRSPEC1003.FIT'], ['P0510610101R1S004SRSPEC1003.FIT', 'P0510610101R2S013SRSPEC1003.FIT']]
+            self.pairs_bkg = [['P0510610101R1S004BGSPEC1003.FIT','P0510610101R2S005BGSPEC1003.FIT'], ['P0510610101R1S004BGSPEC1003.FIT', 'P0510610101R2S013BGSPEC1003.FIT']]
+        
+        if self.obsid=='0510610201':
+            self.pairs_respli = [['P0510610201R1S004RSPMAT1003.FIT', 'P0510610201R2S005RSPMAT1003.FIT'], ['P0510610201R1S015RSPMAT1003.FIT', 'P0510610201R2S005RSPMAT1003.FIT']]
+            self.pairs_spectra = [['P0510610201R1S004SRSPEC1003.FIT', 'P0510610201R2S005SRSPEC1003.FIT'], ['P0510610201R1S015SRSPEC1003.FIT', 'P0510610201R2S005SRSPEC1003.FIT']]
+            self.pairs_bkg = [['P0510610201R1S004BGSPEC1003.FIT', 'P0510610201R2S005BGSPEC1003.FIT'], ['P0510610201R1S015BGSPEC1003.FIT', 'P0510610201R2S005BGSPEC1003.FIT']]
+
+        if self.obsid=='0136540701':
+            self.pairs_respli = [['P0136540701R1S001RSPMAT1003.FIT','P0136540701R2S002RSPMAT1003.FIT' ], ['P0136540701R1S001RSPMAT1003.FIT', 'P0136540701R2S018RSPMAT1003.FIT'],
+                            ['P0136540701R1S011RSPMAT1003.FIT','P0136540701R2S018RSPMAT1003.FIT'], ['P0136540701R1S020RSPMAT1003.FIT', 'P0136540701R2S018RSPMAT1003.FIT'],
+                            ['P0136540701R1S021RSPMAT10030.FIT', 'P0136540701R2S019RSPMAT1003.FIT'], ['P0136540701R1S022RSPMAT1003.FIT','P0136540701R2S019RSPMAT1003.FIT']]
+            self.pairs_spectra = [['P0136540701R1S001SRSPEC1003.FIT','P0136540701R2S002SRSPEC1003.FIT' ], ['P0136540701R1S001SRSPEC1003.FIT', 'P0136540701R2S018SRSPEC1003.FIT'],
+                            ['P0136540701R1S011SRSPEC1003.FIT','P0136540701R2S018SRSPEC1003.FIT'], ['P0136540701R1S020SRSPEC1003.FIT', 'P0136540701R2S018SRSPEC1003.FIT'],
+                            ['P0136540701R1S021SRSPEC10030.FIT', 'P0136540701R2S019SRSPEC1003.FIT'], ['P0136540701R1S022SRSPEC1003.FIT','P0136540701R2S019SRSPEC1003.FIT']]
+            self.pairs_bkg = [['P0136540701R1S001BGSPEC1003.FIT','P0136540701R2S002BGSPEC1003.FIT' ], ['P0136540701R1S001BGSPEC1003.FIT', 'P0136540701R2S018BGSPEC1003.FIT'],
+                            ['P0136540701R1S011BGSPEC1003.FIT','P0136540701R2S018BGSPEC1003.FIT'], ['P0136540701R1S020BGSPEC1003.FIT', 'P0136540701R2S018BGSPEC1003.FIT'],
+                            ['P0136540701R1S021BGSPEC10030.FIT', 'P0136540701R2S019BGSPEC1003.FIT'], ['P0136540701R1S022BGSPEC1003.FIT','P0136540701R2S019BGSPEC1003.FIT']]
+
+        self.npairs = len(self.pairs_events)
+        print("Event lists: ", self.pairs_events)
+        print("Source lists: ", self.pairs_srcli)
+        print("Response matrices: ", self.pairs_respli)
+        print("Spectra: ", self.pairs_spectra)
+        print("Bkgrounds: ", self.pairs_bkg)
 
         if not os.path.isdir(f'divided_spectra'):
             os.mkdir('divided_spectra')
 
         #Check if the exposures are synchronous
         for l in range(self.npairs):  
-            expos0 = Exposure(pairs_events[l][0], pairs_srcli[l][0], pairs_spectra[l][0])
-            expos1 = Exposure(pairs_events[l][1], pairs_srcli[l][1], pairs_spectra[l][1])
+            expos0 = Exposure(self.pairs_events[l][0], self.pairs_srcli[l][0], self.pairs_spectra[l][0])
+            expos1 = Exposure(self.pairs_events[l][1], self.pairs_srcli[l][1], self.pairs_spectra[l][1])
             start_time, stop_time = expos0.synchronous_times(expos1)
             print(f"Synchronous start and stop times for exposures {expos0.evenli}, {expos1.evenli}: {start_time} - {stop_time}")
 
@@ -694,16 +713,7 @@ class Observation:
         """
         logging.info(f"Starting spectral analysis with XSPEC for observation {self.obsid} (total, average spectra).")
         os.chdir(f"{self.target_dir}/{self.obsid}/rgs")
-        evenli = glob.glob('*EVENLI0000.FIT')
-        srcli = glob.glob('*SRCLI_0000.FIT')
-        respli = glob.glob('*RSPMAT1*')
-        total_spectra = glob.glob('*SRSPEC1*')
-        total_bkgr = glob.glob('*BGSPEC1*')
-        pairs_events = sort_rgs_list(evenli, 'expo_number')
-        pairs_srcli = sort_rgs_list(srcli, "expo_number")
-        pairs_respli = sort_rgs_list(respli, "expo_number")
-        pairs_spectra = sort_rgs_list(total_spectra, "expo_number")
-        pairs_bkg = sort_rgs_list(total_bkgr, "expo_number")
+        
         if not os.path.isdir(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}'):
             os.mkdir(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}')
 
@@ -739,8 +749,8 @@ class Observation:
         model_list = ['const*tbabs*zlogpar', 'const*tbabs*zpowerlw']  
 
         for i in range(self.npairs):
-            expos0 = Exposure(pairs_events[i][0], pairs_srcli[i][0], pairs_spectra[i][0], pairs_bkg[i][0], pairs_respli[i][0])
-            expos1 = Exposure(pairs_events[i][1], pairs_srcli[i][1], pairs_spectra[i][1], pairs_bkg[i][1], pairs_respli[i][1])
+            expos0 = Exposure(self.pairs_events[i][0], self.pairs_srcli[i][0], self.pairs_spectra[i][0], self.pairs_bkg[i][0], self.pairs_respli[i][0])
+            expos1 = Exposure(self.pairs_events[i][1], self.pairs_srcli[i][1], self.pairs_spectra[i][1], self.pairs_bkg[i][1], self.pairs_respli[i][1])
             start_time, stop_time = expos0.synchronous_times(expos1)
             #Load RGS1 + RGS2 data                
             os.chdir(f"{self.target_dir}/{self.obsid}/rgs/divided_spectra")
@@ -887,16 +897,6 @@ class Observation:
         """
         logging.info(f"Starting spectral analysis with XSPEC for observation {self.obsid}, split spectrum.")
         os.chdir(f"{self.target_dir}/{self.obsid}/rgs")
-        evenli = glob.glob('*EVENLI0000.FIT')
-        srcli = glob.glob('*SRCLI_0000.FIT')
-        respli = glob.glob('*RSPMAT1*')
-        total_spectra = glob.glob('*SRSPEC1*')
-        total_bkgr = glob.glob('*BGSPEC1*')
-        pairs_events = sort_rgs_list(evenli, 'expo_number')
-        pairs_srcli = sort_rgs_list(srcli, "expo_number")
-        pairs_respli = sort_rgs_list(respli, "expo_number")
-        pairs_spectra = sort_rgs_list(total_spectra, "expo_number")
-        pairs_bkg = sort_rgs_list(total_bkgr, "expo_number")
 
         #Set XSPEC verbosity and create xspec log file
         xspec.Xset.chatter = 10
@@ -904,9 +904,9 @@ class Observation:
         logFile = xspec.Xset.openLog(f"{self._target_dir}/Products/RGS_Spectra/{self.obsid}/XSPECLogFile_divided_spectra.txt") 
         logFile = xspec.Xset.log
         
-        for s in range(len(pairs_spectra)):
-            expos0 = Exposure(pairs_events[s][0], pairs_srcli[s][0], pairs_spectra[s][0], pairs_bkg[s][0], pairs_respli[s][0])
-            expos1 = Exposure(pairs_events[s][1], pairs_srcli[s][1], pairs_spectra[s][1], pairs_bkg[s][1], pairs_respli[s][1])
+        for s in range(len(self.pairs_spectra)):
+            expos0 = Exposure(self.pairs_events[s][0], self.pairs_srcli[s][0], self.pairs_spectra[s][0], self.pairs_bkg[s][0], self.pairs_respli[s][0])
+            expos1 = Exposure(self.pairs_events[s][1], self.pairs_srcli[s][1], self.pairs_spectra[s][1], self.pairs_bkg[s][1], self.pairs_respli[s][1])
             start_time, stop_time = expos0.synchronous_times(expos1)
             n_intervals = int(np.ceil((stop_time-start_time)/1000))
             os.chdir(f"{self.target_dir}/{self.obsid}/rgs/divided_spectra")
