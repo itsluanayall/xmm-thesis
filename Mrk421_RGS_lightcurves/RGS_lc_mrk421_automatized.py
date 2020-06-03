@@ -79,7 +79,7 @@ if __name__ == "__main__":
                             'd', 'd', 'd', 'd', 'd'))
 
     counter = 0
-    mrk421_problematic_obs = ['']
+    mrk421_problematic_obs = ['0510610101', '0510610201', '0136540701']
     duration_lc_ks = []
     
     for obsid in os.listdir(target_dir):
@@ -100,7 +100,7 @@ if __name__ == "__main__":
             obs.rgslccorr()
             obs.lightcurve(mjdref=mjdref, use_grace=use_grace)
             obs.fracvartest(screen=True, timescale=timescale_fvar)
-            #obs.bkg_lightcurve()
+            obs.bkg_lightcurve()
             obs.divide_spectrum()
             obs.xspec_divided_spectra_average(target_REDSHIFT)
             obs.xspec_divided_spectra(target_REDSHIFT)
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     
     '''
     #For a single observation
-    obs = Observation(obsid='0411082101', target_dir=target_dir)   #instance of the observation
+    obs = Observation(obsid='0510610101', target_dir=target_dir)   #instance of the observation
     
     
     #Process each observation
