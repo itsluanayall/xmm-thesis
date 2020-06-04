@@ -353,7 +353,8 @@ class Observation:
 
 
     def bkg_lightcurve(self):
-
+        
+        logging.info('Generating Background lightcurve...')
         os.chdir(self.rgsdir)
         flat_evenli = [item for sublist in self.pairs_events for item in sublist]
         flat_srcli = [item for sublist in self.pairs_srcli for item in sublist]
@@ -394,6 +395,7 @@ class Observation:
             #Save figure in rgs directory of the current Observation
             plt.savefig(f'{self.target_dir}/Products/Backgrnd_LC/{title_outputbkg0}.png')
             plt.close()
+        logging.info('Done generating background lightcurve!')
 
 
     def fracvartest(self, screen=True, netlightcurve=True, timescale=10):
@@ -844,7 +846,11 @@ class Observation:
 
                 # Perform spectral analysis looping over the pieces
                 for i in range(1, n_intervals):
-                        
+
+                    logging.info(f'Processing gtiRGS1_{expos0.expid}_file{i}.fits for observation {self.obsid} ')
+                    if not glob.glob(f'divided_spectra/gtiRGS1_{expos0.expid}_file{i}.fits'):
+                        continue
+
                     with fits.open(f'divided_spectra/gtiRGS1_{expos0.expid}_file{i}.fits') as hdul:
                         tstart = hdul['STDGTI'].header['TSTART']
                         tstop = hdul['STDGTI'].header['TSTOP']
@@ -888,31 +894,40 @@ class Observation:
                         xspec.Fit.renorm()    #renormalize model to minimize statistic with current parameters
                         xspec.Fit.nIterations = 100
                         xspec.Fit.criticalDelta = 1e-1
-                        xspec.Fit.query = 'on' 
+                        xspec.Fit.query = 'no' 
                         try:
                             xspec.Fit.perform() 
                         except Exception as e:
                             logging.error(e)
+                            continue
 
                         #Error calculation (confidence intervals)
-                        if m1.expression=='constant*TBabs*zlogpar':
-                            xspec.Fit.error("stopat 1000,, maximum 1000.0 2,3,4,7")    
+                        try:
+                            if m1.expression=='constant*TBabs*zlogpar':
+                                xspec.Fit.error("stopat 1000,, maximum 1000.0 2,3,4,7")    
 
-                        if m1.expression=='constant*TBabs*zpowerlw':
-                            xspec.Fit.error("stopat 1000,, maximum 1000.0 2,3,5")
+                            if m1.expression=='constant*TBabs*zpowerlw':
+                                xspec.Fit.error("stopat 1000,, maximum 1000.0 2,3,5")
+                        except Exception as e:
+                            logging.error(e)
+                            continue
 
                         #Plotting
                         spectrum_plot_xspec(self.obsid, expos0.expid, expos1.expid, model, self.target_dir, i)
 
                         #Calculate Flux and Luminosity and store their values 
-                        xspec.AllModels.calcFlux('0.331 2.001 err 100 90')
-                        xspec.AllModels.calcLumin(f'0.331 2.001 {target_REDSHIFT} err') 
-                        flux = spectrum1.flux[0] #erg/cm2/s
-                        lumin = spectrum1.lumin[0] #e+44 erg/s
-                        flux_up = spectrum1.flux[2]
-                        flux_low = spectrum1.flux[1]
-                        lumin_up = spectrum1.lumin[2]
-                        lumin_low = spectrum1.lumin[1]
+                        try:
+                            xspec.AllModels.calcFlux('0.331 2.001 err 100 90')
+                            xspec.AllModels.calcLumin(f'0.331 2.001 {target_REDSHIFT} err') 
+                            flux = spectrum1.flux[0] #erg/cm2/s
+                            lumin = spectrum1.lumin[0] #e+44 erg/s
+                            flux_up = spectrum1.flux[2]
+                            flux_low = spectrum1.flux[1]
+                            lumin_up = spectrum1.lumin[2]
+                            lumin_low = spectrum1.lumin[1]
+                        except Exception as e:
+                            logging.error(e)
+                            continue
 
                         #Store parameter results of fit
                         if m1.expression=='constant*TBabs*zpowerlw':

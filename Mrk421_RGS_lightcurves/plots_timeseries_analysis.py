@@ -7,15 +7,18 @@ import pandas as pd
 import glob
 from array import array
 from brokenaxes import brokenaxes
+from config import CONFIG
+
 
 import pandas as pd
 from matplotlib.patches import Rectangle
 target_dir = "/media/xmmsas/thesis/Markarian421"
+timescale_fvar = CONFIG['timescale_fvar']
 MJDREF = 50814.0
 MAKE_FVAR_PLOTS = True
 MAKE_MEAN_LC = False
 MAKE_LC = False
-MAKE_EXCESS_VARIANCE = True
+MAKE_EXCESS_VARIANCE = True 
 M = 15
 
 def plot(x, y, title, xlabel, ylabel, output_folder, dy, dx=[]):
@@ -343,7 +346,7 @@ if __name__ == "__main__":
         data['F_var'] = data['F_var'].apply(lambda x: x*100)
         data['F_var_sigma'] = data['F_var_sigma'].apply(lambda x: x*100)
         data = data.sort_values(by=['RGS_Rate'])
-        title = 'Fractional Variability vs Rate'
+        title = f'Fractional Variability vs Rate \n timescale {timescale_fvar}'
         print("# datapoints fvar =", len(data))
         plot(data['RGS_Rate'].values, data['F_var'].values, dx=data['RGS_erate'].values, dy=data['F_var_sigma'].values, title=title, output_folder=f"{target_dir}/Products", xlabel='Mean rate [ct/s]', ylabel='Fractional Variability [%]')
         
@@ -361,6 +364,24 @@ if __name__ == "__main__":
         plt.ylabel("# datapoints")
         plt.savefig(f"{target_dir}/Products/fvar_highlow.png")
         plt.show()
+
+            #Mean Fvar vs time
+        mean_fvar_arr = []
+        sem_fvar_arr = []
+        mean_time_arr = []
+        mean_time_err_arr = []
+        i = data['MJD_avg_time'].values[0]
+
+        while(i+1000< data['MJD_avg_time'].values[-1]):
+            segment = data[(data['MJD_avg_time'] < i+1000) & (data['MJD_avg_time'] > i)]
+            mean_fvar_arr.append(np.mean(segment['F_var'].values))
+            sem_fvar_arr.append(np.sqrt(1 / (np.sum(1/np.square(segment['F_var_sigma'].values)))))
+            mean_time_arr.append(np.mean([i, i+1000]))
+            mean_time_err_arr.append(np.std(segment['MJD_avg_time'].values)/np.sqrt(len(segment['MJD_avg_time'].values)))
+            i=i+1000
+
+        plot(mean_time_arr, mean_fvar_arr, dy=sem_fvar_arr, dx=mean_time_err_arr, title='Mean Fractional Variability', output_folder=f"{target_dir}/Products", xlabel='MJD', ylabel='$<F_{var}>$')
+
     
     if MAKE_EXCESS_VARIANCE:
         hdul = Table.read(f"{target_dir}/Products/obs_table.fits", hdu=1)    
@@ -392,6 +413,7 @@ if __name__ == "__main__":
         mean_xs_arr = []
         sem_arr = []   #standard error mean array
         mean_time_arr = []
+        mean_time_err_arr = []
         i = data['MJD_avg_time'].values[0]
 
         while (i+1000 < data['MJD_avg_time'].values[-1]):
@@ -405,10 +427,11 @@ if __name__ == "__main__":
             mean_xs_arr.append(xs_mean)
             sem_arr.append(sem)
             mean_time_arr.append(time_mean)
+            mean_time_err_arr.append(np.std(segment['MJD_avg_time'].values)/np.sqrt(len(segment['MJD_avg_time'].values)))
 
             i=i+1000
 
-        plot(mean_time_arr, mean_xs_arr, dy=sem_arr, title='Mean Excess Variance', output_folder=f"{target_dir}/Products", xlabel='MJD', ylabel='$<\sigma_{XS}^2>$')
+        plot(mean_time_arr, mean_xs_arr, dy=sem_arr, dx=mean_time_err_arr, title='Mean Excess Variance', output_folder=f"{target_dir}/Products", xlabel='MJD', ylabel='$<\sigma_{XS}^2>$')
 
 
     if MAKE_LC:

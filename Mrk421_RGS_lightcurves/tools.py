@@ -210,8 +210,8 @@ def spectrum_plot_xspec(observation, expid0, expid1, model, target_dir, i=0):
 
     # First panel: Spectrum
     ax1 = plt.subplot(211)
-    plt.errorbar(chans1, rates1, yerr=rates1_err, xerr=chans1_err, label='RGS1')
-    plt.errorbar(chans2, rates2, yerr=rates2_err, xerr=chans2_err, label='RGS2')
+    plt.errorbar(chans1, rates1, yerr=rates1_err, xerr=chans1_err, linestyle='', label='RGS1')
+    plt.errorbar(chans2, rates2, yerr=rates2_err, xerr=chans2_err, linestyle='', label='RGS2')
     plt.yscale('log')
     plt.xscale('log')
     plt.ylim(1e-7, 150)

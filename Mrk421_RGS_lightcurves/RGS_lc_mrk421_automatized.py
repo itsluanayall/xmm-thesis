@@ -149,7 +149,7 @@ if __name__ == "__main__":
     # Duration_lc_ks distribution
     plt.hist(duration_lc_ks, bins=40)
     plt.savefig(f'{target_dir}/Products/RGS_Lightcurves/distribution_expos_duration_ks.png')
-    plt.show()
+    
     
     
     '''
