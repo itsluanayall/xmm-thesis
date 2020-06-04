@@ -634,6 +634,11 @@ class Observation:
                 
     def xspec_divided_spectra_average(self, target_REDSHIFT):
         """
+        XSPEC analysis of the total, average spectrum (RGS1+RGS2) of the observation. The steps are all logged into a file called XSPECLogFile_average_spectrum.txt.
+        The fit is performed on two different models: logparabola and powerlaw. The plot of the spectra and residuals is done
+        using matplotlib. The plotting function is written in tools.py
+        The flux and luminosity are stored, given the target_REDSHIFT as argument.
+        The fitted parameters and the spectrum counts are all stored into an astropy Table that is then saved as a FITS file.
         """             
         if not glob.glob(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}/*_1.png'):
                     
@@ -825,6 +830,9 @@ class Observation:
 
     def xspec_divided_spectra(self, target_REDSHIFT):
         """
+        If the divide_spectrum method has already been called, this method allows to perform analysis on all the pieces 
+        into which we have divided the spectrum using a for loop. The results are stored in the same astropy Table
+        of the average spectrum.
         """
         if not glob.glob(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}/{self.obsid}*_1.png'):
                 
