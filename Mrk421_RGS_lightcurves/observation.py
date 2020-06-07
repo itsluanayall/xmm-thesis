@@ -364,8 +364,11 @@ class Observation:
         
             expos0 = Exposure(evenli, srcli)
             title_outputbkg0 = f"bkg{expos0.fullid}_check_rates.fit"
-            select_bkg_cmmd0 = f"evselect table={expos0.evenli} timebinsize=1000 rateset={title_outputbkg0} makeratecolumn=yes maketimecolumn=yes expression='(CCDNR==9)&&(REGION({expos0.srcli}:{expos0.instrume}_BACKGROUND, M_LAMBDA, XDSP_CORR))'"
-            status_cmmd0 = run_command(select_bkg_cmmd0)
+            if not glob.glob(f'{self.target_dir}/Products/Backgrnd_LC/{title_outputbkg0}.png'):
+                select_bkg_cmmd0 = f"evselect table={expos0.evenli} timebinsize=1000 rateset={title_outputbkg0} makeratecolumn=yes maketimecolumn=yes expression='(CCDNR==9)&&(REGION({expos0.srcli}:{expos0.instrume}_BACKGROUND, M_LAMBDA, XDSP_CORR))'"
+                status_cmmd0 = run_command(select_bkg_cmmd0)
+            else:
+                continue
             
             #back0_lc = f'dsplot table={title_outputbkg0} withx=yes x=TIME withy=yes y=RATE plotter="xmgrace -hardcopy -printfile {title_outputbkg0}.ps"'
             #plot0_status = run_command(back0_lc)
@@ -395,6 +398,7 @@ class Observation:
             #Save figure in rgs directory of the current Observation
             plt.savefig(f'{self.target_dir}/Products/Backgrnd_LC/{title_outputbkg0}.png')
             plt.close()
+            
         logging.info('Done generating background lightcurve!')
 
 
