@@ -56,3 +56,8 @@ These two scripts rely on some functions defined in a separated file called
 tools.py
 ```
 
+All the scripts were written with the idea to leave the user very little to edit. For this purpose I made a 
+```
+config.json
+```
+file to be modified by the user. The variables the user can change are the path where to find the target data, the target redshift, the fractional variability timescale, and so on.
