@@ -535,13 +535,13 @@ class Observation:
         self.pairs_respli = sort_rgs_list(respli, "expo_number")
         self.pairs_spectra = sort_rgs_list(total_spectra, "expo_number")
         self.pairs_bkg = sort_rgs_list(total_bkgr, "expo_number")
-        
-        
+
+
         if self.obsid=='0510610101':
             self.pairs_respli = [['P0510610101R1S004RSPMAT1003.FIT', 'P0510610101R2S005RSPMAT1003.FIT'], ['P0510610101R1S004RSPMAT1003.FIT', 'P0510610101R2S013RSPMAT1003.FIT']]
             self.pairs_spectra = [['P0510610101R1S004SRSPEC1003.FIT', 'P0510610101R2S005SRSPEC1003.FIT'], ['P0510610101R1S004SRSPEC1003.FIT', 'P0510610101R2S013SRSPEC1003.FIT']]
             self.pairs_bkg = [['P0510610101R1S004BGSPEC1003.FIT','P0510610101R2S005BGSPEC1003.FIT'], ['P0510610101R1S004BGSPEC1003.FIT', 'P0510610101R2S013BGSPEC1003.FIT']]
-        
+
         if self.obsid=='0510610201':
             self.pairs_respli = [['P0510610201R1S004RSPMAT1003.FIT', 'P0510610201R2S005RSPMAT1003.FIT'], ['P0510610201R1S015RSPMAT1003.FIT', 'P0510610201R2S005RSPMAT1003.FIT']]
             self.pairs_spectra = [['P0510610201R1S004SRSPEC1003.FIT', 'P0510610201R2S005SRSPEC1003.FIT'], ['P0510610201R1S015SRSPEC1003.FIT', 'P0510610201R2S005SRSPEC1003.FIT']]
@@ -550,13 +550,13 @@ class Observation:
         if self.obsid=='0136540701':
             self.pairs_respli = [['P0136540701R1S001RSPMAT1003.FIT','P0136540701R2S002RSPMAT1003.FIT' ], ['P0136540701R1S001RSPMAT1003.FIT', 'P0136540701R2S018RSPMAT1003.FIT'],
                             ['P0136540701R1S011RSPMAT1003.FIT','P0136540701R2S018RSPMAT1003.FIT'], ['P0136540701R1S020RSPMAT1003.FIT', 'P0136540701R2S018RSPMAT1003.FIT'],
-                            ['P0136540701R1S021RSPMAT10030.FIT', 'P0136540701R2S019RSPMAT1003.FIT'], ['P0136540701R1S022RSPMAT1003.FIT','P0136540701R2S019RSPMAT1003.FIT']]
+                            ['P0136540701R1S021RSPMAT1003.FIT', 'P0136540701R2S019RSPMAT1003.FIT'], ['P0136540701R1S022RSPMAT1003.FIT','P0136540701R2S019RSPMAT1003.FIT']]
             self.pairs_spectra = [['P0136540701R1S001SRSPEC1003.FIT','P0136540701R2S002SRSPEC1003.FIT' ], ['P0136540701R1S001SRSPEC1003.FIT', 'P0136540701R2S018SRSPEC1003.FIT'],
                             ['P0136540701R1S011SRSPEC1003.FIT','P0136540701R2S018SRSPEC1003.FIT'], ['P0136540701R1S020SRSPEC1003.FIT', 'P0136540701R2S018SRSPEC1003.FIT'],
-                            ['P0136540701R1S021SRSPEC10030.FIT', 'P0136540701R2S019SRSPEC1003.FIT'], ['P0136540701R1S022SRSPEC1003.FIT','P0136540701R2S019SRSPEC1003.FIT']]
+                            ['P0136540701R1S021SRSPEC1003.FIT', 'P0136540701R2S019SRSPEC1003.FIT'], ['P0136540701R1S022SRSPEC1003.FIT','P0136540701R2S019SRSPEC1003.FIT']]
             self.pairs_bkg = [['P0136540701R1S001BGSPEC1003.FIT','P0136540701R2S002BGSPEC1003.FIT' ], ['P0136540701R1S001BGSPEC1003.FIT', 'P0136540701R2S018BGSPEC1003.FIT'],
                             ['P0136540701R1S011BGSPEC1003.FIT','P0136540701R2S018BGSPEC1003.FIT'], ['P0136540701R1S020BGSPEC1003.FIT', 'P0136540701R2S018BGSPEC1003.FIT'],
-                            ['P0136540701R1S021BGSPEC10030.FIT', 'P0136540701R2S019BGSPEC1003.FIT'], ['P0136540701R1S022BGSPEC1003.FIT','P0136540701R2S019BGSPEC1003.FIT']]
+                            ['P0136540701R1S021BGSPEC1003.FIT', 'P0136540701R2S019BGSPEC1003.FIT'], ['P0136540701R1S022BGSPEC1003.FIT','P0136540701R2S019BGSPEC1003.FIT']]
 
         self.npairs = len(self.pairs_events)
         print("Event lists: ", self.pairs_events)
@@ -567,74 +567,101 @@ class Observation:
 
         if not os.path.isdir(f'divided_spectra'):
             os.mkdir('divided_spectra')
-        #k = 1
+        
+        k = 1
+        self.n_intervals_array =[]
         #Check if the exposures are synchronous
         for l in range(self.npairs):  
 
-            #n_intervals_array.append(k)
             expos0 = Exposure(self.pairs_events[l][0], self.pairs_srcli[l][0], self.pairs_spectra[l][0])
             expos1 = Exposure(self.pairs_events[l][1], self.pairs_srcli[l][1], self.pairs_spectra[l][1])
             start_time, stop_time = expos0.synchronous_times(expos1)
             print(f"Synchronous start and stop times for exposures {expos0.evenli}, {expos1.evenli}: {start_time} - {stop_time}")
 
         #Divide each eventlist into pieces of 1000 seconds
-    
-            if not glob.glob('divided_spectra/sourcespec*'):                
-                # Loop on the exposures 
-                for exposure in [expos0, expos1]:
-                    print(f"Processing {exposure.evenli}...")
 
-                    # Initialize indices for loop
-                    step = 1000 #seconds
-                    i = start_time
-                    j = i + step
-                    #if self.obsid not in ['0510610101', '0510610201', '0136540701']:
+            if not glob.glob(f'divided_spectra/sourcespec{expos0.instrume}_{expos0.expid}_gti*') or not glob.glob(f'divided_spectra/sourcespec{expos1.instrume}_{expos1.expid}_gti*') :                
+
+                print(f"Processing {expos0.evenli} and {expos1.evenli}...")
+
+                # Initialize indices for loop
+                step = 1000 #seconds
+                i = start_time
+                j = i + step
+                if self.obsid not in ['0510610101', '0510610201', '0136540701']:
                     k = 1   #counter of pieces
+                self.n_intervals_array.append(k)
+                print(k)
 
-                    # Divide evenlist in parts of 1000s
-                    while (i<j) and (j<=stop_time):
+                # Divide evenlist in parts of 1000s
+                while (i<j) and (j<=stop_time):
 
-                        # Cut and save each piece using SAS command tabgtigen and save output in rgs/divided_spectra/gti{instrume}_file{k}.fits
-                        tabgtigen_cmd = f"tabgtigen table={exposure.evenli} expression='TIME in [{i}:{j}]' " \
-                                        f"gtiset=divided_spectra/gti{exposure.instrume}_{exposure.expid}_file{k}.fits prefraction=0 postfraction=0" 
-                        status_tabgtigen = run_command(tabgtigen_cmd)
-                        if status_tabgtigen !=0:    #Debug
-                            print(f'Exception occured with piece n.{k}, tabgtigen command')
+                    # Cut and save each piece using SAS command tabgtigen and save output in rgs/divided_spectra/gti{instrume}_file{k}.fits
+                    tabgtigen_cmd0 = f"tabgtigen table={expos0.evenli} expression='TIME in [{i}:{j}]' " \
+                                    f"gtiset=divided_spectra/gti{expos0.instrume}_{expos0.expid}_file{k}.fits prefraction=0 postfraction=0" 
+                    status_tabgtigen0 = run_command(tabgtigen_cmd0)
+                    if status_tabgtigen0 !=0:    #Debug
+                        print(f'Exception occured with piece n.{k}, exposure {expos0.evenli}, tabgtigen command')
 
-                        # Filter the piece that we just created
-                        rgsfilter_cmd = f"rgsfilter mergedset={exposure.evenli} " \
-                                        f"evlist=divided_spectra/event_gti{exposure.instrume}_{exposure.expid}_file{k}.fits " \
-                                        f"auxgtitables=divided_spectra/gti{exposure.instrume}_{exposure.expid}_file{k}.fits" 
-                        status_rgsfilter = run_command(rgsfilter_cmd)
-                        if status_rgsfilter !=0:    #Debug
-                            print(f'Exception occured with piece n.{k}, rgsfilter command')
+                    tabgtigen_cmd1 = f"tabgtigen table={expos1.evenli} expression='TIME in [{i}:{j}]' " \
+                                    f"gtiset=divided_spectra/gti{expos1.instrume}_{expos1.expid}_file{k}.fits prefraction=0 postfraction=0" 
+                    status_tabgtigen1 = run_command(tabgtigen_cmd1)
+                    if status_tabgtigen1 !=0:    #Debug
+                        print(f'Exception occured with piece n.{k}, exposure {expos1.evenli}, tabgtigen command')
 
-                        # Extract spectrum from the piece and save ouput as rgs/divided_spectra/sourcespec{instrume}_gti{k}.fits
-                        rgsspectrum_cmd = f"rgsspectrum evlist=divided_spectra/event_gti{exposure.instrume}_{exposure.expid}_file{k}.fits " \
-                                        f"srclist={exposure.srcli} withspectrum=yes bkgcorrect=no " \
-                                        f"spectrumset=divided_spectra/sourcespec{exposure.instrume}_{exposure.expid}_gti{k}.fits withbkgset=yes " \
-                                        f"bkgset=divided_spectra/bgspec{exposure.instrume}_{exposure.expid}_gti{k}.fits order=1 rebin=1 edgechannels=2 "\
-                                        f"spectrumbinning=lambda withfracexp=no badquality=1"
-                        status_rgsspectrum = run_command(rgsspectrum_cmd)
-                        if status_rgsspectrum !=0:    #Debug
-                            print(f'Exception occured with piece n.{k}, rgsspectrum command')
-                        else:
-                            print(f'Extracted piece number {k}.')
-                        
-                        # Change index after each iteration
-                        i = j
-                        j = i + step
-                        if j>stop_time:
-                            j = stop_time
-                        k += 1
 
-                    print(f"Done dividing {exposure.evenli}!") 
+                    # Filter the piece that we just created
+                    rgsfilter_cmd0 = f"rgsfilter mergedset={expos0.evenli} " \
+                                    f"evlist=divided_spectra/event_gti{expos0.instrume}_{expos0.expid}_file{k}.fits " \
+                                    f"auxgtitables=divided_spectra/gti{expos0.instrume}_{expos0.expid}_file{k}.fits" 
+                    status_rgsfilter0 = run_command(rgsfilter_cmd0)
+                    if status_rgsfilter0 !=0:    #Debug
+                        print(f'Exception occured with piece n.{k}, exposure {expos0.evenli}, rgsfilter command')
 
-                #n_intervals_array.append(k-1)         
+                    rgsfilter_cmd1 = f"rgsfilter mergedset={expos1.evenli} " \
+                                    f"evlist=divided_spectra/event_gti{expos1.instrume}_{expos1.expid}_file{k}.fits " \
+                                    f"auxgtitables=divided_spectra/gti{expos1.instrume}_{expos1.expid}_file{k}.fits" 
+                    status_rgsfilter1 = run_command(rgsfilter_cmd1)
+                    if status_rgsfilter1 !=0:    #Debug
+                        print(f'Exception occured with piece n.{k}, exposure {expos1.evenli}, rgsfilter command')
+
+                    # Extract spectrum from the piece and save ouput as rgs/divided_spectra/sourcespec{instrume}_gti{k}.fits
+                    rgsspectrum_cmd0 = f"rgsspectrum evlist=divided_spectra/event_gti{expos0.instrume}_{expos0.expid}_file{k}.fits " \
+                                    f"srclist={expos0.srcli} withspectrum=yes bkgcorrect=no " \
+                                    f"spectrumset=divided_spectra/sourcespec{expos0.instrume}_{expos0.expid}_gti{k}.fits withbkgset=yes " \
+                                    f"bkgset=divided_spectra/bgspec{expos0.instrume}_{expos0.expid}_gti{k}.fits order=1 rebin=1 edgechannels=2 "\
+                                    f"spectrumbinning=lambda withfracexp=no badquality=1"
+                    status_rgsspectrum0 = run_command(rgsspectrum_cmd0)
+                    if status_rgsspectrum0 !=0:    #Debug
+                        print(f'Exception occured with piece n.{k}, exposure {expos0.evenli}, rgsspectrum command')
+                    else:
+                        print(f'Extracted piece number {k}, exposure {expos0.evenli}.')
+
+                    rgsspectrum_cmd1 = f"rgsspectrum evlist=divided_spectra/event_gti{expos1.instrume}_{expos1.expid}_file{k}.fits " \
+                                    f"srclist={expos1.srcli} withspectrum=yes bkgcorrect=no " \
+                                    f"spectrumset=divided_spectra/sourcespec{expos1.instrume}_{expos1.expid}_gti{k}.fits withbkgset=yes " \
+                                    f"bkgset=divided_spectra/bgspec{expos1.instrume}_{expos1.expid}_gti{k}.fits order=1 rebin=1 edgechannels=2 "\
+                                    f"spectrumbinning=lambda withfracexp=no badquality=1"
+                    status_rgsspectrum1 = run_command(rgsspectrum_cmd1)
+                    if status_rgsspectrum1 !=0:    #Debug
+                        print(f'Exception occured with piece n.{k}, exposure {expos1.evenli}, rgsspectrum command')
+                    else:
+                        print(f'Extracted piece number {k}, exposure {expos1.evenli}.')
+                    
+                    # Change index after each iteration
+                    i = j
+                    j = i + step
+                    if j>stop_time:
+                        j = stop_time
+                    k += 1
+
+                print(f"Done dividing {expos0.evenli} and {expos1.evenli}!") 
+                print(k-1)
+                self.n_intervals_array.append(k-1)         
 
             else:
-                print(f"Divided spectra already extracted.")
-            
+                print(f"Divided spectra already extracted for {expos0.evenli} and {expos1.evenli}.")
+                
                 
     def xspec_divided_spectra_average(self, target_REDSHIFT):
         """
@@ -848,17 +875,18 @@ class Observation:
             xspec.Xset.logChatter = 20
             logFile = xspec.Xset.openLog(f"{self._target_dir}/Products/RGS_Spectra/{self.obsid}/XSPECLogFile_divided_spectra.txt") 
             logFile = xspec.Xset.log
-            
+            print(len(self.pairs_spectra))
             for s in range(len(self.pairs_spectra)):
                 expos0 = Exposure(self.pairs_events[s][0], self.pairs_srcli[s][0], self.pairs_spectra[s][0], self.pairs_bkg[s][0], self.pairs_respli[s][0])
                 expos1 = Exposure(self.pairs_events[s][1], self.pairs_srcli[s][1], self.pairs_spectra[s][1], self.pairs_bkg[s][1], self.pairs_respli[s][1])
-                
                 start_time, stop_time = expos0.synchronous_times(expos1)
-                n_intervals = int(np.ceil((stop_time-start_time)/1000))
 
                 # Perform spectral analysis looping over the pieces
-                for i in range(1, n_intervals):
-
+                print(self.n_intervals_array)
+                self.n_intervals_pairs = [self.n_intervals_array[x:x+2] for x in range(0, len(self.n_intervals_array), 2)]
+                print(self.n_intervals_pairs)
+                for i in range(self.n_intervals_pairs[s][0], self.n_intervals_pairs[s][1]):
+        
                     logging.info(f'Processing gtiRGS1_{expos0.expid}_file{i}.fits for observation {self.obsid} ')
                     if not glob.glob(f'divided_spectra/gtiRGS1_{expos0.expid}_file{i}.fits'):
                         continue

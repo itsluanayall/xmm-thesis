@@ -377,7 +377,8 @@ if __name__ == "__main__":
             mean_fvar_arr.append(np.mean(segment['F_var'].values))
             sem_fvar_arr.append(np.sqrt(1 / (np.sum(1/np.square(segment['F_var_sigma'].values)))))
             mean_time_arr.append(np.mean([i, i+1000]))
-            mean_time_err_arr.append(np.std(segment['MJD_avg_time'].values)/np.sqrt(len(segment['MJD_avg_time'].values)))
+            #mean_time_err_arr.append(np.std(segment['MJD_avg_time'].values)/np.sqrt(len(segment['MJD_avg_time'].values)))
+            mean_time_err_arr.append(1000)
             i=i+1000
 
         plot(mean_time_arr, mean_fvar_arr, dy=sem_fvar_arr, dx=mean_time_err_arr, title='Mean Fractional Variability', output_folder=f"{target_dir}/Products", xlabel='MJD', ylabel='$<F_{var}>$')
@@ -427,8 +428,8 @@ if __name__ == "__main__":
             mean_xs_arr.append(xs_mean)
             sem_arr.append(sem)
             mean_time_arr.append(time_mean)
-            mean_time_err_arr.append(np.std(segment['MJD_avg_time'].values)/np.sqrt(len(segment['MJD_avg_time'].values)))
-
+            #mean_time_err_arr.append(np.std(segment['MJD_avg_time'].values)/np.sqrt(len(segment['MJD_avg_time'].values)))
+            mean_time_err_arr.append(1000)
             i=i+1000
 
         plot(mean_time_arr, mean_xs_arr, dy=sem_arr, dx=mean_time_err_arr, title='Mean Excess Variance', output_folder=f"{target_dir}/Products", xlabel='MJD', ylabel='$<\sigma_{XS}^2>$')

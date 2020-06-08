@@ -79,7 +79,7 @@ if __name__ == "__main__":
                             'd', 'd', 'd', 'd', 'd'))
 
     counter = 0
-    mrk421_problematic_obs = ['0510610101', '0510610201', '0136540701']
+    mrk421_problematic_obs = []
     duration_lc_ks = []
     
     for obsid in os.listdir(target_dir):
@@ -135,7 +135,7 @@ if __name__ == "__main__":
             counter += 1
             logging.info(f'Processed {counter} observations!')
             print('----------------')
-            
+       
     #Show and save in csv format the table with all the attributes of the observations
     print(obs_table)
     obs_table['Duration_Obs'].unit = 's'
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     
     '''
     #For a single observation
-    obs = Observation(obsid='0510610101', target_dir=target_dir)   #instance of the observation
+    obs = Observation(obsid='0670920301', target_dir=target_dir)   #instance of the observation
     
     
     #Process each observation
