@@ -38,3 +38,21 @@ sasinit
 source activate env_name
 ```
 where env_name is the name of the conda environment.
+
+## Logic
+The script was written following the object-oriented program paradigm, which is very useful when you want to perform operations on the same type of data. The objects that I defined are the Exposure object and the Observation object, whose source code can be found in
+```
+observation.py
+```
+The methods and attributes of each object will be explained thouroghly in an upcoming documentation. 
+The main file which creates the different instances of the Observation object and calling each method is:
+```
+RGS_lc_mrk421_automatized.py
+```
+This script runs the pipeline for all the observations, generating lightcurves, dividing and analysing the spectra, and saving the parameters in a final FITS file.
+
+These two scripts rely on some functions defined in a separated file called
+```
+tools.py
+```
+
