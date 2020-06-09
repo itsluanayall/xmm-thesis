@@ -1,0 +1,13 @@
+{
+    "version": "0.1",
+    "debug": true,
+    "sas_dir": "/usr/local/SAS/xmmsas_20190531_1155",
+    "ccf_dir": "/ccf/valid",
+    "target_dir": "/media/xmmsas/thesis/Markarian421",
+    "MJDREF": 50814.0,
+    "use_grace": false, 
+    "target_RA": 166.113808,
+    "target_DEC": 38.20883287,
+    "target_REDSHIFT": 0.0308,
+    "timescale_fvar": 14
+}
