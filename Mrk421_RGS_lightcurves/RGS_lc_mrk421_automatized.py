@@ -144,7 +144,7 @@ if __name__ == "__main__":
     obs_table['MJD_avg_time'].unit = 'd'
     obs_table['Excess_Variance'].unit = 'ct2/s2'
     obs_table['xs_sigma'].unit = 'ct2/s2'
-    obs_table.write(output=f'{target_dir}/Products/obs_table.fits', format='fits', overwrite=True)
+    obs_table.write(output=f'{target_dir}/Products/RGS_Lightcurves/obs_table.fits', format='fits', overwrite=True)
 
     # Duration_lc_ks distribution
     plt.hist(duration_lc_ks, bins=40)
