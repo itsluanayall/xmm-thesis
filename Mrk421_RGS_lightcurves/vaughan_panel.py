@@ -189,7 +189,7 @@ for observation in observations:
     axs[5].set_xlabel('TIME [s]', fontsize=10)
     axs[5].set_ylabel('$<F_{var}>$', fontsize=10)
 
-    plt.savefig(f'{target_dir}/Products/{observation}_variability_panel.png')
+    plt.savefig(f'{target_dir}/Products/Plots_timeseries/{observation}_variability_panel.png')
     plt.show()
 
     fvar_mean_arr = np.array(fvar_mean_arr)
