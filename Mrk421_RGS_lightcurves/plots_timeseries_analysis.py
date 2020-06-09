@@ -15,10 +15,10 @@ from matplotlib.patches import Rectangle
 target_dir = "/media/xmmsas/thesis/Markarian421"
 timescale_fvar = CONFIG['timescale_fvar']
 MJDREF = 50814.0
-MAKE_FVAR_PLOTS = True
+MAKE_FVAR_PLOTS = False
 MAKE_MEAN_LC = False
-MAKE_LC = False
-MAKE_EXCESS_VARIANCE = True 
+MAKE_LC = True
+MAKE_EXCESS_VARIANCE = False 
 M = 15
 
 def plot(x, y, title, xlabel, ylabel, output_folder, dy, dx=[]):
@@ -332,7 +332,7 @@ if __name__ == "__main__":
         path_log = f"{target_dir}/Products"
         os.chdir(path_log)
 
-        hdul = Table.read(f"{target_dir}/Products/obs_table.fits", hdu=1)    
+        hdul = Table.read(f"{target_dir}/Products/RGS_Lightcurves/obs_table.fits", hdu=1)    
         data = hdul.to_pandas()
         data.dropna()
         data = data.sort_values(by=['MJD_avg_time'])
@@ -342,7 +342,7 @@ if __name__ == "__main__":
         
     if MAKE_FVAR_PLOTS:
         # FRACTIONAL VARIABILITY PLOTS
-        hdul = Table.read(f"{target_dir}/Products/obs_table.fits", hdu=1)    
+        hdul = Table.read(f"{target_dir}/Products/RGS_Lightcurves/obs_table.fits", hdu=1)    
         data = hdul.to_pandas()
         data = data.dropna()
         data = data[data['ObsId'] != '150498701']
@@ -352,7 +352,7 @@ if __name__ == "__main__":
         data = data.sort_values(by=['RGS_Rate'])
         title = f'Fractional Variability vs Rate \n timescale {timescale_fvar}'
         print("# datapoints fvar =", len(data))
-        plot(data['RGS_Rate'].values, data['F_var'].values, dx=data['RGS_erate'].values, dy=data['F_var_sigma'].values, title=title, output_folder=f"{target_dir}/Products", xlabel='Mean rate [ct/s]', ylabel='Fractional Variability [%]')
+        plot(data['RGS_Rate'].values, data['F_var'].values, dx=data['RGS_erate'].values, dy=data['F_var_sigma'].values, title=title, output_folder=f"{target_dir}/Products/Plots_timeseries", xlabel='Mean rate [ct/s]', ylabel='Fractional Variability [%]')
         
         data = data.sort_values(by=['MJD_avg_time'])
         title = 'Fractional Variability vs time'
@@ -382,14 +382,14 @@ if __name__ == "__main__":
             sem_fvar_arr.append(np.sqrt(1 / (np.sum(1/np.square(segment['F_var_sigma'].values)))))
             mean_time_arr.append(np.mean([i, i+1000]))
             #mean_time_err_arr.append(np.std(segment['MJD_avg_time'].values)/np.sqrt(len(segment['MJD_avg_time'].values)))
-            mean_time_err_arr.append(1000)
+            mean_time_err_arr.append(1000/2.)
             i=i+1000
 
         plot(mean_time_arr, mean_fvar_arr, dy=sem_fvar_arr, dx=mean_time_err_arr, title='Mean Fractional Variability', output_folder=f"{target_dir}/Products/Plots_timeseries", xlabel='MJD', ylabel='$<F_{var}>$')
 
     
     if MAKE_EXCESS_VARIANCE:
-        hdul = Table.read(f"{target_dir}/Products/obs_table.fits", hdu=1)    
+        hdul = Table.read(f"{target_dir}/Products/RGS_Lightcurves/obs_table.fits", hdu=1)    
         data = hdul.to_pandas()
         data = data.dropna()
         #data = data[data['ObsId'] != 150498701]
@@ -433,7 +433,7 @@ if __name__ == "__main__":
             sem_arr.append(sem)
             mean_time_arr.append(time_mean)
             #mean_time_err_arr.append(np.std(segment['MJD_avg_time'].values)/np.sqrt(len(segment['MJD_avg_time'].values)))
-            mean_time_err_arr.append(1000)
+            mean_time_err_arr.append(1000/2.)
             i=i+1000
 
         plot(mean_time_arr, mean_xs_arr, dy=sem_arr, dx=mean_time_err_arr, title='Mean Excess Variance', output_folder=f"{target_dir}/Products/Plots_timeseries", xlabel='MJD', ylabel='$<\sigma_{XS}^2>$')
@@ -468,10 +468,6 @@ if __name__ == "__main__":
         data_lc = pd.DataFrame({"RATE":total_lightcurve_rates, "MJD":total_lightcurve_times_mjd, "ERROR":total_lightcurve_errates})
         data_lc = data_lc.sort_values(by=['MJD'])
         data_lc.to_csv(f"{target_dir}/Products/Plots_timeseries/data_lc.csv")
-
-        #plot_total_lc(data_lc['MJD'].values, data_lc['RATE'].values, dy=data_lc['ERROR'].values,title="Historical lightcurve evolution Mrk421", xlabel='MJD', 
-        #    ylabel='Rate [ct/s]',  output_folder=f"{target_dir}/Products")
-
 
 
     #Plot time distribution
@@ -520,6 +516,8 @@ if __name__ == "__main__":
 
         data_lc['YEAR'] = year_array  
         data_lc = data_lc.reset_index(drop=True)
+        data_lc = data_lc.reset_index()
+        print(data_lc)
         #sample_data = data_lc[0:792]
         #sample_data.to_csv(f'{target_dir}/Products/data_lc_mrk421.csv', index=False)    
 
@@ -581,12 +579,7 @@ if __name__ == "__main__":
             if data_lc['YEAR'][i] != data_lc['YEAR'][i-1]:
                 year_endpoints.append(data_lc['MJD'][i])
                 
-        print(year_endpoints)
         bax.vlines(year_endpoints, 0, 60, colors='r', linestyles='solid')
-        """   i=0
-        for time in year_endpoints:
-            plt.text(x=time, y=58, s=str(2000))
-            i+=1"""
         bax.axs[0].text(x=data_lc['MJD'][0], y=58, s=str(2000), c='r')
         bax.text(x=year_endpoints[0]+0.10, y=58, s=str(2001), c='r')
         bax.text(x=year_endpoints[1]+0.10, y=58, s=str(2002), c='r')
@@ -622,7 +615,7 @@ if __name__ == "__main__":
         ax.bar(labels, cnt.values())
         ax.tick_params( rotation = 60)
         ax.set_ylabel('# datapoints') 
-        plt.savefig(f"{target_dir}/Products/distrib_data.png")
+        plt.savefig(f"{target_dir}/Products/Plots_timeseries/distrib_data.png")
         plt.show()
 
         #Plot rate distribution 
@@ -631,7 +624,7 @@ if __name__ == "__main__":
         plt.xlabel("Rate [ct/s]")
         plt.title("Rate Histogram")
         plt.xticks()
-        plt.savefig(f"{target_dir}/Products/rate_histogram.png")
+        plt.savefig(f"{target_dir}/Products/Plots_timeseries/rate_histogram.png")
         plt.show()
 
         #Plot compact lightcurve (x=index, y=rate, hue=year)

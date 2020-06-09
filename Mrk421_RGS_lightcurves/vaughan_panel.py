@@ -10,7 +10,7 @@ from scipy.optimize import curve_fit
 target_dir = CONFIG['target_dir'] 
 sas_dir = CONFIG['sas_dir']
 ccf_dir = CONFIG['ccf_dir']
-observations = [ '0658801801'] 
+observations = [ '0658801801','0136541001', '0150498701', '0791782001'] 
 N = 12
 M = 12
 def linear_fit(x, q):
@@ -59,11 +59,11 @@ for observation in observations:
     print('Final start and stop time for rgslccorr:', start_time, stop_time)
     #Run rgslccorr
     timebinsize = 25 #s
-    
+    '''
     logging.info(f"Running rgslccorr SAS command for observation number {observation}.")
     rgslc_command = f"rgslccorr evlist='{pairs_events[0][0]} {pairs_events[0][1]}' srclist='{pairs_srcli[0][0]} {pairs_srcli[0][1]}' withbkgsubtraction=yes timemin={start_time} timemax={stop_time} timebinsize={timebinsize} orders='1' sourceid=3 outputsrcfilename={observation}_RGS_rates_{timebinsize}bin.ds outputbkgfilename={observation}_bkg_rates_{timebinsize}bin.ds"
     status_rgslc = run_command(rgslc_command)
-    
+    '''
     #Read LC data
     hdul = Table.read(f"{target_dir}/{observation}/rgs/{observation}_RGS_rates_{timebinsize}bin.ds", hdu=1)    
     data = hdul.to_pandas()
@@ -140,9 +140,10 @@ for observation in observations:
         #mean_xs_err.append(np.sqrt(1/ (1/np.square(xs_err_arr[i:i+M])).sum()))
         mean_xs_err.append(np.std(xs_arr[i:i+M])/np.sqrt(len(xs_arr[i:i+M])))
         meanx2_times.append(np.mean([mean_time_nonneg[i], mean_time_nonneg[i+N]]))
+        meanx2_times_err.append((mean_time_nonneg[i+N]- mean_time_nonneg[i])/2.)
         i+=N
-    for i in range(len(meanx2_times)):
-        meanx2_times_err.append(np.std(meanx2_times)/np.sqrt(len(meanx2_times)))
+    #for i in range(len(meanx2_times)):
+    #    meanx2_times_err.append(np.std(meanx2_times)/np.sqrt(len(meanx2_times)))
     print(len(meanx2_times_err))
     print(len(meanx2_times))
 
@@ -174,7 +175,7 @@ for observation in observations:
     axs[4].grid()
     axs[4].set_ylabel('$F_{var}$', fontsize=10)
 
-    # Subplot maean Fvar
+    # Subplot mean Fvar
     i = 0
     fvar_mean_arr = []
     fvar_err_mean_arr = []
