@@ -322,6 +322,10 @@ def plot_total_lc(x, y, title, xlabel, ylabel, output_folder, dy, dx=[]):
     plt.show()
 
 if __name__ == "__main__":
+
+    #Create Products directory
+    if not os.path.isdir(f'{target_dir}/Products/Plots_timeseries'):
+        os.makedirs(f'{target_dir}/Products/Plots_timeseries')
     
     if MAKE_MEAN_LC:
         # LONG TERM VARIABILITY PLOT
@@ -334,7 +338,7 @@ if __name__ == "__main__":
         data = data.sort_values(by=['MJD_avg_time'])
 
         title = 'Long-term X-ray Variability Lightcurve'
-        plot(data['MJD_avg_time'].values ,data['RGS_Rate'].values, dy=data['RGS_erate'].values, title=title, xlabel='MJD', ylabel='Mean Rate [ct/s]', output_folder=f"{target_dir}/Products" )
+        plot(data['MJD_avg_time'].values ,data['RGS_Rate'].values, dy=data['RGS_erate'].values, title=title, xlabel='MJD', ylabel='Mean Rate [ct/s]', output_folder=f"{target_dir}/Products/Plots_timeseries" )
         
     if MAKE_FVAR_PLOTS:
         # FRACTIONAL VARIABILITY PLOTS
@@ -352,7 +356,7 @@ if __name__ == "__main__":
         
         data = data.sort_values(by=['MJD_avg_time'])
         title = 'Fractional Variability vs time'
-        plot(data['MJD_avg_time'].values, data['F_var'].values, dy=data['F_var_sigma'].values, title=title, output_folder=f"{target_dir}/Products", xlabel='MJD [d]', ylabel='Fractional Variability [%]')
+        plot(data['MJD_avg_time'].values, data['F_var'].values, dy=data['F_var_sigma'].values, title=title, output_folder=f"{target_dir}/Products/Plots_timeseries", xlabel='MJD [d]', ylabel='Fractional Variability [%]')
         
             #Distribution of Fvarlow and Fvarhigh
         df_fvar_high = data[data['F_var']>3*data['F_var_sigma']]
@@ -362,7 +366,7 @@ if __name__ == "__main__":
         plt.bar(x_fvar, height_fvar, color='c', linewidth=2, edgecolor='k')
         plt.xticks(x_fvar, ("F_var high", "F_var low"))
         plt.ylabel("# datapoints")
-        plt.savefig(f"{target_dir}/Products/fvar_highlow.png")
+        plt.savefig(f"{target_dir}/Products/Plots_timeseries/fvar_highlow.png")
         plt.show()
 
             #Mean Fvar vs time
@@ -381,7 +385,7 @@ if __name__ == "__main__":
             mean_time_err_arr.append(1000)
             i=i+1000
 
-        plot(mean_time_arr, mean_fvar_arr, dy=sem_fvar_arr, dx=mean_time_err_arr, title='Mean Fractional Variability', output_folder=f"{target_dir}/Products", xlabel='MJD', ylabel='$<F_{var}>$')
+        plot(mean_time_arr, mean_fvar_arr, dy=sem_fvar_arr, dx=mean_time_err_arr, title='Mean Fractional Variability', output_folder=f"{target_dir}/Products/Plots_timeseries", xlabel='MJD', ylabel='$<F_{var}>$')
 
     
     if MAKE_EXCESS_VARIANCE:
@@ -393,7 +397,7 @@ if __name__ == "__main__":
         data = data.sort_values(by=['MJD_avg_time'])
         title = 'Excess variance vs time'
         print("# datapoints excess variance =", len(data))
-        plot(data['MJD_avg_time'].values, data['Excess_Variance'].values, dy=data['xs_sigma'].values, title=title, output_folder=f"{target_dir}/Products", xlabel='MJD', ylabel='$\sigma_{XS}^2$')
+        plot(data['MJD_avg_time'].values, data['Excess_Variance'].values, dy=data['xs_sigma'].values, title=title, output_folder=f"{target_dir}/Products/Plots_timeseries", xlabel='MJD', ylabel='$\sigma_{XS}^2$')
         '''
         #Mean excess variance for 10 datapoints
         mean_xs_arr = []
@@ -432,7 +436,7 @@ if __name__ == "__main__":
             mean_time_err_arr.append(1000)
             i=i+1000
 
-        plot(mean_time_arr, mean_xs_arr, dy=sem_arr, dx=mean_time_err_arr, title='Mean Excess Variance', output_folder=f"{target_dir}/Products", xlabel='MJD', ylabel='$<\sigma_{XS}^2>$')
+        plot(mean_time_arr, mean_xs_arr, dy=sem_arr, dx=mean_time_err_arr, title='Mean Excess Variance', output_folder=f"{target_dir}/Products/Plots_timeseries", xlabel='MJD', ylabel='$<\sigma_{XS}^2>$')
 
 
     if MAKE_LC:
@@ -463,7 +467,7 @@ if __name__ == "__main__":
         
         data_lc = pd.DataFrame({"RATE":total_lightcurve_rates, "MJD":total_lightcurve_times_mjd, "ERROR":total_lightcurve_errates})
         data_lc = data_lc.sort_values(by=['MJD'])
-        data_lc.to_csv(f"{target_dir}/Products/data_lc.csv")
+        data_lc.to_csv(f"{target_dir}/Products/Plots_timeseries/data_lc.csv")
 
         #plot_total_lc(data_lc['MJD'].values, data_lc['RATE'].values, dy=data_lc['ERROR'].values,title="Historical lightcurve evolution Mrk421", xlabel='MJD', 
         #    ylabel='Rate [ct/s]',  output_folder=f"{target_dir}/Products")
@@ -604,7 +608,7 @@ if __name__ == "__main__":
 
         bax.margins(0)
         plt.suptitle('Historical Lightcurve Mrk421', fontsize=25)
-        plt.savefig(f"{target_dir}/Products/lc_broken_axis.png")
+        plt.savefig(f"{target_dir}/Products/Plots_timeseries/lc_broken_axis.png")
     
         from collections import Counter
         import seaborn as sns
@@ -636,6 +640,6 @@ if __name__ == "__main__":
         g.fig.suptitle("Mrk421 total data")
         plt.grid(True)
         g.add_legend()
-        plt.savefig(f"{target_dir}/Products/compact_lightcurve.png")
+        plt.savefig(f"{target_dir}/Products/Plots_timeseries/compact_lightcurve.png")
         plt.show()
         
