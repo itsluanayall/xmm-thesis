@@ -10,7 +10,7 @@ from scipy.optimize import curve_fit
 target_dir = CONFIG['target_dir'] 
 sas_dir = CONFIG['sas_dir']
 ccf_dir = CONFIG['ccf_dir']
-observations = [ '0658801801','0136541001', '0150498701', '0791782001'] 
+observations = [ '0658801801','0136541001', '0150498701', '0791782001', '0560980101'] 
 N = 12
 M = 12
 def linear_fit(x, q):
