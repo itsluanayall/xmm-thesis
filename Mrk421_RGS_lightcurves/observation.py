@@ -132,6 +132,39 @@ class Observation:
         return self._rgsdir
 
 
+    def create_pairs_exposures(self):
+
+        os.chdir(self.rgsdir)
+
+        #Sort RGS eventlists according to exposure number
+        self.pairs_events = sort_rgs_list(self.rgsevlists, 'expo_number')
+
+        if self.obsid=='0510610101':
+            self.pairs_events = [['P0510610101R1S004EVENLI0000.FIT', 'P0510610101R2S005EVENLI0000.FIT'], ['P0510610101R1S004EVENLI0000.FIT', 'P0510610101R2S013EVENLI0000.FIT']]
+        if self.obsid=='0510610201':
+            self.pairs_events = [['P0510610201R1S004EVENLI0000.FIT', 'P0510610201R2S005EVENLI0000.FIT'], ['P0510610201R1S015EVENLI0000.FIT', 'P0510610201R2S005EVENLI0000.FIT']]
+        if self.obsid=='0136540701':
+            self.pairs_events = [['P0136540701R1S001EVENLI0000.FIT','P0136540701R2S002EVENLI0000.FIT' ], ['P0136540701R1S001EVENLI0000.FIT', 'P0136540701R2S018EVENLI0000.FIT'],
+                            ['P0136540701R1S011EVENLI0000.FIT','P0136540701R2S018EVENLI0000.FIT'], ['P0136540701R1S020EVENLI0000.FIT', 'P0136540701R2S018EVENLI0000.FIT'],
+                            ['P0136540701R1S021EVENLI0000.FIT', 'P0136540701R2S019EVENLI0000.FIT'], ['P0136540701R1S022EVENLI0000.FIT','P0136540701R2S019EVENLI0000.FIT']]
+        self.npairs = len(self.pairs_events)
+        logging.info(f'There is(are) {self.npairs} set(s) of exposures for observation {self.obsid}.')
+        print(self.pairs_events)
+
+        #Sort RGS sourcelists according to exposure number
+        self.pairs_srcli = sort_rgs_list(self.rgssrclists, 'expo_number')
+
+        if self.obsid=='0510610101':
+            self.pairs_srcli = [['P0510610101R1S004SRCLI_0000.FIT', 'P0510610101R2S005SRCLI_0000.FIT'], ['P0510610101R1S004SRCLI_0000.FIT', 'P0510610101R2S013SRCLI_0000.FIT']]
+        if self.obsid=='0510610201':
+            self.pairs_srcli = [['P0510610201R1S004SRCLI_0000.FIT', 'P0510610201R2S005SRCLI_0000.FIT'], ['P0510610201R1S015SRCLI_0000.FIT', 'P0510610201R2S005SRCLI_0000.FIT']]
+        if self.obsid=='0136540701':
+            self.pairs_srcli = [['P0136540701R1S001SRCLI_0000.FIT', 'P0136540701R2S002SRCLI_0000.FIT'], ['P0136540701R1S001SRCLI_0000.FIT', 'P0136540701R2S018SRCLI_0000.FIT'],
+                           ['P0136540701R1S011SRCLI_0000.FIT', 'P0136540701R2S018SRCLI_0000.FIT'], ['P0136540701R1S020SRCLI_0000.FIT', 'P0136540701R2S018SRCLI_0000.FIT'],
+                           ['P0136540701R1S021SRCLI_0000.FIT', 'P0136540701R2S019SRCLI_0000.FIT'], ['P0136540701R1S022SRCLI_0000.FIT', 'P0136540701R2S019SRCLI_0000.FIT']]
+        
+
+
     def cifbuild(self):
         """
         Generates the Calibration Index File (CIF) for the observation
@@ -237,33 +270,6 @@ class Observation:
         """
         os.chdir(self.rgsdir)
         
-        #Sort RGS eventlists according to exposure number
-        self.pairs_events = sort_rgs_list(self.rgsevlists, 'expo_number')
-
-
-        if self.obsid=='0510610101':
-            self.pairs_events = [['P0510610101R1S004EVENLI0000.FIT', 'P0510610101R2S005EVENLI0000.FIT'], ['P0510610101R1S004EVENLI0000.FIT', 'P0510610101R2S013EVENLI0000.FIT']]
-        if self.obsid=='0510610201':
-            self.pairs_events = [['P0510610201R1S004EVENLI0000.FIT', 'P0510610201R2S005EVENLI0000.FIT'], ['P0510610201R1S015EVENLI0000.FIT', 'P0510610201R2S005EVENLI0000.FIT']]
-        if self.obsid=='0136540701':
-            self.pairs_events = [['P0136540701R1S001EVENLI0000.FIT','P0136540701R2S002EVENLI0000.FIT' ], ['P0136540701R1S001EVENLI0000.FIT', 'P0136540701R2S018EVENLI0000.FIT'],
-                            ['P0136540701R1S011EVENLI0000.FIT','P0136540701R2S018EVENLI0000.FIT'], ['P0136540701R1S020EVENLI0000.FIT', 'P0136540701R2S018EVENLI0000.FIT'],
-                            ['P0136540701R1S021EVENLI0000.FIT', 'P0136540701R2S019EVENLI0000.FIT'], ['P0136540701R1S022EVENLI0000.FIT','P0136540701R2S019EVENLI0000.FIT']]
-        self.npairs = len(self.pairs_events)
-        logging.info(f'There is(are) {self.npairs} set(s) of exposures for observation {self.obsid}.')
-        print(self.pairs_events)
-
-        #Sort RGS sourcelists according to exposure number
-        self.pairs_srcli = sort_rgs_list(self.rgssrclists, 'expo_number')
-
-        if self.obsid=='0510610101':
-            self.pairs_srcli = [['P0510610101R1S004SRCLI_0000.FIT', 'P0510610101R2S005SRCLI_0000.FIT'], ['P0510610101R1S004SRCLI_0000.FIT', 'P0510610101R2S013SRCLI_0000.FIT']]
-        if self.obsid=='0510610201':
-            self.pairs_srcli = [['P0510610201R1S004SRCLI_0000.FIT', 'P0510610201R2S005SRCLI_0000.FIT'], ['P0510610201R1S015SRCLI_0000.FIT', 'P0510610201R2S005SRCLI_0000.FIT']]
-        if self.obsid=='0136540701':
-            self.pairs_srcli = [['P0136540701R1S001SRCLI_0000.FIT', 'P0136540701R2S002SRCLI_0000.FIT'], ['P0136540701R1S001SRCLI_0000.FIT', 'P0136540701R2S018SRCLI_0000.FIT'],
-                           ['P0136540701R1S011SRCLI_0000.FIT', 'P0136540701R2S018SRCLI_0000.FIT'], ['P0136540701R1S020SRCLI_0000.FIT', 'P0136540701R2S018SRCLI_0000.FIT'],
-                           ['P0136540701R1S021SRCLI_0000.FIT', 'P0136540701R2S019SRCLI_0000.FIT'], ['P0136540701R1S022SRCLI_0000.FIT', 'P0136540701R2S019SRCLI_0000.FIT']]
         
         for i in range(self.npairs):
             
@@ -275,7 +281,7 @@ class Observation:
             # Make sure exposure times overlap
             start_time, stop_time = expos0.synchronous_times(expos1)
 
-            if not glob.glob('*_RGS_rates.ds'): #If the lightcurves haven't already been generated, run rgslccorr
+            if not glob.glob('*_RGS_ratess.ds'): #If the lightcurves haven't already been generated, run rgslccorr
                 
                 logging.info(f"Running rgslccorr SAS command for observation number {self.obsid} and exposures {expos0.expid}, {expos1.expid} ...")
                 rgslc_command = f"rgslccorr evlist='{expos0.evenli} {expos1.evenli}' srclist='{expos0.srcli} {expos1.srcli}' withbkgsubtraction=yes timebinsize=1000 timemin={start_time} timemax={stop_time} orders='1' sourceid=3 outputsrcfilename={self.obsid}_{expos0.expid}+{expos1.expid}_RGS_rates.ds outputbkgfilename={self.obsid}_{expos0.expid}+{expos1.expid}_bkg_rates.ds"
@@ -380,7 +386,8 @@ class Observation:
         """
         
         logging.info('Generating Background lightcurve...')
-        os.chdir(self.rgsdir)
+        os.chdir(self.rgsdir)        
+
         flat_evenli = [item for sublist in self.pairs_events for item in sublist]
         flat_srcli = [item for sublist in self.pairs_srcli for item in sublist]
         evenli_srcli = list(zip(flat_evenli, flat_srcli))
@@ -390,17 +397,19 @@ class Observation:
             expos0 = Exposure(evenli, srcli)
             title_outputbkg0 = f"bkg{expos0.fullid}_check_rates.fit"
 
-            if not glob.glob(os.path.join(self.target_dir, "Products", "Backgrnd_LC", f"{title_outputbkg0}.png")):
-                select_bkg_cmmd0 = f"evselect table={expos0.evenli} timebinsize=1000 rateset={title_outputbkg0} makeratecolumn=yes maketimecolumn=yes expression='(CCDNR==9)&&(REGION({expos0.srcli}:{expos0.instrume}_BACKGROUND, M_LAMBDA, XDSP_CORR))'"
-                status_cmmd0 = run_command(select_bkg_cmmd0)
+            #if not glob.glob(os.path.join(self.target_dir, "Products", "Backgrnd_LC", f"{title_outputbkg0}.png")):
+            select_bkg_cmmd0 = f"evselect table={expos0.evenli} timebinsize=1000 rateset={title_outputbkg0} makeratecolumn=yes maketimecolumn=yes expression='(CCDNR==9)&&(REGION({expos0.srcli}:{expos0.instrume}_BACKGROUND, M_LAMBDA, XDSP_CORR))'"
+            status_cmmd0 = run_command(select_bkg_cmmd0)
 
-            else:
-                continue
+            #else:
+            #    continue
             
             data = fits.open(title_outputbkg0)
             x = data['RATE'].data['TIME']
             y = data['RATE'].data['RATE']               
             yerr = data['RATE'].data['ERROR']
+            mean_y = np.mean(y)
+            std_y = np.std(y)
 
             #Drop NaN values by making a numpy mask
             mask_nan = np.invert(np.isnan(y)) 
@@ -412,6 +421,7 @@ class Observation:
             fig = plt.figure(figsize=(20,10))
             ax = fig.add_subplot(1, 1, 1)
             plt.errorbar(x, y, yerr=yerr, color='black', marker='.', ecolor='gray')
+            plt.hlines(mean_y, plt.xlim()[0], plt.xlim()[1], colors='red')
             plt.grid(True)
             plt.title(title_outputbkg0, fontsize=30)
             plt.xlabel('TIME [s]', fontsize=25)
@@ -422,8 +432,60 @@ class Observation:
             #Save figure in rgs directory of the current Observation
             plt.savefig(os.path.join(self.target_dir, "Products", "Backgrnd_LC", f"{title_outputbkg0}.png"))
             plt.close()
+            logging.info(f'Done generating background lightcurve for exposure {expos0.expid}!')
+
+
+    def check_flaring_particle_bkgr(self):
+        """
+        """
+        os.chdir(self.rgsdir)
+
+        flat_evenli = [item for sublist in self.pairs_events for item in sublist]
+        flat_srcli = [item for sublist in self.pairs_srcli for item in sublist]
+        evenli_srcli = list(zip(flat_evenli, flat_srcli))
+       
+        for (evenli, srcli) in evenli_srcli:
+        
+            expos0 = Exposure(evenli, srcli)
+            logging.info(f'Checking the flaring particle background for exposure {expos0.expid}.')
+            title_outputbkg0 = f"bkg{expos0.fullid}_check_rates.fit"
+
+            data = fits.open(title_outputbkg0)
+            x = data['RATE'].data['TIME']
+            y = data['RATE'].data['RATE']               
+            yerr = data['RATE'].data['ERROR']
+            mean_y = np.mean(y)
+            std_y = np.std(y)
+            print(std_y)
+            #Drop NaN values by making a numpy mask
+            mask_nan = np.invert(np.isnan(y)) 
+            x = x[mask_nan]
+            y = y[mask_nan]
+            yerr = yerr[mask_nan]
+
+            flares = []
+            for rate_value in y:
+                if rate_value > 3*std_y + mean_y:
+                    flares.append(rate_value)
             
-        logging.info('Done generating background lightcurve!')
+            if len(flares)>0:
+                logging.info(f"Background lightcurve presents significant flares. Starting the selection of the GTI...")
+                maxr = min(flares)
+
+                tabgtigen_back_cmmd = f"tabgtigen table={title_outputbkg0} gtiset=gti_low_back_{expos0.expid}.fit expression='(RATE<{maxr})'"
+                status_cmmd = run_command(tabgtigen_back_cmmd)
+
+                logging.info("Running rgsfilter...")
+                merged_set = glob.glob(f"*{expos0.expid}merged0000.FIT")
+                rgsfilter_cmmd = f"rgsfilter mergedset={merged_set[0]} evlist={expos0.evenli} auxgtitables=gti_low_back_{expos0.expid}.fit"
+                status_rgsfilter = run_command(rgsfilter_cmmd)
+
+                logging.info("Running rgsproc from spectra stage.")
+                rgsproc_cmmd = f"rgsproc entrystage=4:spectra"
+                status_rgsproc = run_command(rgsproc_cmmd)
+
+            else:
+                logging.info(f"Background lightcurve presents no significant flares. No need in filtering exposure {expos0.expid}.")
 
 
     def fracvartest(self, screen=True, netlightcurve=True, timescale=10):

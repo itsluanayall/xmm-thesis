@@ -81,7 +81,7 @@ if __name__ == "__main__":
     counter = 0
     mrk421_problematic_obs = []
     duration_lc_ks = []
-    
+    '''
     for obsid in os.listdir(target_dir):
         
         if obsid.startswith('0'):   #All observation folders start with 0
@@ -97,10 +97,11 @@ if __name__ == "__main__":
             obs.cifbuild()
             obs.odfingest()
             obs.rgsproc()
+            obs.create_pairs_exposures()
+            obs.bkg_lightcurve()
             obs.rgslccorr()
             obs.lightcurve(mjdref=mjdref, use_grace=use_grace)
             obs.fracvartest(screen=True, timescale=timescale_fvar)
-            obs.bkg_lightcurve()
             obs.divide_spectrum()
             obs.xspec_divided_spectra_average(target_REDSHIFT)
             obs.xspec_divided_spectra(target_REDSHIFT)
@@ -154,17 +155,20 @@ if __name__ == "__main__":
     
     '''
     #For a single observation
-    obs = Observation(obsid='0670920301', target_dir=target_dir)   #instance of the observation
+    obs = Observation(obsid='0099280601', target_dir=target_dir)   #instance of the observation
     
     
     #Process each observation
     obs.cifbuild()
     obs.odfingest()
     obs.rgsproc()
+    obs.create_pairs_exposures()
+    obs.bkg_lightcurve()
+    obs.check_flaring_particle_bkgr()
     obs.rgslccorr()
     obs.lightcurve(mjdref=mjdref, use_grace=use_grace)
     obs.fracvartest(screen=True, timescale=timescale_fvar)
     obs.divide_spectrum()
     obs.xspec_divided_spectra_average(target_REDSHIFT)
     obs.xspec_divided_spectra(target_REDSHIFT)
-    '''
+    
