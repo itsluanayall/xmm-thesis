@@ -17,7 +17,7 @@ class Exposure:
     Class for an Exposure of an Observation.
     """
 
-    def __init__(self, evenli, srcli, specl="specli", bkgli="bkgli", respli="respli"):
+    def __init__(self, evenli, srcli, specli="specli", bkgli="bkgli", respli="respli"):
         """
         Constructor. evenli is the Eventlist of the exposure, which contains all the information
         that will be stored as attributes of the Exposure.
@@ -390,7 +390,7 @@ class Observation:
             expos0 = Exposure(evenli, srcli)
             title_outputbkg0 = f"bkg{expos0.fullid}_check_rates.fit"
 
-            if not glob.glob(os.path.join(self.target_dir, "Products", "Backgrnd_LC", f"{title_outputbkg0}.png"))
+            if not glob.glob(os.path.join(self.target_dir, "Products", "Backgrnd_LC", f"{title_outputbkg0}.png")):
                 select_bkg_cmmd0 = f"evselect table={expos0.evenli} timebinsize=1000 rateset={title_outputbkg0} makeratecolumn=yes maketimecolumn=yes expression='(CCDNR==9)&&(REGION({expos0.srcli}:{expos0.instrume}_BACKGROUND, M_LAMBDA, XDSP_CORR))'"
                 status_cmmd0 = run_command(select_bkg_cmmd0)
 
@@ -846,7 +846,7 @@ class Observation:
                     exposure_time = max(spectrum1.exposure, spectrum2.exposure)
                     src_rate = spectrum1.rate[0] + spectrum2.rate[0]  #net rate
                     src_rate_std = spectrum1.rate[1] + spectrum2.rate[1]
-                    frac = spectrum1.rate[3] + spectrum2.rate[3] #model rate
+                    frac = spectrum1.rate[2] + spectrum2.rate[2] #total rate
 
                     src_cts = spectrum1.exposure*spectrum1.rate[0] + spectrum2.exposure*spectrum2.rate[0]
                     src_ects = spectrum1.exposure*spectrum1.rate[1] + spectrum2.exposure*spectrum2.rate[1] 
@@ -1045,7 +1045,7 @@ class Observation:
                         # Retrieve rates and counts from xspec
                         src_rate = spectrum1.rate[0] + spectrum2.rate[0]  #net rate
                         src_rate_std = spectrum1.rate[1] + spectrum2.rate[1]
-                        frac = spectrum1.rate[3] + spectrum2.rate[3] #model rate
+                        frac = spectrum1.rate[2] + spectrum2.rate[2] #total rate
 
                         src_cts = spectrum1.exposure*spectrum1.rate[0] + spectrum2.exposure*spectrum2.rate[0]
                         src_ects = spectrum1.exposure*spectrum1.rate[1] + spectrum2.exposure*spectrum2.rate[1] 

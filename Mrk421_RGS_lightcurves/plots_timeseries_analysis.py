@@ -15,10 +15,10 @@ from matplotlib.patches import Rectangle
 target_dir = "/media/xmmsas/thesis/Markarian421"
 timescale_fvar = CONFIG['timescale_fvar']
 MJDREF = 50814.0
-MAKE_FVAR_PLOTS = False
+MAKE_FVAR_PLOTS = True
 MAKE_MEAN_LC = False
-MAKE_LC = True
-MAKE_EXCESS_VARIANCE = False 
+MAKE_LC = False
+MAKE_EXCESS_VARIANCE = True 
 M = 15
 
 def plot(x, y, title, xlabel, ylabel, output_folder, dy, dx=[]):
@@ -345,7 +345,7 @@ if __name__ == "__main__":
         hdul = Table.read(f"{target_dir}/Products/RGS_Lightcurves/obs_table.fits", hdu=1)    
         data = hdul.to_pandas()
         data = data.dropna()
-        data = data[data['ObsId'] != '150498701']
+        #data = data[data['ObsId'] != 150498701]
         data = data[data['F_var']!=-1.000]
         data['F_var'] = data['F_var'].apply(lambda x: x*100)
         data['F_var_sigma'] = data['F_var_sigma'].apply(lambda x: x*100)
