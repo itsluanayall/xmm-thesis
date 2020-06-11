@@ -818,6 +818,7 @@ class Observation:
                 expos0 = Exposure(self.pairs_events[i][0], self.pairs_srcli[i][0], self.pairs_spectra[i][0], self.pairs_bkg[i][0], self.pairs_respli[i][0])
                 expos1 = Exposure(self.pairs_events[i][1], self.pairs_srcli[i][1], self.pairs_spectra[i][1], self.pairs_bkg[i][1], self.pairs_respli[i][1])
                 start_time, stop_time = expos0.synchronous_times(expos1)
+                
                 #Load RGS1 + RGS2 data                
                 os.chdir(f"{self.target_dir}/{self.obsid}/rgs")
                 xspec.AllData(f"1:1 {expos0.specli} 2:2 {expos1.specli}")

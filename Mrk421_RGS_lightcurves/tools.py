@@ -208,13 +208,15 @@ def mask_fracexp15(fits_file):
 
 def spectrum_plot_xspec(observation, expid0, expid1, model, target_dir, i=0):
     """
+    Plot spectrum in PyXspec.
     """
     xspec.Plot.device = '/null'
     xspec.Plot.xAxis = 'keV'
     xspec.Plot.setRebin(minSig=3, maxBins=4096) 
+    xspec.Plot.background = True
     xspec.Plot('data')
 
-    # Using matplotlib
+    # Use matplotlib
     # Store x and y for RGS1 and RGS2
     chans1 = xspec.Plot.x(1)
     chans1_err = xspec.Plot.xErr(1)
@@ -225,44 +227,43 @@ def spectrum_plot_xspec(observation, expid0, expid1, model, target_dir, i=0):
     rates2 = xspec.Plot.y(2)
     rates2_err = xspec.Plot.yErr(2)
 
-    # Store model (to calculate residuals)
-    folded1 = xspec.Plot.model(1)
-    folded2 = xspec.Plot.model(2)
-
-
-    fig = plt.figure(figsize=(15,10))
-
-    # First panel: Spectrum
-    ax1 = plt.subplot(211)
-    plt.errorbar(chans1, rates1, yerr=rates1_err, xerr=chans1_err, linestyle='', label='RGS1')
-    plt.errorbar(chans2, rates2, yerr=rates2_err, xerr=chans2_err, linestyle='', label='RGS2')
-    plt.yscale('log')
-    plt.xscale('log')
-    plt.ylim(1e-7, 150)
+    fig, axs = plt.subplots(3, 1, sharex=True, gridspec_kw={'hspace':0.1}, figsize=(20,15))
     if i==0:
-        plt.title(f"Average spectra {observation}, expo {expid0}+{expid1}, {model} ", fontsize=25)
+        fig.suptitle(f"Average spectra {observation}, expo {expid0}+{expid1}, {model} ", fontsize=25, y=0.92)
     else:
-        plt.title(f"{observation} expo {expid0}+{expid1} {model} Part {i}", fontsize=30)
-    plt.xlabel('Energy [keV]', fontsize=17)
-    plt.ylabel('Normalized counts [s-1 keV-1]', fontsize=17)
-    ax1.legend(loc='lower right', fontsize='x-large')
+        fig.suptitle(f"{observation} expo {expid0}+{expid1} {model} Part {i}", fontsize=25, y=0.92)
+
+    # First panel: Source Spectrum
+    axs[0].errorbar(chans1, rates1, yerr=rates1_err, xerr=chans1_err, linestyle='', color='black', label='RGS1')
+    axs[0].errorbar(chans2, rates2, yerr=rates2_err, xerr=chans2_err, linestyle='', color='red', label='RGS2')
+    
+    # First panel: Background Spectrum
+    xspec.Plot('back')
+    axs[0].errorbar(chans1, xspec.Plot.y(1), xerr=chans1_err, yerr=xspec.Plot.yErr(1), color='wheat', linestyle='', marker='.', markersize=0.2, label='Background RGS1')
+    axs[0].errorbar(chans2, xspec.Plot.y(2), xerr=chans2_err, yerr=xspec.Plot.yErr(2), color='tan', linestyle='', marker='.', markersize=0.2, label='Background RGS2')
+    
+    axs[0].set_yscale('log')
+    axs[0].set_xscale('log')
+    axs[0].set_ylim(1e-7, 150)
+    axs[0].set_xlim(0.331, 2.001)
+    axs[0].set_ylabel('Normalized counts [s-1 keV-1]', fontsize=17)
+    axs[0].legend(loc='lower right', fontsize='x-large')
 
     # Second panel: Residuals
-    ax2 = plt.subplot(212, sharex=ax1)
-    plt.title('Residuals', fontsize=30)
-    rates1_array = np.array(rates1)   #cast into numpy array to perform element-wise operation
-    rates2_array = np.array(rates2)
-    folded1_array = np.array(folded1)
-    folded2_array = np.array(folded2)
-    res1 = rates1_array - folded1_array  #calculate residuals
-    res2 = rates2_array - folded2_array
-    plt.errorbar(chans1, res1, yerr=rates1_err, linestyle='', label='RGS1')
-    plt.errorbar(chans2, res2, yerr=rates2_err, linestyle='', label='RGS2')
-    plt.hlines(0, plt.xlim()[0], plt.xlim()[1], color='m')   
-    plt.xlabel('Energy [keV]', fontsize=17)
-    plt.ylabel('Normalized counts [s-1 keV-1]', fontsize=17)
-    ax2.legend(loc='lower right', fontsize='x-large')
-    plt.tight_layout(pad=4.0)
+    xspec.Plot('resid')
+    axs[1].errorbar(chans1, xspec.Plot.y(1), yerr=xspec.Plot.yErr(1), linestyle='', color='black', label='RGS1')
+    axs[1].errorbar(chans2, xspec.Plot.y(2), yerr=xspec.Plot.yErr(2), linestyle='', color='red', label='RGS2')
+    axs[1].hlines(0, plt.xlim()[0], plt.xlim()[1], color='lime')   
+    axs[1].set_ylabel('Normalized counts [s-1 keV-1]', fontsize=17)
+
+    # Third panel: delchi
+    xspec.Plot('delchi')
+    axs[2].errorbar(chans1, xspec.Plot.y(1), yerr=1., linestyle='', color='black', label='RGS1')
+    axs[2].errorbar(chans2, xspec.Plot.y(2), yerr=1., linestyle='', color='red', label='RGS2')
+    axs[2].hlines(0, plt.xlim()[0], plt.xlim()[1], color='lime')  
+    axs[2].set_xlabel('Energy [keV]', fontsize=17)
+    axs[2].set_ylabel('(data-model)/error', fontsize=17)
+
     if i==0:
         plt.savefig(f"{target_dir}/Products/RGS_Spectra/{observation}/average_{observation}_{expid0}+{expid1}_{model}.png")
     else:
