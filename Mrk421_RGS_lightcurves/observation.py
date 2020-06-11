@@ -440,6 +440,9 @@ class Observation:
         flat_evenli = [item for sublist in self.pairs_events for item in sublist]
         flat_srcli = [item for sublist in self.pairs_srcli for item in sublist]
         evenli_srcli = list(zip(flat_evenli, flat_srcli))
+        if len(evenli_srcli)==0:
+            return
+
         flares = []
 
         for (evenli, srcli) in evenli_srcli:

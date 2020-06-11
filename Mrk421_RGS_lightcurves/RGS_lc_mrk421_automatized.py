@@ -156,7 +156,7 @@ if __name__ == "__main__":
     
     '''
     #For a single observation
-    obs = Observation(obsid='0136540301', target_dir=target_dir)   #instance of the observation
+    obs = Observation(obsid='0411080201', target_dir=target_dir)   #instance of the observation
     
     
     #Process each observation
@@ -165,8 +165,8 @@ if __name__ == "__main__":
     obs.rgsproc()
     obs.create_pairs_exposures()
     obs.bkg_lightcurve()
-    #obs.check_flaring_particle_bkgr()
-    #obs.rgslccorr()
+    obs.check_flaring_particle_bkgr()
+    obs.rgslccorr()
     obs.lightcurve(mjdref=mjdref, use_grace=use_grace)
     obs.fracvartest(screen=True, timescale=timescale_fvar)
     obs.divide_spectrum()
