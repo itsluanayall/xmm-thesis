@@ -493,7 +493,7 @@ class Observation:
             logging.info(f"Background lightcurves present no significant flares. No need in filtering exposure {expos0.expid}.")
 
 
-    def fracvartest(self, screen=True, netlightcurve=True, timescale=10):
+    def fracvartest(self, screen=True, netlightcurve=True):
         """
         Reads the FITS file containing the RGS source and background timeseries produced by rgslccorr. 
         It then calculates excess variance, normalized excess variance and fractional variability of the lightcurve,
@@ -503,8 +503,6 @@ class Observation:
         :type screen: boolean
         :param netlightcurve: if True, uses the net lightcurve (i.e. background substracted) to calculate the variability quantities, defaults to True
         :type netlightcurve: boolean
-        :param timescale: timescale in kiloseconds on which to calculate the fractional variability, defaults to 10
-        :type timescale: int
 
         """
         os.chdir(self.rgsdir)
@@ -549,7 +547,7 @@ class Observation:
             try:
                 #Delete gaps in data 
                 dataset_cleaned = dataset.dropna()
-
+                '''
                 #Trim the lightcurve so to calculate the F_var for the chosen timescale
                 duration_lc = (dataset_cleaned['TIME'].values[-1]-dataset_cleaned['TIME'].values[0])/1000.  #in kiloseconds
                 
@@ -566,7 +564,7 @@ class Observation:
                     logging.info(f'The lightcurve can be used to calculate fractional variability on a timescale of {timescale} kiloseconds.')
                     max_time = dataset_cleaned['TIME'].values[0] + (timescale*1000)
                     dataset_cleaned = dataset_cleaned[dataset_cleaned['TIME'] <= max_time]
-
+                '''
                 #Net source rates and errors and background rates and errors are recorded in arrays
                 numnonnull = len(dataset_cleaned)
                 rates = np.array(dataset_cleaned['RATE'])
