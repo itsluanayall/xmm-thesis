@@ -37,7 +37,6 @@ def run_command(command):
         return 1
     
 
-
 def split_rgs_filename(filename):
     """
     Splits the RGS filname in substrings, each of which indicate a specific characteristic of the observation.
@@ -116,7 +115,6 @@ class NoDataException(Exception):
             return 'NoDataException has been raised.'
 
 
-
 def excess_variance(rates, errrates, normalized=True):
     """
     Calculates the excess variance from the rates given as argument. 
@@ -151,6 +149,7 @@ def excess_variance(rates, errrates, normalized=True):
     else:
         return xs, err_xs
 
+
 def fractional_variability(rates, errrates, backv, backe, netlightcurve=True):
     """
     Returns the fractional variability and its error given the rates and error rates as arguments.
@@ -181,6 +180,31 @@ def fractional_variability(rates, errrates, backv, backe, netlightcurve=True):
         err_fvar = -1.
 
     return f_var, err_fvar
+
+
+def mask_fracexp15(fits_file):
+    """
+    """
+    #Check FRACEXP column, the fractional exposure extension. If not at least 15%, discard the datapoint
+    with fits.open(fits_file) as hdul:
+        masknan = np.invert(np.isnan(hdul['RATE'].data['RATE']))
+        fracexp = hdul['RATE'].data['FRACEXP'][masknan]
+        time = hdul['RATE'].data['TIME'][masknan]
+        rate = hdul['RATE'].data['RATE'][masknan]
+        erate = hdul['RATE'].data['ERROR'][masknan]
+        backv = hdul['RATE'].data['BACKV'][masknan]
+        backe = hdul['RATE'].data['BACKE'][masknan]
+
+        mask15 = fracexp >= 0.15
+        
+        time = time[mask15]
+        rate = rate[mask15]
+        erate = erate[mask15]
+        fracexp = fracexp[mask15]
+        backv = backv[mask15]
+        backe = backe[mask15]
+    return (time, rate, erate, fracexp, backv, backe)
+
 
 def spectrum_plot_xspec(observation, expid0, expid1, model, target_dir, i=0):
     """
