@@ -242,7 +242,7 @@ class Observation:
         os.chdir(self.rgsdir)
 
         #Check if the data has already been processed: if not, run the command.
-        if not glob.glob('*EVENLI0000.FIT'):
+        if  glob.glob('*EVENLI0000.FIT'):
             logging.info(f'Running rgsproc command for observation number {self.obsid}...')
             ra = CONFIG['target_RA']
             dec = CONFIG['target_DEC']
@@ -467,13 +467,14 @@ class Observation:
 
             #Search for significant flares
             for rate_value in y:
-                if rate_value > 3*std_y + mean_y:
+                if rate_value > (3*std_y + mean_y):
                     flares.append(rate_value)
-
+        print('Flare values:', flares)
         #If there are flares, filter the eventlist for the source lightcurve
         if len(flares)>0:
             logging.info(f"Background lightcurves present significant flares. Starting the selection of the GTI...")
-            maxr = min(flares)
+            maxr = max(flares)
+            print('maxr = ' , maxr)
 
             tabgtigen_back_cmmd = f"tabgtigen table={title_outputbkg0} gtiset=gti_low_back_{expos0.expid}.fit expression='(RATE<{maxr})'"
             status_cmmd = run_command(tabgtigen_back_cmmd)
@@ -818,7 +819,7 @@ class Observation:
                 expos0 = Exposure(self.pairs_events[i][0], self.pairs_srcli[i][0], self.pairs_spectra[i][0], self.pairs_bkg[i][0], self.pairs_respli[i][0])
                 expos1 = Exposure(self.pairs_events[i][1], self.pairs_srcli[i][1], self.pairs_spectra[i][1], self.pairs_bkg[i][1], self.pairs_respli[i][1])
                 start_time, stop_time = expos0.synchronous_times(expos1)
-                
+
                 #Load RGS1 + RGS2 data                
                 os.chdir(f"{self.target_dir}/{self.obsid}/rgs")
                 xspec.AllData(f"1:1 {expos0.specli} 2:2 {expos1.specli}")

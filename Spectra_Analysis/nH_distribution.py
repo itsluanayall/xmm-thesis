@@ -17,12 +17,16 @@ if __name__ == "__main__":
     hdul_spec = Table.read(os.path.join(products_dir, "RGS_Spectra", "spectra_table.fits"), hdu=1)
     data_spec = hdul_spec.to_pandas()
     data_spec = data_spec[data_spec['tbinid'] == 0]   #Use only average spectra
+    
+    data_spec_upperlim = data_spec[data_spec['nH_low']==0.]
 
     data_spec_zlogp = data_spec[data_spec['model']=='constant*TBabs*zlogp']
     data_spec_zpowe = data_spec[data_spec['model']=='constant*TBabs*zpowe']
     data_distrib = pd.DataFrame({'nH_logpar': data_spec_zlogp['nH'].values, 'nH_powerlaw': data_spec_zpowe['nH'].values })
     nH_top_logpar = data_spec_zlogp['nH_up'].values - data_spec_zlogp['nH'].values
     nH_bot_logpar = data_spec_zlogp['nH'].values - data_spec_zlogp['nH_low'].values
+
+
     nH_top_powerlaw = data_spec_zpowe['nH_up'].values - data_spec_zpowe['nH'].values
     nH_bot_powerlaw = data_spec_zpowe['nH'].values - data_spec_zpowe['nH_low'].values
 

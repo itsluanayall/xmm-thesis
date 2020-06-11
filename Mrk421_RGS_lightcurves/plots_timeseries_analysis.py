@@ -369,24 +369,6 @@ if __name__ == "__main__":
         plt.savefig(f"{target_dir}/Products/Plots_timeseries/fvar_highlow.png")
         plt.show()
 
-            #Mean Fvar vs time
-        mean_fvar_arr = []
-        sem_fvar_arr = []
-        mean_time_arr = []
-        mean_time_err_arr = []
-        i = data['MJD_avg_time'].values[0]
-
-        while(i+1000< data['MJD_avg_time'].values[-1]):
-            segment = data[(data['MJD_avg_time'] < i+1000) & (data['MJD_avg_time'] > i)]
-            mean_fvar_arr.append(np.mean(segment['F_var'].values))
-            sem_fvar_arr.append(np.sqrt(1 / (np.sum(1/np.square(segment['F_var_sigma'].values)))))
-            mean_time_arr.append(np.mean([i, i+1000]))
-            #mean_time_err_arr.append(np.std(segment['MJD_avg_time'].values)/np.sqrt(len(segment['MJD_avg_time'].values)))
-            mean_time_err_arr.append(1000/2.)
-            i=i+1000
-
-        plot(mean_time_arr, mean_fvar_arr, dy=sem_fvar_arr, dx=mean_time_err_arr, title='Mean Fractional Variability', output_folder=f"{target_dir}/Products/Plots_timeseries", xlabel='MJD', ylabel='$<F_{var}>$')
-
     
     if MAKE_EXCESS_VARIANCE:
         hdul = Table.read(f"{target_dir}/Products/RGS_Lightcurves/obs_table.fits", hdu=1)    
@@ -398,45 +380,6 @@ if __name__ == "__main__":
         title = 'Excess variance vs time'
         print("# datapoints excess variance =", len(data))
         plot(data['MJD_avg_time'].values, data['Excess_Variance'].values, dy=data['xs_sigma'].values, title=title, output_folder=f"{target_dir}/Products/Plots_timeseries", xlabel='MJD', ylabel='$\sigma_{XS}^2$')
-        '''
-        #Mean excess variance for 10 datapoints
-        mean_xs_arr = []
-        sem_arr = []   #standard error mean array
-        mean_time_arr = []
-        i=0
-        while (i+M<len(data)):
-            xs_mean = np.mean(data[i:i+M]['Excess_Variance'].values)
-            sem = np.std(data[i:i+M]['Excess_Variance'].values)/np.sqrt(10)
-            time_mean = np.mean(data[i:i+M]['MJD_avg_time'].values)
-            mean_xs_arr.append(xs_mean)
-            sem_arr.append(sem)
-            mean_time_arr.append(time_mean)
-            i+=M
-        plot(mean_time_arr, mean_xs_arr, dy=sem_arr, title='Mean Excess Variance', output_folder=f"{target_dir}/Products", xlabel='MJD', ylabel='$<\sigma_{XS}^2>$')
-        '''
-        #Mean excess variance on a time period of 1000 days
-        mean_xs_arr = []
-        sem_arr = []   #standard error mean array
-        mean_time_arr = []
-        mean_time_err_arr = []
-        i = data['MJD_avg_time'].values[0]
-
-        while (i+1000 < data['MJD_avg_time'].values[-1]):
-            segment = data[(data['MJD_avg_time'] < i+1000) & (data['MJD_avg_time'] > i)]
-            print(segment)
-
-            xs_mean = np.mean(segment['Excess_Variance'].values)
-            sem = np.sqrt(1 / (np.sum(1/np.square(segment['xs_sigma'].values))))
-            time_mean = np.mean([i, i+1000])
-
-            mean_xs_arr.append(xs_mean)
-            sem_arr.append(sem)
-            mean_time_arr.append(time_mean)
-            #mean_time_err_arr.append(np.std(segment['MJD_avg_time'].values)/np.sqrt(len(segment['MJD_avg_time'].values)))
-            mean_time_err_arr.append(1000/2.)
-            i=i+1000
-
-        plot(mean_time_arr, mean_xs_arr, dy=sem_arr, dx=mean_time_err_arr, title='Mean Excess Variance', output_folder=f"{target_dir}/Products/Plots_timeseries", xlabel='MJD', ylabel='$<\sigma_{XS}^2>$')
 
 
     if MAKE_LC:
