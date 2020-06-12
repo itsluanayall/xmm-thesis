@@ -203,7 +203,8 @@ def mask_fracexp15(fits_file):
         fracexp = fracexp[mask15]
         backv = backv[mask15]
         backe = backe[mask15]
-    return (time, rate, erate, fracexp, backv, backe)
+    return (time.byteswap().newbyteorder(), rate.byteswap().newbyteorder(), erate.byteswap().newbyteorder(),
+             fracexp.byteswap().newbyteorder(), backv.byteswap().newbyteorder(), backe.byteswap().newbyteorder())
 
 
 def spectrum_plot_xspec(observation, expid0, expid1, model, target_dir, i=0):

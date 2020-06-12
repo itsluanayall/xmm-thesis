@@ -7,12 +7,14 @@ import numpy as np
 from itertools import compress
 from scipy.optimize import curve_fit
 import pandas as pd
+import sys
+logging.basicConfig(level=logging.ERROR)
 
 target_dir = CONFIG['target_dir'] 
 sas_dir = CONFIG['sas_dir']
 ccf_dir = CONFIG['ccf_dir']
 observations = [ '0658801801','0136541001', '0150498701', '0791782001', '0560980101'] 
-observations = ['0791782001']
+observations = ['0136541001']
 N = 10
 M = 10
 def linear_fit(x, q):
@@ -34,6 +36,34 @@ def synchronous_times(tstart1, tstart2, tstop1, tstop2):
     except Exception as e:
         logging.error("The given exposures do not overlap. Please check the if the input exposures are correct.")
 
+def binning(N, bintime, dataframe, colx, coly):
+    
+    segment = N*bintime
+    x_in = dataframe[colx].values[0]
+    x_fin = dataframe[colx].values[-1]
+    x = x_in
+    mean_x = []
+    mean_y = []
+    mean_yerr = []
+    mean_xerr = []
+
+    while(x + segment < x_fin):
+        segment_df = dataframe[(dataframe[colx]<x+segment) & (dataframe[colx]>x)]
+        n_in_segment = len(segment_df)
+        if n_in_segment <= N/3:
+            
+            x += segment
+            continue
+        else:
+            mean_x.append(np.mean(segment_df[colx].values))
+            mean_y.append(np.mean(segment_df[coly].values))
+            mean_yerr.append(np.std(segment_df[coly].values)/np.sqrt(len(segment_df[coly].values)))
+            mean_xerr.append((segment_df[colx].values[0]- segment_df[colx].values[-1])/2.)
+            x += segment
+
+    return mean_x, mean_y, mean_xerr, mean_yerr
+
+            
 
 for observation in observations:
     os.chdir(f'{target_dir}/{observation}')
@@ -68,10 +98,8 @@ for observation in observations:
     status_rgslc = run_command(rgslc_command)
     '''
     #Read LC data
-    hdul = Table.read(f"{target_dir}/{observation}/rgs/{observation}_RGS_rates_{timebinsize}bin.ds", hdu=1)    
-    data = hdul.to_pandas()
-    data = data.dropna()
-    data = data.iloc[3:]
+    time, rate, erate, fracexp, backv, backe = mask_fracexp15(f"{target_dir}/{observation}/rgs/{observation}_RGS_rates_{timebinsize}bin.ds")
+    data = pd.DataFrame({'RATE': rate, "TIME": time, "ERROR": erate, 'BACKV': backv, "BACKE": backe})
     
     ## PANEL 
     fig, axs = plt.subplots(6, 1, figsize=(15,20), sharex=True, gridspec_kw={'hspace':0})
@@ -84,21 +112,8 @@ for observation in observations:
     axs[0].set_ylabel('x', fontsize=10)
 
     #Subplot <x> (mean lightcurve)
-    mean_data = []
-    mean_error_data = []
-    mean_time = []
-    mean_time_err = []
-    i = 0
-    while(i+M<len(data)):
-        mean_data.append(np.mean(data[i:i+M]['RATE'].values))
-        #mean_error_data.append(np.sqrt(1/ (1/np.square(data[i:i+M]['ERROR'].values)).sum()))
-        mean_error_data.append(np.std(data[i:i+M]['RATE'].values)/np.sqrt(len(data[i:i+M]['RATE'].values)))
-        mean_time.append(np.mean([data['TIME'].values[i], data['TIME'].values[i+M]]))
-        i+=M
+    mean_time, mean_data, mean_time_err, mean_error_data = binning(M, 25, data, 'TIME', 'RATE' )
 
-    for i in range(len(mean_time)):
-        mean_time_err.append(np.std(mean_time)/np.sqrt(len(mean_time)))
-    
     axs[1].errorbar(mean_time, mean_data, yerr=mean_error_data, color='black', linestyle='', marker='.', ecolor='gray')
     axs[1].grid()
     axs[1].set_ylabel('<x>', fontsize=10)
@@ -129,28 +144,13 @@ for observation in observations:
     axs[2].errorbar(mean_time_nonneg, xs_arr, xs_err_arr, color='black', marker='.', linestyle='', ecolor='gray' )
     axs[2].grid()
     axs[2].set_ylabel('$\sigma_{XS}^2$', fontsize=10)
-    print(len(xs_arr))
+
 
     #Subplot mean excess variance 
-    i = 0 
-    mean_xs = []
-    mean_xs_err = []
-    meanx2_times = []
-    meanx2_times_err = []
-
-    while (i+N< len(xs_arr)):
-        mean_xs.append(np.mean(xs_arr[i:i+N]))
-        #mean_xs_err.append(np.sqrt(1/ (1/np.square(xs_err_arr[i:i+M])).sum()))
-        mean_xs_err.append(np.std(xs_arr[i:i+M])/np.sqrt(len(xs_arr[i:i+M])))
-        meanx2_times.append(np.mean([mean_time_nonneg[i], mean_time_nonneg[i+N]]))
-        meanx2_times_err.append((mean_time_nonneg[i+N]- mean_time_nonneg[i])/2.)
-        i+=N
-    #for i in range(len(meanx2_times)):
-    #    meanx2_times_err.append(np.std(meanx2_times)/np.sqrt(len(meanx2_times)))
-    print(len(meanx2_times_err))
-    print(len(meanx2_times))
-
-    axs[3].errorbar(meanx2_times, mean_xs, mean_xs_err, xerr=meanx2_times_err, linestyle='', color='black', marker='.', ecolor='gray')
+    df_mean_xs = pd.DataFrame({'time': mean_time_nonneg, 'xs': xs_arr, 'xs_err': xs_err_arr})
+    meanx2_times, mean_xs, meanx2_times_err, mean_xs_err = binning(N, M*timebinsize, df_mean_xs, 'time', 'xs')
+    
+    axs[3].errorbar(meanx2_times, mean_xs, mean_xs_err, xerr=meanx2_times_err,  linestyle='', color='black', marker='.', ecolor='gray')
     axs[3].grid()
     axs[3].set_ylabel('$<\sigma_{XS}^2>$', fontsize=10)
 
@@ -179,28 +179,22 @@ for observation in observations:
     axs[4].set_ylabel('$F_{var}$', fontsize=10)
 
     # Subplot mean Fvar
-    i = 0
-    fvar_mean_arr = []
-    fvar_err_mean_arr = []
-    while(i+N<len(fvar_arr)):
-        fvar_mean_arr.append(np.mean(fvar_arr[i:i+N]))
-        #fvar_err_mean_arr.append(np.sqrt(1/ (1/np.square(fvar_err_arr[i:i+M])).sum()))
-        fvar_err_mean_arr.append(np.std(fvar_arr[i:i+M])/np.sqrt(len(fvar_arr[i:i+M])))
-        i+=N
-    
+    df_mean_fvar = pd.DataFrame({'time': mean_time_nonneg, 'fvar': fvar_arr, 'fvar_err': fvar_err_arr})
+    meanx2_times, fvar_mean_arr, meanx2_times_err, fvar_err_mean_arr = binning(N, M*timebinsize, df_mean_fvar, 'time', 'fvar')
+
     axs[5].errorbar(meanx2_times, fvar_mean_arr, fvar_err_mean_arr, xerr=meanx2_times_err, linestyle='', color='black', marker='.', ecolor='gray')
     axs[5].grid()
     axs[5].set_xlabel('TIME [s]', fontsize=10)
     axs[5].set_ylabel('$<F_{var}>$', fontsize=10)
 
     plt.savefig(f'{target_dir}/Products/Plots_timeseries/{observation}_variability_panel.png')
-    #plt.show()
 
+    #Fit 
     fvar_mean_arr = np.array(fvar_mean_arr)
     meanx2_times = np.array(meanx2_times)
     meanx2_times_err = np.array(meanx2_times_err)
     fvar_err_mean_arr = np.array(fvar_err_mean_arr)
-    print(fvar_err_mean_arr)
+    
     #meanx2_times = meanx2_times - meanx2_times[0]
     # Fit constant
     #valori iniziali e fit
@@ -218,6 +212,8 @@ for observation in observations:
     chisq =(((fvar_mean_arr-linear_fit(meanx2_times, q0) )/fvar_err_mean_arr)**2).sum()
     ndof = len(meanx2_times) - 1
     print('Chisquare/ndof = %f/%d' % (chisq, ndof))
+
+
     '''
     #PLOT CONFIDENCE INTERVALS
     fig_confidence = plt.figure(figsize=(10,10))
@@ -256,6 +252,10 @@ for observation in observations:
     xs_sorted = xs_sorted[xs_sorted['xs']>0.]    
     
     #Binning
+    print(xs_sorted)
+    meanx2_rate, meanx2_xs, meanx2_rate_err, meanx2_xs_err = binning(N, 0.01, xs_sorted, 'rate', 'xs')
+    '''
+    
     i=0
     meanx2_rate = []
     meanx2_xs = []
@@ -266,7 +266,7 @@ for observation in observations:
         meanx2_xs_err.append(np.std(xs_sorted[i:i+N]['xs'].values)/np.sqrt(len(xs_sorted[i:i+N])))
         #meanx2_xs_err.append(np.sqrt(1/ (1/np.square(xs_sorted[i:i+M]['xs_err'].values)).sum()))
         i+=N
-
+    '''
     fig_rate, ax = plt.subplots(1,1, figsize=(10,10))
     ax.errorbar(x=meanx2_rate, y=meanx2_xs, yerr=meanx2_xs_err, linestyle='', marker='.')
     ax.set_xlabel('x')

@@ -436,34 +436,6 @@ class Observation:
         RATE<maxr where maxr is the minimum element of the flare array.
         """
         os.chdir(self.rgsdir)
-        '''
-        for pair in self.pairs_events:
-            flares = []
-            expos0 = Exposure(pair[0])
-            expos1 = Exposure(pair[1])
-            logging.info(f'Checking the flaring particle background for exposure {expos0.expid} and {expos1.expid}.')
-            title_outputbkg0 = f"bkg{expos0.fullid}_check_rates.fit"
-            title_outputbkg1 = f"bkg{expos1.fullid}_check_rates.fit"
-
-            #Retrieve data from flaring particle background
-            data0 = fits.open(title_outputbkg0)
-            x0 = data0['RATE'].data['TIME']
-            y0 = data0['RATE'].data['RATE']               
-            y0err = data0['RATE'].data['ERROR']
-            mean_y0 = np.mean(y)
-            std_y0 = np.std(y)
-
-            #Drop NaN values by making a numpy mask
-            mask_nan0 = np.invert(np.isnan(y0)) 
-            x0 = x0[mask_nan0]
-            y0 = y0[mask_nan0]
-            y0err = y0err[mask_nan]
-
-            #Search for significant flares
-            for rate_value in y0:
-                if rate_value > (5*std_y0 + mean_y0):
-                    flares.append(rate_value)
-        '''
         flat_evenli = [item for sublist in self.pairs_events for item in sublist]
         flat_srcli = [item for sublist in self.pairs_srcli for item in sublist]
         evenli_srcli = list(zip(flat_evenli, flat_srcli))
@@ -494,7 +466,8 @@ class Observation:
 
             #Search for significant flares
             for rate_value in y:
-                if rate_value > (5*std_y + mean_y):
+                if rate_value > (3*std_y + mean_y):
+                    logging.info('Found flare in background!')
                     flares[f"{title_outputbkg0}"] = rate_value
 
         print('Flare values:', flares)
@@ -508,18 +481,16 @@ class Observation:
             
             tabgtigen_back_cmmd = f"tabgtigen table={max_key} gtiset=gti_low_back_{max_key[13:16]}.fit expression='(RATE<{maxr})'"
             status_cmmd = run_command(tabgtigen_back_cmmd)
-            #tabgtigen_back_cmmd = f"tabgtigen table='bkg0411080301005_check_rates.fit' gtiset=gti_low_back_005.fit expression='(RATE<{maxr})'"
-            #status_cmmd = run_command(tabgtigen_back_cmmd)
-            
+
             logging.info("Running rgsfilter...")
             merged_set = glob.glob(f"*{max_key[13:16]}merged0000.FIT")
             evenli_set = glob.glob(f"*{max_key[13:16]}EVENLI0000.FIT")
-            print(merged_set, evenli_set)
-            rgsfilter_cmmd = f"rgsfilter mergedset={merged_set[0]} evlist={evenli_set[0]} auxgtitables=gti_low_back_{max_key[13:16]}.fit"
-            status_rgsfilter = run_command(rgsfilter_cmmd)
             
-            logging.info("Running rgsproc from spectra stage...")
-            rgsproc_cmmd = f" rgsproc entrystage=4:spectra"
+            #rgsfilter_cmmd = f"rgsfilter mergedset={merged_set[0]} evlist={evenli_set[0]} auxgtitables=gti_low_back_{max_key[13:16]}.fit"
+            #status_rgsfilter = run_command(rgsfilter_cmmd)
+
+            logging.info("Running rgsproc from filter stage...")
+            rgsproc_cmmd = f" rgsproc entrystage=3:filter auxgtitables=my_low_back_{max_key[13:16]}.fit"
             status_rgsproc = run_command(rgsproc_cmmd)
             logging.info("Finished rgsproc!")
             
