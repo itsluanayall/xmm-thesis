@@ -6,13 +6,15 @@ from astropy.table import Table
 import numpy as np
 from itertools import compress
 from scipy.optimize import curve_fit
+import pandas as pd
 
 target_dir = CONFIG['target_dir'] 
 sas_dir = CONFIG['sas_dir']
 ccf_dir = CONFIG['ccf_dir']
 observations = [ '0658801801','0136541001', '0150498701', '0791782001', '0560980101'] 
-N = 12
-M = 12
+observations = ['0791782001']
+N = 10
+M = 10
 def linear_fit(x, q):
     return 0*x+q
 
@@ -57,6 +59,7 @@ for observation in observations:
 
     start_time, stop_time = synchronous_times(tstart0, tstart1, tstop0, tstop1)
     print('Final start and stop time for rgslccorr:', start_time, stop_time)
+
     #Run rgslccorr
     timebinsize = 25 #s
     '''
@@ -191,7 +194,7 @@ for observation in observations:
     axs[5].set_ylabel('$<F_{var}>$', fontsize=10)
 
     plt.savefig(f'{target_dir}/Products/Plots_timeseries/{observation}_variability_panel.png')
-    plt.show()
+    #plt.show()
 
     fvar_mean_arr = np.array(fvar_mean_arr)
     meanx2_times = np.array(meanx2_times)
@@ -215,3 +218,60 @@ for observation in observations:
     chisq =(((fvar_mean_arr-linear_fit(meanx2_times, q0) )/fvar_err_mean_arr)**2).sum()
     ndof = len(meanx2_times) - 1
     print('Chisquare/ndof = %f/%d' % (chisq, ndof))
+    '''
+    #PLOT CONFIDENCE INTERVALS
+    fig_confidence = plt.figure(figsize=(10,10))
+    plt.errorbar(mean_time_nonneg, xs_arr, xs_err_arr, color='black', marker='.', linestyle='', ecolor='gray' )
+    plt.grid()
+    plt.ylabel('$<\sigma_{XS}^2>$', fontsize=10)
+    plt.xlabel('Time (s)')
+    
+    upper_90 = 0.46
+    lower_90 = 0.78
+    print(np.mean(xs_arr))
+    plt.hlines(np.mean(xs_arr), plt.xlim()[0], plt.xlim()[1],color='black', linestyle='-')
+
+    plt.show()
+    '''
+
+    #PLOT RATE CORRELATION
+
+    #Sort xs_arr by rate
+    i = 0
+    mean_rate = []
+    mean_rate_err = []
+    xs_arr_rate = []
+    xs_arr_err_rate = []
+
+    while(i+M<len(data)):
+        mean_rate.append(np.mean(data[i:i+M]['RATE'].values))
+        xs,err_xs = excess_variance(data[i:i+M]['RATE'].values, data[i:i+M]['ERROR'].values, normalized=False)
+        xs_arr_rate.append(xs)
+        xs_arr_err_rate.append(err_xs)
+        i+=M
+
+    xs_sorted = pd.DataFrame({'rate': mean_rate, 'xs': xs_arr_rate, 'xs_err': xs_arr_err_rate})
+    xs_sorted = xs_sorted.dropna()
+    xs_sorted = xs_sorted.sort_values(by=['rate'])
+    xs_sorted = xs_sorted[xs_sorted['xs']>0.]    
+    
+    #Binning
+    i=0
+    meanx2_rate = []
+    meanx2_xs = []
+    meanx2_xs_err = []
+    while(i+N<len(xs_sorted)):
+        meanx2_rate.append(np.mean(xs_sorted[i:i+N]['rate'].values))
+        meanx2_xs.append(np.mean(xs_sorted[i:i+N]['xs'].values))
+        meanx2_xs_err.append(np.std(xs_sorted[i:i+N]['xs'].values)/np.sqrt(len(xs_sorted[i:i+N])))
+        #meanx2_xs_err.append(np.sqrt(1/ (1/np.square(xs_sorted[i:i+M]['xs_err'].values)).sum()))
+        i+=N
+
+    fig_rate, ax = plt.subplots(1,1, figsize=(10,10))
+    ax.errorbar(x=meanx2_rate, y=meanx2_xs, yerr=meanx2_xs_err, linestyle='', marker='.')
+    ax.set_xlabel('x')
+    ax.set_ylabel('<$\sigma_{XS}^2$>')
+    ax.set_xlim(0, max(meanx2_rate)+1)
+    plt.savefig(f'{target_dir}/Products/Plots_timeseries/{observation}_xs_rate.png')
+    
+    
