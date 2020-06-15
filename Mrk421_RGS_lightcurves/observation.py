@@ -1,7 +1,7 @@
 import logging
 import os
 from datetime import datetime as dt
-from astropy.io import fits
+from astropy.io import fits, ascii
 from astropy.table import Table
 from astropy.time import Time
 import glob
@@ -10,6 +10,9 @@ from config import CONFIG
 from tools import *
 import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+from itertools import compress
+from scipy.optimize import curve_fit
 import xspec
 
 class Exposure:
@@ -174,7 +177,7 @@ class Observation:
         os.chdir(self.obsdir)
 
         #Run the SAS command to make the ccf.cif file (output in logfile)
-        if not glob.glob('ccf.cif'):    #check if the ccf file hasn't already been processed
+        if glob.glob('ccf.cif'):    #check if the ccf file hasn't already been processed
             logging.info(f'Building CIF file for observation number {self.obsid}')
             ccf_command = "cifbuild > my_cifbuild_logfile"
             ccf_status = run_command(ccf_command)
@@ -201,7 +204,7 @@ class Observation:
         os.chdir(self.obsdir)
 
         #Run the SAS command odfingest (output in logfile)
-        if not glob.glob('*SUM.SAS'):
+        if glob.glob('*SUM.SAS'):
             logging.info(f'Building *SUM.SAS file for observation number {self.obsid}')
             odf_command = "odfingest > my_odfingest_logfile"
             odf_status = run_command(odf_command)
@@ -273,14 +276,16 @@ class Observation:
         for i in range(self.npairs):
             
             # Istance of the exposures
+            print(self.pairs_events[i][0], self.pairs_events[i][1])
             expos0 = Exposure(self.pairs_events[i][0], self.pairs_srcli[i][0])
             expos1 = Exposure(self.pairs_events[i][1], self.pairs_srcli[i][1])
             self.expoid.append([expos0.expid, expos1.expid])
+            print(expos0.expid, expos1.expid)
             
             # Make sure exposure times overlap
             start_time, stop_time = expos0.synchronous_times(expos1)
 
-            if not glob.glob('*_RGS_rates.dss'): #If the lightcurves haven't already been generated, run rgslccorr
+            if not glob.glob('*_RGS_rates.ds'): #If the lightcurves haven't already been generated, run rgslccorr
                 
                 logging.info(f"Running rgslccorr SAS command for observation number {self.obsid} and exposures {expos0.expid}, {expos1.expid} ...")
                 rgslc_command = f"rgslccorr evlist='{expos0.evenli} {expos1.evenli}' srclist='{expos0.srcli} {expos1.srcli}' withbkgsubtraction=yes timebinsize=1000 timemin={start_time} timemax={stop_time} orders='1' sourceid=3 outputsrcfilename={self.obsid}_{expos0.expid}+{expos1.expid}_RGS_rates.ds outputbkgfilename={self.obsid}_{expos0.expid}+{expos1.expid}_bkg_rates.ds"
@@ -466,9 +471,17 @@ class Observation:
 
             #Search for significant flares
             for rate_value in y:
+                
                 if rate_value > (3*std_y + mean_y):
                     logging.info('Found flare in background!')
-                    flares[f"{title_outputbkg0}"] = rate_value
+                    if title_outputbkg0 in flares:
+                        if rate_value < flares[title_outputbkg0]:
+                            logging.info('Updating flare dictionary.')
+                            flares[title_outputbkg0] = rate_value
+                        else:
+                            continue
+                    else:
+                        flares[title_outputbkg0] = rate_value
 
         print('Flare values:', flares)
 
@@ -476,21 +489,23 @@ class Observation:
         if len(flares)>0:
             logging.info(f"Background lightcurves present significant flares. Starting the selection of the GTI...")
             
-            max_key = max(flares, key=flares.get)
+            max_key = min(flares, key=flares.get)
             maxr = flares[max_key]
+            print(max_key, maxr)
             
             tabgtigen_back_cmmd = f"tabgtigen table={max_key} gtiset=gti_low_back_{max_key[13:16]}.fit expression='(RATE<{maxr})'"
             status_cmmd = run_command(tabgtigen_back_cmmd)
-
-            logging.info("Running rgsfilter...")
-            merged_set = glob.glob(f"*{max_key[13:16]}merged0000.FIT")
-            evenli_set = glob.glob(f"*{max_key[13:16]}EVENLI0000.FIT")
             
-            #rgsfilter_cmmd = f"rgsfilter mergedset={merged_set[0]} evlist={evenli_set[0]} auxgtitables=gti_low_back_{max_key[13:16]}.fit"
-            #status_rgsfilter = run_command(rgsfilter_cmmd)
+            logging.info("Running rgsfilter...")
+            merged_set = glob.glob(f"*merged0000.FIT")
+            evenli_set = glob.glob(f"*EVENLI0000.FIT")
 
-            logging.info("Running rgsproc from filter stage...")
-            rgsproc_cmmd = f" rgsproc entrystage=3:filter auxgtitables=my_low_back_{max_key[13:16]}.fit"
+            for i in range(len(merged_set)):
+                rgsfilter_cmmd = f"rgsfilter mergedset={merged_set[i]} evlist={evenli_set[i]} auxgtitables=gti_low_back_{max_key[13:16]}.fit"
+                status_rgsfilter = run_command(rgsfilter_cmmd)
+
+            logging.info("Running rgsproc from spectra stage...")
+            rgsproc_cmmd = "rgsproc entrystage=4:spectra"
             status_rgsproc = run_command(rgsproc_cmmd)
             logging.info("Finished rgsproc!")
             
@@ -1136,3 +1151,197 @@ class Observation:
             logging.info('Done spectral analysis. Please check your Products directory.')
         else:
             logging.info('Spectral analysis on pieces of spectrum already performed.')
+    
+    
+    def vaughan_panel(self,  N, M, timescale=70, timebinsize=25):
+        """
+        Generates a variability plot, along the lines of those in Vaughan et al.
+
+        :param N: number of bins to average on (from x to <x>)
+        :type N: int
+        :param M: number of bin to average on after having averaged on N bins
+        :type N: int
+        :param timescale: how long the duration of the lightcurve must be, in kiloseconds
+        :type timescale: int
+        :param timebinsize: bin size of lightcurve to insert as input parameter to rgslccorr, in seconds
+        :type timebinsize: int
+        """
+        os.chdir(self.rgsdir)
+        for i in range(self.npairs):
+            if self.duration_lc_ks[i] >= timescale:
+                logging.info('Observation long enough to make variability panel.')
+                expos0 = Exposure(self.pairs_events[i][0], self.pairs_srcli[i][0])
+                expos1 = Exposure(self.pairs_events[i][1], self.pairs_srcli[i][1])
+                logging.info(f"Starting generation of Vaughan Panel for observation number {self.obsid}, exposures {expos0.expid}, {expos1.expid}.")
+
+                #Run rgslccorr on timebin of 25s
+                timebinsize = 25 #s
+                
+                #logging.info(f"Running rgslccorr SAS command, timebinsize {timebinsize}s.")
+                #rgslc_command = f"rgslccorr evlist='{expos0.evenli} {expos1.evenli}' srclist='{expos0.srcli} {expos1.srcli}' withbkgsubtraction=yes timebinsize={timebinsize} orders='1' sourceid=3 outputsrcfilename={self.obsid}_{expos0.expid}+{expos1.expid}_RGS_rates_{timebinsize}bin.ds outputbkgfilename={self.obsid}_{expos0.expid}+{expos1.expid}_bkg_rates_{timebinsize}bin.ds"
+                #status_rgslc = run_command(rgslc_command)
+
+                #Read LC data
+                time, rate, erate, fracexp, backv, backe = mask_fracexp15(f"{self.rgsdir}/{self.obsid}_{expos0.expid}+{expos1.expid}_RGS_rates_{timebinsize}bin.ds")
+                data = pd.DataFrame({'RATE': rate, "TIME": time, "ERROR": erate, 'BACKV': backv, "BACKE": backe})
+                
+                ###### --------------------------PANEL ----------------------------------#####
+                fig, axs = plt.subplots(6, 1, figsize=(15,20), sharex=True, gridspec_kw={'hspace':0})
+                fig.suptitle(f'RGS Lightcurve ObsId {self.obsid}, {expos0.expid}+{expos1.expid}, binsize {timebinsize}s \n N ={N}, M = {M}', fontsize=15, y=0.92)
+                
+                #Subplot x (lightcurve)
+                axs[0].errorbar(data['TIME'].values, data['RATE'].values, yerr=data['ERROR'].values, linestyle='', color='black', marker='.', ecolor='gray', 
+                            label=f'RGS Lightcurve ObsId {self.obsid} binsize {timebinsize}s ')
+                axs[0].grid(True)
+                axs[0].set_ylabel('x', fontsize=10)
+
+                #Subplot <x> (mean lightcurve)
+                mean_time, mean_data, mean_time_err, mean_error_data = binning(M, timebinsize, data, 'TIME', 'RATE' )
+
+                axs[1].errorbar(mean_time, mean_data, yerr=mean_error_data, color='black', linestyle='', marker='.', ecolor='gray')
+                axs[1].grid()
+                axs[1].set_ylabel('<x>', fontsize=10)
+
+                #Subplot excess variance
+                i = 0
+                xs_arr = []
+                xs_err_arr = []
+                while (i+M < len(data)):
+                    segment = data[i:i+M]
+                    xs,err_xs = excess_variance(segment['RATE'].values, segment['ERROR'].values, normalized=False)
+                    xs_arr.append(xs)
+                    xs_err_arr.append(err_xs)
+                    i=i+M
+
+                mask_negative = []
+                for el in xs_arr:
+                    if el<0:
+                        mask_negative.append(False)
+                    else:
+                        mask_negative.append(True)
+
+                xs_arr = list(compress(xs_arr,mask_negative))
+                xs_err_arr = list(compress(xs_err_arr, mask_negative))
+                mean_time_nonneg = list(compress(mean_time, mask_negative))
+                
+                axs[2].errorbar(mean_time_nonneg, xs_arr, xs_err_arr, color='black', marker='.', linestyle='', ecolor='gray' )
+                axs[2].grid()
+                axs[2].set_ylabel('$\sigma_{XS}^2$', fontsize=10)
+
+                #Subplot mean excess variance 
+                df_mean_xs = pd.DataFrame({'time': mean_time_nonneg, 'xs': xs_arr, 'xs_err': xs_err_arr})
+                meanx2_times, mean_xs, meanx2_times_err, mean_xs_err = binning(N, M*timebinsize, df_mean_xs, 'time', 'xs')
+                
+                axs[3].errorbar(meanx2_times, mean_xs, mean_xs_err, xerr=meanx2_times_err,  linestyle='', color='black', marker='.', ecolor='gray')
+                axs[3].grid()
+                axs[3].set_ylabel('$<\sigma_{XS}^2>$', fontsize=10)
+
+                #Subplot F_var
+                i = 0
+                fvar_arr = []
+                fvar_err_arr = []
+                while(i+M<len(data)):
+                    segment = data[i:i+M]
+                    fvar, fvar_err = fractional_variability(segment['RATE'].values, segment['ERROR'].values, segment['BACKV'].values, segment['BACKE'].values, netlightcurve=True)
+                    fvar_arr.append(fvar)
+                    fvar_err_arr.append(fvar_err)
+                    i=i+M
+                
+                mask_fvar= []
+                for el in fvar_arr:
+                    if el==-1.:
+                        mask_fvar.append(False)
+                    else:
+                        mask_fvar.append(True)
+                fvar_arr = list(compress(fvar_arr, mask_fvar))
+                fvar_err_arr = list(compress(fvar_err_arr, mask_fvar))
+                    
+                axs[4].errorbar(mean_time_nonneg, fvar_arr, fvar_err_arr, linestyle='', color='black', marker='.', ecolor='gray')
+                axs[4].grid()
+                axs[4].set_ylabel('$F_{var}$', fontsize=10)
+
+
+                # Subplot mean Fvar
+                df_mean_fvar = pd.DataFrame({'time': mean_time_nonneg, 'fvar': fvar_arr, 'fvar_err': fvar_err_arr})
+                meanx2_times, fvar_mean_arr, meanx2_times_err, fvar_err_mean_arr = binning(N, M*timebinsize, df_mean_fvar, 'time', 'fvar')
+
+                axs[5].errorbar(meanx2_times, fvar_mean_arr, fvar_err_mean_arr, xerr=meanx2_times_err, linestyle='', color='black', marker='.', ecolor='gray')
+                axs[5].grid()
+                axs[5].set_xlabel('TIME [s]', fontsize=10)
+                axs[5].set_ylabel('$<F_{var}>$', fontsize=10)
+
+                # Fit constant  
+                fvar_mean_arr = np.array(fvar_mean_arr)
+                meanx2_times = np.array(meanx2_times)
+                meanx2_times_err = np.array(meanx2_times_err)
+                fvar_err_mean_arr = np.array(fvar_err_mean_arr)
+                avg_value_fvar = np.mean(fvar_mean_arr)
+                #meanx2_times = meanx2_times - meanx2_times[0]
+
+                # Initial values
+                initial_values =(avg_value_fvar)
+                pars, covm = curve_fit(constant, meanx2_times, fvar_mean_arr, initial_values, fvar_err_mean_arr) 
+
+                q0 = pars    #parameter of fit
+                dq = np.sqrt(covm.diagonal())   #and its error (from covariance matrix)
+
+                # Print fit results
+                print('q = %f +- %f' % (q0, dq))
+                
+                #chi2
+                chisq =(((fvar_mean_arr-constant(meanx2_times, q0) )/fvar_err_mean_arr)**2).sum()
+                ndof = len(meanx2_times) - 1
+                print('Chisquare/ndof = %f/%d' % (chisq, ndof))
+                axs[5].hlines(q0, plt.xlim()[0], plt.xlim()[1], color='red', label=f"Constant fit: {q0} +- {dq} \n $\chi^2$/ndof = {chisq}/{ndof}")
+                axs[5].legend()
+
+                plt.savefig(f'{self.target_dir}/Products/Plots_timeseries/{self.obsid}_{expos0.expid}+{expos1.expid}_variability_panel.png')
+            
+            
+                ###------------------PLOT XS RATE CORRELATION--------------------###
+
+                #Sort xs_arr by rate
+                i = 0
+                mean_rate = []
+                mean_rate_err = []
+                xs_arr_rate = []
+                xs_arr_err_rate = []
+
+                while(i+M<len(data)):
+                    mean_rate.append(np.mean(data[i:i+M]['RATE'].values))
+                    xs,err_xs = excess_variance(data[i:i+M]['RATE'].values, data[i:i+M]['ERROR'].values, normalized=False)
+                    xs_arr_rate.append(xs)
+                    xs_arr_err_rate.append(err_xs)
+                    i+=M
+
+                xs_sorted = pd.DataFrame({'rate': mean_rate, 'xs': xs_arr_rate, 'xs_err': xs_arr_err_rate})
+                xs_sorted = xs_sorted.dropna()
+                xs_sorted = xs_sorted.sort_values(by=['rate'])
+                xs_sorted = xs_sorted[xs_sorted['xs']>0.]    
+                
+                #Binning
+                meanx2_rate, meanx2_xs, meanx2_rate_err, meanx2_xs_err = binning(N, 0.01, xs_sorted, 'rate', 'xs')
+                '''
+                
+                i=0
+                meanx2_rate = []
+                meanx2_xs = []
+                meanx2_xs_err = []
+                while(i+N<len(xs_sorted)):
+                    meanx2_rate.append(np.mean(xs_sorted[i:i+N]['rate'].values))
+                    meanx2_xs.append(np.mean(xs_sorted[i:i+N]['xs'].values))
+                    meanx2_xs_err.append(np.std(xs_sorted[i:i+N]['xs'].values)/np.sqrt(len(xs_sorted[i:i+N])))
+                    #meanx2_xs_err.append(np.sqrt(1/ (1/np.square(xs_sorted[i:i+M]['xs_err'].values)).sum()))
+                    i+=N
+                '''
+
+                fig_rate, ax = plt.subplots(1,1, figsize=(10,10))
+                ax.errorbar(x=meanx2_rate, y=meanx2_xs, yerr=meanx2_xs_err, linestyle='', marker='.')
+                ax.set_xlabel('x')
+                ax.set_ylabel('<$\sigma_{XS}^2$>')
+                ax.set_xlim(0, max(meanx2_rate)+1)
+                plt.savefig(f'{self.target_dir}/Products/Plots_timeseries/{self.obsid}_{expos0.expid}+{expos1.expid}_xs_rate.png')
+                
+                #Save to csv file
+                table_rate_xs = Table({'rate': meanx2_rate, 'xs': meanx2_xs, 'xs_err': meanx2_xs_err})
+                ascii.write(table =table_rate_xs, output=f'{self.target_dir}/Products/Plots_timeseries/{self.obsid}_{expos0.expid}+{expos1.expid}_rate_xs.csv', format='csv', overwrite=True)

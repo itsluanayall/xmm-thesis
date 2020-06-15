@@ -175,7 +175,6 @@ def fractional_variability(rates, errrates, backv, backe, netlightcurve=True):
 
     #A value of -1 indicates that the noise of the data is much greater than the scatter of the data.
     if nxs<0:
-        logging.warning("Excess variance is negative - the noise of the data is much greater than the scatter of the data. Fractional variability is its square root and will return -1.0")
         f_var = -1.
         err_fvar = -1.
 
@@ -270,3 +269,35 @@ def spectrum_plot_xspec(observation, expid0, expid1, model, target_dir, i=0):
     else:
         plt.savefig(f"{target_dir}/Products/RGS_Spectra/{observation}/{observation}_{expid0}+{expid1}_{model}_{i}.png")
     plt.close()
+
+
+def binning(N, bintime, dataframe, colx, coly):
+    
+    segment = N*bintime
+    x_in = dataframe[colx].values[0]
+    x_fin = dataframe[colx].values[-1]
+    x = x_in
+    mean_x = []
+    mean_y = []
+    mean_yerr = []
+    mean_xerr = []
+
+    while(x + segment < x_fin):
+        segment_df = dataframe[(dataframe[colx]<x+segment) & (dataframe[colx]>x)]
+        n_in_segment = len(segment_df)
+        if n_in_segment <= N/3:
+            
+            x += segment
+            continue
+        else:
+            mean_x.append(np.mean(segment_df[colx].values))
+            mean_y.append(np.mean(segment_df[coly].values))
+            mean_yerr.append(np.std(segment_df[coly].values)/np.sqrt(len(segment_df[coly].values)))
+            mean_xerr.append((segment_df[colx].values[0]- segment_df[colx].values[-1])/2.)
+            x += segment
+
+    return mean_x, mean_y, mean_xerr, mean_yerr
+
+
+def constant(x, q):
+    return 0*x+q
