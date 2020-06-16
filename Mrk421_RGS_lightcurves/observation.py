@@ -245,6 +245,7 @@ class Observation:
         os.chdir(self.rgsdir)
 
         #Check if the data has already been processed: if not, run the command.
+        
         if glob.glob('*EVENLI0000.FIT'):
             logging.info(f'Running rgsproc command for observation number {self.obsid}...')
             ra = CONFIG['target_RA']
@@ -276,16 +277,14 @@ class Observation:
         for i in range(self.npairs):
             
             # Istance of the exposures
-            print(self.pairs_events[i][0], self.pairs_events[i][1])
             expos0 = Exposure(self.pairs_events[i][0], self.pairs_srcli[i][0])
             expos1 = Exposure(self.pairs_events[i][1], self.pairs_srcli[i][1])
             self.expoid.append([expos0.expid, expos1.expid])
-            print(expos0.expid, expos1.expid)
             
             # Make sure exposure times overlap
             start_time, stop_time = expos0.synchronous_times(expos1)
 
-            if not glob.glob('*_RGS_rates.ds'): #If the lightcurves haven't already been generated, run rgslccorr
+            if glob.glob('*_RGS_rates.ds'): #If the lightcurves haven't already been generated, run rgslccorr
                 
                 logging.info(f"Running rgslccorr SAS command for observation number {self.obsid} and exposures {expos0.expid}, {expos1.expid} ...")
                 rgslc_command = f"rgslccorr evlist='{expos0.evenli} {expos1.evenli}' srclist='{expos0.srcli} {expos1.srcli}' withbkgsubtraction=yes timebinsize=1000 timemin={start_time} timemax={stop_time} orders='1' sourceid=3 outputsrcfilename={self.obsid}_{expos0.expid}+{expos1.expid}_RGS_rates.ds outputbkgfilename={self.obsid}_{expos0.expid}+{expos1.expid}_bkg_rates.ds"
@@ -440,6 +439,7 @@ class Observation:
         The method collects all these flares in an array and then calls the SAS command tabgtigen and cuts on
         RATE<maxr where maxr is the minimum element of the flare array.
         """
+
         os.chdir(self.rgsdir)
         flat_evenli = [item for sublist in self.pairs_events for item in sublist]
         flat_srcli = [item for sublist in self.pairs_srcli for item in sublist]
@@ -1177,9 +1177,9 @@ class Observation:
                 #Run rgslccorr on timebin of 25s
                 timebinsize = 25 #s
                 
-                #logging.info(f"Running rgslccorr SAS command, timebinsize {timebinsize}s.")
-                #rgslc_command = f"rgslccorr evlist='{expos0.evenli} {expos1.evenli}' srclist='{expos0.srcli} {expos1.srcli}' withbkgsubtraction=yes timebinsize={timebinsize} orders='1' sourceid=3 outputsrcfilename={self.obsid}_{expos0.expid}+{expos1.expid}_RGS_rates_{timebinsize}bin.ds outputbkgfilename={self.obsid}_{expos0.expid}+{expos1.expid}_bkg_rates_{timebinsize}bin.ds"
-                #status_rgslc = run_command(rgslc_command)
+                logging.info(f"Running rgslccorr SAS command, timebinsize {timebinsize}s.")
+                rgslc_command = f"rgslccorr evlist='{expos0.evenli} {expos1.evenli}' srclist='{expos0.srcli} {expos1.srcli}' withbkgsubtraction=yes timebinsize={timebinsize} orders='1' sourceid=3 outputsrcfilename={self.obsid}_{expos0.expid}+{expos1.expid}_RGS_rates_{timebinsize}bin.ds outputbkgfilename={self.obsid}_{expos0.expid}+{expos1.expid}_bkg_rates_{timebinsize}bin.ds"
+                status_rgslc = run_command(rgslc_command)
 
                 #Read LC data
                 time, rate, erate, fracexp, backv, backe = mask_fracexp15(f"{self.rgsdir}/{self.obsid}_{expos0.expid}+{expos1.expid}_RGS_rates_{timebinsize}bin.ds")
@@ -1292,7 +1292,7 @@ class Observation:
                 chisq =(((fvar_mean_arr-constant(meanx2_times, q0) )/fvar_err_mean_arr)**2).sum()
                 ndof = len(meanx2_times) - 1
                 print('Chisquare/ndof = %f/%d' % (chisq, ndof))
-                axs[5].hlines(q0, plt.xlim()[0], plt.xlim()[1], color='red', label=f"Constant fit: {q0} +- {dq} \n $\chi^2$/ndof = {chisq}/{ndof}")
+                axs[5].hlines(q0, plt.xlim()[0], plt.xlim()[1], color='red', label=f"Constant fit: {q0[0]} +- {dq[0]} \n $\chi^2$/ndof = {chisq:.2f}/{ndof}")
                 axs[5].legend()
 
                 plt.savefig(f'{self.target_dir}/Products/Plots_timeseries/{self.obsid}_{expos0.expid}+{expos1.expid}_variability_panel.png')
@@ -1343,5 +1343,7 @@ class Observation:
                 plt.savefig(f'{self.target_dir}/Products/Plots_timeseries/{self.obsid}_{expos0.expid}+{expos1.expid}_xs_rate.png')
                 
                 #Save to csv file
-                table_rate_xs = Table({'rate': meanx2_rate, 'xs': meanx2_xs, 'xs_err': meanx2_xs_err})
+                obs_array = np.ndarray(len(meanx2_xs))
+                obs_array.fill(str(self.obsid))
+                table_rate_xs = Table({'rate': meanx2_rate, 'xs': meanx2_xs, 'xs_err': meanx2_xs_err, 'observation': obs_array})
                 ascii.write(table =table_rate_xs, output=f'{self.target_dir}/Products/Plots_timeseries/{self.obsid}_{expos0.expid}+{expos1.expid}_rate_xs.csv', format='csv', overwrite=True)

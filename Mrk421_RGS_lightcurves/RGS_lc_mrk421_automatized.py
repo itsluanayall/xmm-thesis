@@ -33,6 +33,8 @@ from config import CONFIG
 from astropy.table import Table
 import matplotlib.pyplot as plt
 from astropy.io import ascii
+import pandas as pd
+import seaborn as sns
 
 logging.basicConfig(level=logging.INFO)
 
@@ -81,6 +83,7 @@ if __name__ == "__main__":
     counter = 0
     mrk421_problematic_obs = []
     duration_lc_ks = []
+    completed_obs = ['0136540501', '0791780601', '0411080301', '0658802501', '0658800101', '0658802401', '0658801901', '0411080201', '0560980101', '0510610101', '0136540601', '0136540101', '0670920501', '0791781401', '0656380701', '0791781201', '0136541001', '0791780201']
     
     for obsid in os.listdir(target_dir):
         
@@ -88,6 +91,10 @@ if __name__ == "__main__":
             print('----------------')
             if obsid in mrk421_problematic_obs:
                 print('This observation is tricky. Please analyse individually. Moving forward to next observation.')
+                print('----------------')
+                continue
+            if obsid in completed_obs:
+                print(' Already performed analysis. Moving forward to next observation.')
                 print('----------------')
                 continue
             obs = Observation(obsid=obsid, target_dir=target_dir)   #instance of the observation
@@ -153,8 +160,13 @@ if __name__ == "__main__":
     plt.hist(duration_lc_ks, bins=40)
     plt.savefig(f'{target_dir}/Products/RGS_Lightcurves/distribution_expos_duration_ks.png')
     
-    
-    
+    #Combined long observations xs vs rate
+    all_csv = [i for i in glob.glob('*.{}'.format("csv"))]
+    combined_csv = pd.concat([pd.read_csv(f) for f in all_csv ])
+    print(combined_csv)
+    g = sns.FacetGrid(data=combined_csv, hue='observation', height=8, aspect=2)
+    g.map(plt.errorbar, 'rate', 'xs', 'xs_err', fmt='.', ecolor='gray', elinewidth=1, capsize=2, capthick=1)
+    plt.show()
     '''
     #For a single observation
     obs = Observation(obsid='0791781401', target_dir=target_dir)   #instance of the observation
