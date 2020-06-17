@@ -46,6 +46,7 @@ class Exposure:
         with fits.open(evenli) as hdul:
             self.obsid = hdul[1].header['OBS_ID']
             self.expid = str(hdul[1].header['EXP_ID']).split(self.obsid)[1]
+            #self.expid = self.evenli[14:17]
             self.fullid = hdul[1].header['EXP_ID']
             self.instrume = hdul[1].header['INSTRUME']
             self.tstart = hdul[1].header['TSTART']
@@ -246,7 +247,7 @@ class Observation:
 
         #Check if the data has already been processed: if not, run the command.
         
-        if glob.glob('*EVENLI0000.FIT'):
+        if not glob.glob('*EVENLI0000.FIT'):
             logging.info(f'Running rgsproc command for observation number {self.obsid}...')
             ra = CONFIG['target_RA']
             dec = CONFIG['target_DEC']
@@ -498,11 +499,14 @@ class Observation:
             
             logging.info("Running rgsfilter...")
             merged_set = glob.glob(f"*merged0000.FIT")
+            merged_set = sort_rgs_list(merged_set, 'expo_number')
             evenli_set = glob.glob(f"*EVENLI0000.FIT")
-
+            evenli_set = sort_rgs_list(evenli_set, 'expo_number')
+            
             for i in range(len(merged_set)):
-                rgsfilter_cmmd = f"rgsfilter mergedset={merged_set[i]} evlist={evenli_set[i]} auxgtitables=gti_low_back_{max_key[13:16]}.fit"
-                status_rgsfilter = run_command(rgsfilter_cmmd)
+                for j in range(0,2):
+                    rgsfilter_cmmd = f"rgsfilter mergedset={merged_set[i][j]} evlist={evenli_set[i][j]} auxgtitables=gti_low_back_{max_key[13:16]}.fit"
+                    status_rgsfilter = run_command(rgsfilter_cmmd)
 
             logging.info("Running rgsproc from spectra stage...")
             rgsproc_cmmd = "rgsproc entrystage=4:spectra"
