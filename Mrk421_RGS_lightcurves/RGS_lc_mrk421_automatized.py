@@ -35,6 +35,7 @@ import matplotlib.pyplot as plt
 from astropy.io import ascii
 import pandas as pd
 import seaborn as sns
+import glob
 
 logging.basicConfig(level=logging.INFO)
 
@@ -81,20 +82,9 @@ if __name__ == "__main__":
                             'd', 'd', 'd', 'd', 'd'))
 
     counter = 0
-    mrk421_problematic_obs = []
+    mrk421_problematic_obs = ['0658802001', '0411082701']
     duration_lc_ks = []
-    completed_obs = ['0136540501', '0791780601', '0411080301', '0658802501', '0658800101', 
-                    '0658802401', '0658801901', '0411080201', '0560980101', '0510610101',
-                     '0136540601', '0136540101', '0670920501', '0791781401', '0656380701', 
-                     '0791781201', '0136541001', '0791780201', '0791780701', '0099280501',
-                     '0411082101', '0411083201', '0153951201', '0658801701', '0658801201',
-                     '0658800601', '0136540201', '0158971301', '0153950801', '0136540801',
-                     '0099280301', '0810860701', '0411082401', '0658802601', '0158970701',
-                     '0658802901', '0658802201', '0658802101', '0136540301', '0158970101',
-                     '0502030101', '0791782001', '0136541201', '0656380601', '0656381301', 
-                     '0162960101', '0658801801', '0791780501', '0411082001', '0810862501',
-                     '0411081501', '0791780101']
-    '''
+
     for obsid in os.listdir(target_dir):
         
         if obsid.startswith('0'):   #All observation folders start with 0
@@ -103,10 +93,7 @@ if __name__ == "__main__":
                 print('This observation is tricky. Please analyse individually. Moving forward to next observation.')
                 print('----------------')
                 continue
-            if obsid in completed_obs:
-                print(' Already performed analysis. Moving forward to next observation.')
-                print('----------------')
-                continue
+
             obs = Observation(obsid=obsid, target_dir=target_dir)   #instance of the observation
             mrk421_observation_list.append(obs)
             
@@ -167,16 +154,20 @@ if __name__ == "__main__":
     obs_table.write(output=f'{target_dir}/Products/RGS_Lightcurves/obs_table.fits', format='fits', overwrite=True)
 
     # Duration_lc_ks distribution
+    hist = plt.figure(figsize=(10,10))
     plt.hist(duration_lc_ks, bins=40)
     plt.savefig(f'{target_dir}/Products/RGS_Lightcurves/distribution_expos_duration_ks.png')
     
     #Combined long observations xs vs rate
+    os.chdir(os.path.join(target_dir, 'Products', 'Plots_timeseries'))
     all_csv = [i for i in glob.glob('*.{}'.format("csv"))]
     combined_csv = pd.concat([pd.read_csv(f) for f in all_csv ])
     print(combined_csv)
+    fig_xs_rate ì = plt.figure()
     g = sns.FacetGrid(data=combined_csv, hue='observation', height=8, aspect=2)
     g.map(plt.errorbar, 'rate', 'xs', 'xs_err', fmt='.', ecolor='gray', elinewidth=1, capsize=2, capthick=1)
-    plt.show()
+    plt.savefig(f'{target_dir}/Products/Plots_timeseries/xs_rate_combined.png)
+
     '''
     #For a single observation
     obs = Observation(obsid='0658801301', target_dir=target_dir)   #instance of the observation
@@ -187,8 +178,8 @@ if __name__ == "__main__":
     obs.odfingest()
     obs.rgsproc()
     obs.create_pairs_exposures()
-    obs.bkg_lightcurve()
-    obs.check_flaring_particle_bkgr()
+    #obs.bkg_lightcurve()
+    #obs.check_flaring_particle_bkgr()
     obs.rgslccorr()
     obs.lightcurve(mjdref=mjdref, use_grace=use_grace)
     obs.fracvartest(screen=True)
@@ -196,4 +187,4 @@ if __name__ == "__main__":
     obs.divide_spectrum()
     obs.xspec_divided_spectra_average(target_REDSHIFT)
     obs.xspec_divided_spectra(target_REDSHIFT)
-    
+    '''

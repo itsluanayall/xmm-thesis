@@ -46,7 +46,6 @@ class Exposure:
         with fits.open(evenli) as hdul:
             self.obsid = hdul[1].header['OBS_ID']
             self.expid = str(hdul[1].header['EXP_ID']).split(self.obsid)[1]
-            #self.expid = self.evenli[14:17]
             self.fullid = hdul[1].header['EXP_ID']
             self.instrume = hdul[1].header['INSTRUME']
             self.tstart = hdul[1].header['TSTART']
@@ -178,7 +177,7 @@ class Observation:
         os.chdir(self.obsdir)
 
         #Run the SAS command to make the ccf.cif file (output in logfile)
-        if glob.glob('ccf.cif'):    #check if the ccf file hasn't already been processed
+        if not glob.glob('ccf.cif'):    #check if the ccf file hasn't already been processed
             logging.info(f'Building CIF file for observation number {self.obsid}')
             ccf_command = "cifbuild > my_cifbuild_logfile"
             ccf_status = run_command(ccf_command)
@@ -205,7 +204,7 @@ class Observation:
         os.chdir(self.obsdir)
 
         #Run the SAS command odfingest (output in logfile)
-        if glob.glob('*SUM.SAS'):
+        if not glob.glob('*SUM.SAS'):
             logging.info(f'Building *SUM.SAS file for observation number {self.obsid}')
             odf_command = "odfingest > my_odfingest_logfile"
             odf_status = run_command(odf_command)
@@ -285,7 +284,7 @@ class Observation:
             # Make sure exposure times overlap
             start_time, stop_time = expos0.synchronous_times(expos1)
 
-            if glob.glob('*_RGS_rates.ds'): #If the lightcurves haven't already been generated, run rgslccorr
+            if not glob.glob(f'*{expos0.expid}+{expos1.expid}_RGS_rates.ds'): #If the lightcurves haven't already been generated, run rgslccorr
                 
                 logging.info(f"Running rgslccorr SAS command for observation number {self.obsid} and exposures {expos0.expid}, {expos1.expid} ...")
                 rgslc_command = f"rgslccorr evlist='{expos0.evenli} {expos1.evenli}' srclist='{expos0.srcli} {expos1.srcli}' withbkgsubtraction=yes timebinsize=1000 timemin={start_time} timemax={stop_time} orders='1' sourceid=3 outputsrcfilename={self.obsid}_{expos0.expid}+{expos1.expid}_RGS_rates.ds outputbkgfilename={self.obsid}_{expos0.expid}+{expos1.expid}_bkg_rates.ds"
@@ -383,7 +382,6 @@ class Observation:
         Generates Background lightcurve associated to each exposure. Useful to check if there are flares.
         Follows tutorial on SAS thread of RGS background.
         """
-        
         logging.info('Generating Background lightcurve...')
         os.chdir(self.rgsdir)        
 
@@ -398,38 +396,42 @@ class Observation:
             
             #Selects events from background region, CCD9 to search for flaring particles
             if not glob.glob(os.path.join(self.target_dir, "Products", "Backgrnd_LC", f"{title_outputbkg0}.png")):
+                
                 select_bkg_cmmd0 = f"evselect table={expos0.evenli} timebinsize=1000 rateset={title_outputbkg0} makeratecolumn=yes maketimecolumn=yes expression='(CCDNR==9)&&(REGION({expos0.srcli}:{expos0.instrume}_BACKGROUND, M_LAMBDA, XDSP_CORR))'"
                 status_cmmd0 = run_command(select_bkg_cmmd0)
 
-            #Retrieve data from selected eventlist of background
-            data = fits.open(title_outputbkg0)
-            x = data['RATE'].data['TIME']
-            y = data['RATE'].data['RATE']               
-            yerr = data['RATE'].data['ERROR']
+                #Retrieve data from selected eventlist of background
+                data = fits.open(title_outputbkg0)
+                x = data['RATE'].data['TIME']
+                y = data['RATE'].data['RATE']               
+                yerr = data['RATE'].data['ERROR']
+                
+                #Drop NaN values by making a numpy mask
+                mask_nan = np.invert(np.isnan(y)) 
+                x = x[mask_nan]
+                y = y[mask_nan]
+                yerr = yerr[mask_nan]
+                mean_y = np.mean(y)
+
+                #Plot data and add labels and title
+                fig = plt.figure(figsize=(20,10))
+                ax = fig.add_subplot(1, 1, 1)
+                plt.errorbar(x, y, yerr=yerr, color='black', marker='.', ecolor='gray')
+                plt.hlines(mean_y, plt.xlim()[0], plt.xlim()[1], colors='red')
+                plt.grid(True)
+                plt.title(title_outputbkg0, fontsize=30)
+                plt.xlabel('TIME [s]', fontsize=25)
+                plt.ylabel('RATE [count/s]', fontsize=25)
+                plt.xticks(fontsize=20)
+                plt.yticks(fontsize=20)
+
+                #Save figure in rgs directory of the current Observation
+                plt.savefig(os.path.join(self.target_dir, "Products", "Backgrnd_LC", f"{title_outputbkg0}.png"))
+                plt.close()
+                logging.info(f'Done generating background lightcurve for exposure {expos0.expid}!')
             
-            #Drop NaN values by making a numpy mask
-            mask_nan = np.invert(np.isnan(y)) 
-            x = x[mask_nan]
-            y = y[mask_nan]
-            yerr = yerr[mask_nan]
-            mean_y = np.mean(y)
-
-            #Plot data and add labels and title
-            fig = plt.figure(figsize=(20,10))
-            ax = fig.add_subplot(1, 1, 1)
-            plt.errorbar(x, y, yerr=yerr, color='black', marker='.', ecolor='gray')
-            plt.hlines(mean_y, plt.xlim()[0], plt.xlim()[1], colors='red')
-            plt.grid(True)
-            plt.title(title_outputbkg0, fontsize=30)
-            plt.xlabel('TIME [s]', fontsize=25)
-            plt.ylabel('RATE [count/s]', fontsize=25)
-            plt.xticks(fontsize=20)
-            plt.yticks(fontsize=20)
-
-            #Save figure in rgs directory of the current Observation
-            plt.savefig(os.path.join(self.target_dir, "Products", "Backgrnd_LC", f"{title_outputbkg0}.png"))
-            plt.close()
-            logging.info(f'Done generating background lightcurve for exposure {expos0.expid}!')
+            else:
+                logging.info(f"Already generated background lightcurve for exposure {expos0.expid}.")
 
 
     def check_flaring_particle_bkgr(self):
@@ -442,6 +444,8 @@ class Observation:
         """
 
         os.chdir(self.rgsdir)
+        if self.obsid == '0136540701':
+            return
         flat_evenli = [item for sublist in self.pairs_events for item in sublist]
         flat_srcli = [item for sublist in self.pairs_srcli for item in sublist]
         evenli_srcli = list(zip(flat_evenli, flat_srcli))
@@ -453,69 +457,74 @@ class Observation:
         for (evenli, srcli) in evenli_srcli:
         
             expos0 = Exposure(evenli, srcli)
-            logging.info(f'Checking the flaring particle background for exposure {expos0.expid}.')
             title_outputbkg0 = f"bkg{expos0.fullid}_check_rates.fit"
 
-            #Retrieve data from flaring particle background
-            data = fits.open(title_outputbkg0)
-            x = data['RATE'].data['TIME']
-            y = data['RATE'].data['RATE']               
-            yerr = data['RATE'].data['ERROR']
-            mean_y = np.mean(y)
-            std_y = np.std(y)
+            if not glob.glob(os.path.join(self.rgsdir, title_outputbkg0)):
+                logging.info(f'Checking the flaring particle background for exposure {expos0.expid}.')
+            
+                #Retrieve data from flaring particle background
+                data = fits.open(title_outputbkg0)
+                x = data['RATE'].data['TIME']
+                y = data['RATE'].data['RATE']               
+                yerr = data['RATE'].data['ERROR']
+                mean_y = np.mean(y)
+                std_y = np.std(y)
 
-            #Drop NaN values by making a numpy mask
-            mask_nan = np.invert(np.isnan(y)) 
-            x = x[mask_nan]
-            y = y[mask_nan]
-            yerr = yerr[mask_nan]
+                #Drop NaN values by making a numpy mask
+                mask_nan = np.invert(np.isnan(y)) 
+                x = x[mask_nan]
+                y = y[mask_nan]
+                yerr = yerr[mask_nan]
 
-            #Search for significant flares
-            for rate_value in y:
-                
-                if rate_value > (3*std_y + mean_y):
-                    logging.info('Found flare in background!')
-                    if title_outputbkg0 in flares:
-                        if rate_value < flares[title_outputbkg0]:
-                            logging.info('Updating flare dictionary.')
-                            flares[title_outputbkg0] = rate_value
+                #Search for significant flares
+                for rate_value in y:
+                    
+                    if rate_value > (3*std_y + mean_y):
+                        logging.info('Found flare in background!')
+                        if title_outputbkg0 in flares:
+                            if rate_value < flares[title_outputbkg0]:
+                                logging.info('Updating flare dictionary.')
+                                flares[title_outputbkg0] = rate_value
+                            else:
+                                continue
                         else:
-                            continue
-                    else:
-                        flares[title_outputbkg0] = rate_value
+                            flares[title_outputbkg0] = rate_value
+            else:
+                logging.info(f'Already checked background for exposure {expos0.expid}.')
 
-        print('Flare values:', flares)
+        if not glob.glob(os.path.join(self.rgsdir, title_outputbkg0)):        
+            #If there are flares, filter the eventlist for the source lightcurve
+            if len(flares)>0:
 
-        #If there are flares, filter the eventlist for the source lightcurve
-        if len(flares)>0:
-            logging.info(f"Background lightcurves present significant flares. Starting the selection of the GTI...")
-            
-            max_key = min(flares, key=flares.get)
-            maxr = flares[max_key]
-            print(max_key, maxr)
-            
-            tabgtigen_back_cmmd = f"tabgtigen table={max_key} gtiset=gti_low_back_{max_key[13:16]}.fit expression='(RATE<{maxr})'"
-            status_cmmd = run_command(tabgtigen_back_cmmd)
-            
-            logging.info("Running rgsfilter...")
-            merged_set = glob.glob(f"*merged0000.FIT")
-            merged_set = sort_rgs_list(merged_set, 'expo_number')
-            evenli_set = glob.glob(f"*EVENLI0000.FIT")
-            evenli_set = sort_rgs_list(evenli_set, 'expo_number')
-            
-            for i in range(len(merged_set)):
-                for j in range(0,2):
-                    rgsfilter_cmmd = f"rgsfilter mergedset={merged_set[i][j]} evlist={evenli_set[i][j]} auxgtitables=gti_low_back_{max_key[13:16]}.fit"
+                max_key = min(flares, key=flares.get)
+                maxr = flares[max_key]
+                logging.info(f"Background lightcurves present significant flares in {max_key}. Starting the selection of the GTI...")
+                
+                tabgtigen_back_cmmd = f"tabgtigen table={max_key} gtiset=gti_low_back_{max_key[13:16]}.fit expression='(RATE<{maxr})'"
+                status_cmmd = run_command(tabgtigen_back_cmmd)
+                
+                logging.info("Running rgsfilter...")
+                merged_set = glob.glob(f"*merged0000.FIT")
+                merged_set = sort_rgs_list(merged_set, 'expo_number')
+                evenli_set = glob.glob(f"*EVENLI0000.FIT")
+                evenli_set = sort_rgs_list(evenli_set, 'expo_number')
+                merged_set = [item for sublist in merged_set for item in sublist]
+                evenli_set = [item for sublist in evenli_set for item in sublist]    
+                print(merged_set)
+                print(evenli_set)   
+
+                for i in range(len(merged_set)):
+                    rgsfilter_cmmd = f"rgsfilter mergedset={merged_set[i]} evlist={evenli_set[i]} auxgtitables=gti_low_back_{max_key[13:16]}.fit"
                     status_rgsfilter = run_command(rgsfilter_cmmd)
 
-            logging.info("Running rgsproc from spectra stage...")
-            rgsproc_cmmd = "rgsproc entrystage=4:spectra"
-            status_rgsproc = run_command(rgsproc_cmmd)
-            logging.info("Finished rgsproc!")
-            
+                logging.info("Running rgsproc from spectra stage...")
+                rgsproc_cmmd = "rgsproc entrystage=4:spectra"
+                status_rgsproc = run_command(rgsproc_cmmd)
+                logging.info("Finished rgsproc!")
+                
 
-        else:
-            logging.info(f"Background lightcurves present no significant flares. No need in filtering.")
+            else:
+                logging.info(f"Background lightcurves present no significant flares. No need in filtering.")
 
 
     def fracvartest(self, screen=True, netlightcurve=True):
@@ -600,7 +609,7 @@ class Observation:
 
                 #Sanity checks
                 if numnonnull<2:
-                    raise NoDataException('\033[91m Less than two good values in the timeseries FITS file.')
+                    raise NoDataException('\033[91m Less than two good values in the timeseries FITS file.\033[0m')
                 if not len(rates)==len(errrates) and len(rates)==len(backv) and len(rates)==len(backe):
                     raise RangeException('\033[91m Different number of rows in columns between RATE, ERROR, BACKV and BACKE. \033[0m')
                 if not (rates>0).all() and (backv>0).all():
@@ -1180,10 +1189,10 @@ class Observation:
 
                 #Run rgslccorr on timebin of 25s
                 timebinsize = 25 #s
-                
-                logging.info(f"Running rgslccorr SAS command, timebinsize {timebinsize}s.")
-                rgslc_command = f"rgslccorr evlist='{expos0.evenli} {expos1.evenli}' srclist='{expos0.srcli} {expos1.srcli}' withbkgsubtraction=yes timebinsize={timebinsize} orders='1' sourceid=3 outputsrcfilename={self.obsid}_{expos0.expid}+{expos1.expid}_RGS_rates_{timebinsize}bin.ds outputbkgfilename={self.obsid}_{expos0.expid}+{expos1.expid}_bkg_rates_{timebinsize}bin.ds"
-                status_rgslc = run_command(rgslc_command)
+                if not glob.glob(os.path.join(self.rgsdir, f"{self.obsid}_{expos0.expid}+{expos1.expid}_bkg_rates_{timebinsize}bin.ds")):
+                    logging.info(f"Running rgslccorr SAS command, timebinsize {timebinsize}s.")
+                    rgslc_command = f"rgslccorr evlist='{expos0.evenli} {expos1.evenli}' srclist='{expos0.srcli} {expos1.srcli}' withbkgsubtraction=yes timebinsize={timebinsize} orders='1' sourceid=3 outputsrcfilename={self.obsid}_{expos0.expid}+{expos1.expid}_RGS_rates_{timebinsize}bin.ds outputbkgfilename={self.obsid}_{expos0.expid}+{expos1.expid}_bkg_rates_{timebinsize}bin.ds"
+                    status_rgslc = run_command(rgslc_command)
 
                 #Read LC data
                 time, rate, erate, fracexp, backv, backe = mask_fracexp15(f"{self.rgsdir}/{self.obsid}_{expos0.expid}+{expos1.expid}_RGS_rates_{timebinsize}bin.ds")
