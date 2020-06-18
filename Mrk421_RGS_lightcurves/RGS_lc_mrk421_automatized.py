@@ -84,7 +84,7 @@ if __name__ == "__main__":
     counter = 0
     mrk421_problematic_obs = ['0658802001', '0411082701']
     duration_lc_ks = []
-
+    '''
     for obsid in os.listdir(target_dir):
         
         if obsid.startswith('0'):   #All observation folders start with 0
@@ -107,7 +107,7 @@ if __name__ == "__main__":
             obs.rgslccorr()
             obs.lightcurve(mjdref=mjdref, use_grace=use_grace)
             obs.fracvartest(screen=True)
-            obs.vaughan_panel(N=15, M=15, timescale=70, timebinsize=25)
+            obs.vaughan_panel(N=10, M=10, timescale=timescale_fvar, timebinsize=25)
             obs.divide_spectrum()
             obs.xspec_divided_spectra_average(target_REDSHIFT)
             obs.xspec_divided_spectra(target_REDSHIFT)
@@ -163,28 +163,31 @@ if __name__ == "__main__":
     all_csv = [i for i in glob.glob('*.{}'.format("csv"))]
     combined_csv = pd.concat([pd.read_csv(f) for f in all_csv ])
     print(combined_csv)
-    fig_xs_rate ì = plt.figure()
+    fig_xs_rate  = plt.figure()
     g = sns.FacetGrid(data=combined_csv, hue='observation', height=8, aspect=2)
     g.map(plt.errorbar, 'rate', 'xs', 'xs_err', fmt='.', ecolor='gray', elinewidth=1, capsize=2, capthick=1)
-    plt.savefig(f'{target_dir}/Products/Plots_timeseries/xs_rate_combined.png)
+    plt.savefig(f'{target_dir}/Products/Plots_timeseries/xs_rate_combined.png')
 
     '''
     #For a single observation
-    obs = Observation(obsid='0658801301', target_dir=target_dir)   #instance of the observation
+    #sample_obs = ['0099280101', '0153951201', '0670920301', '0810860701'] #for spectra
+    sample_obs = ['0136541001', '0411080301', '0560980101', '0791781401', '0810860701' ] #for vaughan panels
+    for observation in sample_obs:
+            
+        obs = Observation(obsid=observation, target_dir=target_dir)   
+        
+        #Process each observation
+        obs.cifbuild()
+        obs.odfingest()
+        obs.rgsproc()
+        obs.create_pairs_exposures()
+        obs.bkg_lightcurve()
+        obs.check_flaring_particle_bkgr()
+        obs.rgslccorr()
+        obs.lightcurve(mjdref=mjdref, use_grace=use_grace)
+        obs.fracvartest(screen=True)
+        obs.vaughan_panel(N=10, M=10, timescale=60, timebinsize=25)
+        #obs.divide_spectrum()
+        #obs.xspec_divided_spectra_average(target_REDSHIFT)
+        #obs.xspec_divided_spectra(target_REDSHIFT)
     
-    
-    #Process each observation
-    obs.cifbuild()
-    obs.odfingest()
-    obs.rgsproc()
-    obs.create_pairs_exposures()
-    #obs.bkg_lightcurve()
-    #obs.check_flaring_particle_bkgr()
-    obs.rgslccorr()
-    obs.lightcurve(mjdref=mjdref, use_grace=use_grace)
-    obs.fracvartest(screen=True)
-    obs.vaughan_panel(N=10, M=10, timescale=60, timebinsize=25)
-    obs.divide_spectrum()
-    obs.xspec_divided_spectra_average(target_REDSHIFT)
-    obs.xspec_divided_spectra(target_REDSHIFT)
-    '''
