@@ -293,7 +293,7 @@ def binning(N, bintime, dataframe, colx, coly):
             mean_x.append(np.mean(segment_df[colx].values))
             mean_y.append(np.mean(segment_df[coly].values))
             mean_yerr.append(np.std(segment_df[coly].values)/np.sqrt(len(segment_df[coly].values)))
-            mean_xerr.append((segment_df[colx].values[0]- segment_df[colx].values[-1])/2.)
+            mean_xerr.append((segment_df[colx].values[-1]- segment_df[colx].values[0])/2.)
             x += segment
 
     return mean_x, mean_y, mean_xerr, mean_yerr

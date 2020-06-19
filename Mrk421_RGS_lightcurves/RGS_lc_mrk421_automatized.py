@@ -36,7 +36,8 @@ from astropy.io import ascii
 import pandas as pd
 import seaborn as sns
 import glob
-
+import numpy as np
+import random
 logging.basicConfig(level=logging.INFO)
 
 #Introduction message for the user
@@ -160,19 +161,23 @@ if __name__ == "__main__":
     
     #Combined long observations xs vs rate
     os.chdir(os.path.join(target_dir, 'Products', 'Plots_timeseries'))
-    all_csv = [i for i in glob.glob('*.{}'.format("csv"))]
-    combined_csv = pd.concat([pd.read_csv(f) for f in all_csv ])
-    print(combined_csv)
-    fig_xs_rate  = plt.figure()
-    g = sns.FacetGrid(data=combined_csv, hue='observation', height=8, aspect=2)
-    g.map(plt.errorbar, 'rate', 'xs', 'xs_err', fmt='.', ecolor='gray', elinewidth=1, capsize=2, capthick=1)
+    fig_xs_rate  = plt.figure(figsize=(10,5))    
+    for filename in glob.glob('*.{}'.format("csv")):
+        df_xs_rate = pd.read_csv(filename) #read csv file of single observation
+        rgb = '#%06X' % random.randint(0, 0xFFFFFF)  #create random color
+        plt.errorbar(data=df_xs_rate, x='rate', y='xs', yerr='xs_err', xerr='erate', fmt='.', markersize=10, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color=rgb, label=df_xs_rate['observation'][0])
+        
     plt.legend()
+    plt.xlabel('Rate [ct/s]')
+    plt.ylabel('$<\sigma_{XS}^2>$')
+    plt.grid()
     plt.savefig(f'{target_dir}/Products/Plots_timeseries/xs_rate_combined.png')
 
     '''
     #For a single observation
     #sample_obs = ['0099280101', '0153951201', '0670920301', '0810860701'] #for spectra
     sample_obs = ['0136541001', '0411080301', '0560980101', '0791781401', '0810860701' ] #for vaughan panels
+    '''
     for observation in sample_obs:
             
         obs = Observation(obsid=observation, target_dir=target_dir)   
@@ -187,16 +192,21 @@ if __name__ == "__main__":
         obs.rgslccorr()
         obs.lightcurve(mjdref=mjdref, use_grace=use_grace)
         obs.fracvartest(screen=True)
-        obs.vaughan_panel(N=13, M=10, timescale=60, timebinsize=25)
+        obs.vaughan_panel(N=15, M=15, timescale=60, timebinsize=25)
         #obs.divide_spectrum()
         #obs.xspec_divided_spectra_average(target_REDSHIFT)
         #obs.xspec_divided_spectra(target_REDSHIFT)
-        os.chdir(os.path.join(target_dir, 'Products', 'Plots_timeseries'))
-        all_csv = [i for i in glob.glob('*.{}'.format("csv"))]
-        combined_csv = pd.concat([pd.read_csv(f) for f in all_csv ])
+    '''
+    os.chdir(os.path.join(target_dir, 'Products', 'Plots_timeseries'))
+
+    fig_xs_rate  = plt.figure(figsize=(10,5))    
+    for filename in glob.glob('*.{}'.format("csv")):
+        df_xs_rate = pd.read_csv(filename) #read csv file of single observation
+        rgb = '#%06X' % random.randint(0, 0xFFFFFF)  #create random color
+        plt.errorbar(data=df_xs_rate, x='rate', y='xs', yerr='xs_err', xerr='erate', fmt='.', markersize=10, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color=rgb, label=df_xs_rate['observation'][0])
         
-    fig_xs_rate  = plt.figure()
-    g = sns.FacetGrid(data=combined_csv, hue='observation', height=8, aspect=2)
-    g.map(plt.errorbar, 'rate', 'xs', 'xs_err', fmt='.', ecolor='gray', elinewidth=1, capsize=2, capthick=1)
     plt.legend()
+    plt.xlabel('Rate [ct/s]')
+    plt.ylabel('$<\sigma_{XS}^2>$')
+    plt.grid()
     plt.savefig(f'{target_dir}/Products/Plots_timeseries/xs_rate_combined.png')

@@ -1201,7 +1201,8 @@ class Observation:
                 #Read LC data
                 time, rate, erate, fracexp, backv, backe = mask_fracexp15(f"{self.rgsdir}/{self.obsid}_{expos0.expid}+{expos1.expid}_RGS_rates_{timebinsize}bin.ds")
                 data = pd.DataFrame({'RATE': rate, "TIME": time, "ERROR": erate, 'BACKV': backv, "BACKE": backe})
-                
+                if self.obsid== '0560980101':
+                    data = data[3:]
                 ###### --------------------------PANEL ----------------------------------#####
                 fig, axs = plt.subplots(6, 1, figsize=(15,20), sharex=True, gridspec_kw={'hspace':0})
                 fig.suptitle(f'RGS Lightcurve ObsId {self.obsid}, {expos0.expid}+{expos1.expid}, binsize {timebinsize}s \n N ={N}, M = {M}', fontsize=15, y=0.92)
@@ -1253,7 +1254,6 @@ class Observation:
                 xs_arr = list(compress(xs_arr,mask_negative))
                 xs_err_arr = list(compress(xs_err_arr, mask_negative))
                 mean_time_nonneg = list(compress(mean_time, mask_negative))
-                print(len(mean_time_nonneg), len(xs_arr), len(xs_err_arr))
                 axs[2].errorbar(mean_time_nonneg, xs_arr, xs_err_arr, color='black', marker='.', linestyle='', ecolor='gray' )
                 axs[2].grid()
                 axs[2].set_ylabel('$\sigma_{XS}^2$', fontsize=10)
@@ -1362,17 +1362,18 @@ class Observation:
                 xs_sorted = xs_sorted[xs_sorted['xs']>0.]    
                 
                 #Binning
-                meanx2_rate, meanx2_xs, meanx2_rate_err, meanx2_xs_err = binning(N, 0.03, xs_sorted, 'rate', 'xs')
+                meanx2_rate, meanx2_xs, meanx2_rate_err, meanx2_xs_err = binning(N, 1/N, xs_sorted, 'rate', 'xs')
 
                 fig_rate, ax = plt.subplots(1,1, figsize=(10,10))
-                ax.errorbar(x=meanx2_rate, y=meanx2_xs, yerr=meanx2_xs_err, linestyle='', marker='.')
+                ax.errorbar(x=meanx2_rate, y=meanx2_xs, yerr=meanx2_xs_err, xerr=meanx2_rate_err, linestyle='', marker='.')
                 ax.set_xlabel('x')
                 ax.set_ylabel('<$\sigma_{XS}^2$>')
                 ax.set_xlim(0, max(meanx2_rate)+1)
+                ax.grid(True)
                 plt.savefig(f'{self.target_dir}/Products/Plots_timeseries/{self.obsid}_{expos0.expid}+{expos1.expid}_xs_rate.png')
                 
                 #Save to csv file
                 obs_array = np.ndarray(len(meanx2_xs))
                 obs_array.fill(str(self.obsid))
-                table_rate_xs = Table({'rate': meanx2_rate, 'xs': meanx2_xs, 'xs_err': meanx2_xs_err, 'observation': obs_array}, dtype=('d', 'd', 'd', 'U9'))
+                table_rate_xs = Table({'rate': meanx2_rate, 'erate': meanx2_rate_err, 'xs': meanx2_xs, 'xs_err': meanx2_xs_err, 'observation': obs_array}, dtype=('d', 'd', 'd', 'd', 'U9'))
                 ascii.write(table =table_rate_xs, output=f'{self.target_dir}/Products/Plots_timeseries/{self.obsid}_{expos0.expid}+{expos1.expid}_rate_xs.csv', format='csv', overwrite=True)
