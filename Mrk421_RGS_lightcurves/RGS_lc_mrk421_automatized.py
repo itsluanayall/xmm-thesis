@@ -166,6 +166,7 @@ if __name__ == "__main__":
     fig_xs_rate  = plt.figure()
     g = sns.FacetGrid(data=combined_csv, hue='observation', height=8, aspect=2)
     g.map(plt.errorbar, 'rate', 'xs', 'xs_err', fmt='.', ecolor='gray', elinewidth=1, capsize=2, capthick=1)
+    plt.legend()
     plt.savefig(f'{target_dir}/Products/Plots_timeseries/xs_rate_combined.png')
 
     '''
@@ -186,7 +187,7 @@ if __name__ == "__main__":
         obs.rgslccorr()
         obs.lightcurve(mjdref=mjdref, use_grace=use_grace)
         obs.fracvartest(screen=True)
-        obs.vaughan_panel(N=12, M=12, timescale=60, timebinsize=25)
+        obs.vaughan_panel(N=13, M=10, timescale=60, timebinsize=25)
         #obs.divide_spectrum()
         #obs.xspec_divided_spectra_average(target_REDSHIFT)
         #obs.xspec_divided_spectra(target_REDSHIFT)

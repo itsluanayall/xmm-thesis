@@ -1213,14 +1213,14 @@ class Observation:
                 axs[0].set_ylabel('x', fontsize=10)
 
                 #Subplot <x> (mean lightcurve)
-                mean_time, mean_data, mean_time_err, mean_error_data = binning(M, timebinsize, data, 'TIME', 'RATE' )
+                mean_time, mean_data, mean_time_err, mean_error_data = binning(N, timebinsize, data, 'TIME', 'RATE' )
 
                 axs[1].errorbar(mean_time, mean_data, yerr=mean_error_data, color='black', linestyle='', marker='.', ecolor='gray')
                 axs[1].grid()
                 axs[1].set_ylabel('<x>', fontsize=10)
 
                 #Subplot excess variance
-                segment = M*timebinsize
+                segment = N*timebinsize
                 t_in = data['TIME'].values[0]
                 t_fin = data['TIME'].values[-1]
                 t = t_in
@@ -1232,7 +1232,7 @@ class Observation:
                     segment_df = data[(data['TIME']<t+segment) & (data['TIME']>t)]
                     n_in_segment = len(segment_df)
                     
-                    if n_in_segment <= M/3:
+                    if n_in_segment <= N/3:
                         t += segment
                         continue
 
@@ -1260,14 +1260,14 @@ class Observation:
 
                 #Subplot mean excess variance 
                 df_mean_xs = pd.DataFrame({'time': mean_time_nonneg, 'xs': xs_arr, 'xs_err': xs_err_arr})
-                meanx2_times, mean_xs, meanx2_times_err, mean_xs_err = binning(N, M*timebinsize, df_mean_xs, 'time', 'xs')
+                meanx2_times, mean_xs, meanx2_times_err, mean_xs_err = binning(M, N*timebinsize, df_mean_xs, 'time', 'xs')
                 
                 axs[3].errorbar(meanx2_times, mean_xs, mean_xs_err, xerr=meanx2_times_err,  linestyle='', color='black', marker='.', ecolor='gray')
                 axs[3].grid()
                 axs[3].set_ylabel('$<\sigma_{XS}^2>$', fontsize=10)
 
                 #Subplot F_var
-                segment = M*timebinsize
+                segment = N*timebinsize
                 t_in = data['TIME'].values[0]
                 t_fin = data['TIME'].values[-1]
                 t = t_in
@@ -1279,7 +1279,7 @@ class Observation:
                     segment_df = data[(data['TIME']<t+segment) & (data['TIME']>t)]
                     n_in_segment = len(segment_df)
                     
-                    if n_in_segment <= M/3:
+                    if n_in_segment <= N/3:
                         t += segment
                         continue
 
@@ -1305,7 +1305,7 @@ class Observation:
 
                 # Subplot mean Fvar
                 df_mean_fvar = pd.DataFrame({'time': mean_time_nonneg, 'fvar': fvar_arr, 'fvar_err': fvar_err_arr})
-                meanx2_times, fvar_mean_arr, meanx2_times_err, fvar_err_mean_arr = binning(N, M*timebinsize, df_mean_fvar, 'time', 'fvar')
+                meanx2_times, fvar_mean_arr, meanx2_times_err, fvar_err_mean_arr = binning(M, N*timebinsize, df_mean_fvar, 'time', 'fvar')
 
                 axs[5].errorbar(meanx2_times, fvar_mean_arr, fvar_err_mean_arr, xerr=meanx2_times_err, linestyle='', color='black', marker='.', ecolor='gray')
                 axs[5].grid()
@@ -1363,19 +1363,6 @@ class Observation:
                 
                 #Binning
                 meanx2_rate, meanx2_xs, meanx2_rate_err, meanx2_xs_err = binning(N, 0.03, xs_sorted, 'rate', 'xs')
-                '''
-                
-                i=0
-                meanx2_rate = []
-                meanx2_xs = []
-                meanx2_xs_err = []
-                while(i+N<len(xs_sorted)):
-                    meanx2_rate.append(np.mean(xs_sorted[i:i+N]['rate'].values))
-                    meanx2_xs.append(np.mean(xs_sorted[i:i+N]['xs'].values))
-                    meanx2_xs_err.append(np.std(xs_sorted[i:i+N]['xs'].values)/np.sqrt(len(xs_sorted[i:i+N])))
-                    #meanx2_xs_err.append(np.sqrt(1/ (1/np.square(xs_sorted[i:i+M]['xs_err'].values)).sum()))
-                    i+=N
-                '''
 
                 fig_rate, ax = plt.subplots(1,1, figsize=(10,10))
                 ax.errorbar(x=meanx2_rate, y=meanx2_xs, yerr=meanx2_xs_err, linestyle='', marker='.')
@@ -1387,5 +1374,5 @@ class Observation:
                 #Save to csv file
                 obs_array = np.ndarray(len(meanx2_xs))
                 obs_array.fill(str(self.obsid))
-                table_rate_xs = Table({'rate': meanx2_rate, 'xs': meanx2_xs, 'xs_err': meanx2_xs_err, 'observation': obs_array})
+                table_rate_xs = Table({'rate': meanx2_rate, 'xs': meanx2_xs, 'xs_err': meanx2_xs_err, 'observation': obs_array}, dtype=('d', 'd', 'd', 'U9'))
                 ascii.write(table =table_rate_xs, output=f'{self.target_dir}/Products/Plots_timeseries/{self.obsid}_{expos0.expid}+{expos1.expid}_rate_xs.csv', format='csv', overwrite=True)
