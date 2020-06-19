@@ -1220,20 +1220,28 @@ class Observation:
                 axs[1].set_ylabel('<x>', fontsize=10)
 
                 #Subplot excess variance
-                i = 0
+                segment = M*timebinsize
+                t_in = data['TIME'].values[0]
+                t_fin = data['TIME'].values[-1]
+                t = t_in
                 xs_arr = []
                 xs_err_arr = []
-                while (i+M < len(data)):
-                    segment = data[i:i+M]
-                    n_in_segment = len(segment)
-                    if n_in_segment <= M/2:
-                        i=i+M
+                
+                while(t + segment < t_fin):
+
+                    segment_df = data[(data['TIME']<t+segment) & (data['TIME']>t)]
+                    n_in_segment = len(segment_df)
+                    
+                    if n_in_segment <= M/3:
+                        t += segment
                         continue
 
-                    xs,err_xs = excess_variance(segment['RATE'].values, segment['ERROR'].values, normalized=False)
-                    xs_arr.append(xs)
-                    xs_err_arr.append(err_xs)
-                    i=i+M
+                    else:
+                        xs,err_xs = excess_variance(segment_df['RATE'].values, segment_df['ERROR'].values, normalized=False)
+                        xs_arr.append(xs)
+                        xs_err_arr.append(err_xs)
+                        t+= segment
+
 
                 mask_negative = []
                 for el in xs_arr:
@@ -1259,19 +1267,27 @@ class Observation:
                 axs[3].set_ylabel('$<\sigma_{XS}^2>$', fontsize=10)
 
                 #Subplot F_var
-                i = 0
+                segment = M*timebinsize
+                t_in = data['TIME'].values[0]
+                t_fin = data['TIME'].values[-1]
+                t = t_in
                 fvar_arr = []
                 fvar_err_arr = []
-                while(i+M<len(data)):
-                    segment = data[i:i+M]
-                    n_in_segment = len(segment)
-                    if n_in_segment <= M/2:
-                        i=i+M
+
+                while(t + segment < t_fin):
+                    
+                    segment_df = data[(data['TIME']<t+segment) & (data['TIME']>t)]
+                    n_in_segment = len(segment_df)
+                    
+                    if n_in_segment <= M/3:
+                        t += segment
                         continue
-                    fvar, fvar_err = fractional_variability(segment['RATE'].values, segment['ERROR'].values, segment['BACKV'].values, segment['BACKE'].values, netlightcurve=True)
-                    fvar_arr.append(fvar)
-                    fvar_err_arr.append(fvar_err)
-                    i=i+M
+
+                    else:
+                        fvar, fvar_err = fractional_variability(segment_df['RATE'].values, segment_df['ERROR'].values, segment_df['BACKV'].values, segment_df['BACKE'].values, netlightcurve=True)
+                        fvar_arr.append(fvar)
+                        fvar_err_arr.append(fvar_err)
+                        t += segment
                 
                 mask_fvar= []
                 for el in fvar_arr:

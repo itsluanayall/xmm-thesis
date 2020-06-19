@@ -285,7 +285,7 @@ def binning(N, bintime, dataframe, colx, coly):
     while(x + segment < x_fin):
         segment_df = dataframe[(dataframe[colx]<x+segment) & (dataframe[colx]>x)]
         n_in_segment = len(segment_df)
-        if n_in_segment <= N/2:
+        if n_in_segment <= N/3:
             
             x += segment
             continue
