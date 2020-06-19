@@ -136,7 +136,11 @@ class Observation:
 
 
     def create_pairs_exposures(self):
-
+        """
+        Defines lists of pairs of the exposures of the observation. Some observations (0510610101, 0510610201, 0136540701) 
+        pairs are defined by hand because these observations were interrupted and so their exposures do not 
+        follow the standard conventions.
+        """
         os.chdir(self.rgsdir)
 
         #Sort RGS eventlists according to exposure number
@@ -147,9 +151,7 @@ class Observation:
         if self.obsid=='0510610201':
             self.pairs_events = [['P0510610201R1S004EVENLI0000.FIT', 'P0510610201R2S005EVENLI0000.FIT'], ['P0510610201R1S015EVENLI0000.FIT', 'P0510610201R2S005EVENLI0000.FIT']]
         if self.obsid=='0136540701':
-            self.pairs_events = [['P0136540701R1S001EVENLI0000.FIT','P0136540701R2S002EVENLI0000.FIT' ], ['P0136540701R1S001EVENLI0000.FIT', 'P0136540701R2S018EVENLI0000.FIT'],
-                            ['P0136540701R1S011EVENLI0000.FIT','P0136540701R2S018EVENLI0000.FIT'], ['P0136540701R1S020EVENLI0000.FIT', 'P0136540701R2S018EVENLI0000.FIT'],
-                            ['P0136540701R1S021EVENLI0000.FIT', 'P0136540701R2S019EVENLI0000.FIT'], ['P0136540701R1S022EVENLI0000.FIT','P0136540701R2S019EVENLI0000.FIT']]
+            self.pairs_events = [['P0136540701R1S001EVENLI0000.FIT','P0136540701R2S002EVENLI0000.FIT' ], ['P0136540701R1S001EVENLI0000.FIT', 'P0136540701R2S018EVENLI0000.FIT']]
         self.npairs = len(self.pairs_events)
         logging.info(f'There is(are) {self.npairs} set(s) of exposures for observation {self.obsid}.')
         print(self.pairs_events)
@@ -162,9 +164,7 @@ class Observation:
         if self.obsid=='0510610201':
             self.pairs_srcli = [['P0510610201R1S004SRCLI_0000.FIT', 'P0510610201R2S005SRCLI_0000.FIT'], ['P0510610201R1S015SRCLI_0000.FIT', 'P0510610201R2S005SRCLI_0000.FIT']]
         if self.obsid=='0136540701':
-            self.pairs_srcli = [['P0136540701R1S001SRCLI_0000.FIT', 'P0136540701R2S002SRCLI_0000.FIT'], ['P0136540701R1S001SRCLI_0000.FIT', 'P0136540701R2S018SRCLI_0000.FIT'],
-                           ['P0136540701R1S011SRCLI_0000.FIT', 'P0136540701R2S018SRCLI_0000.FIT'], ['P0136540701R1S020SRCLI_0000.FIT', 'P0136540701R2S018SRCLI_0000.FIT'],
-                           ['P0136540701R1S021SRCLI_0000.FIT', 'P0136540701R2S019SRCLI_0000.FIT'], ['P0136540701R1S022SRCLI_0000.FIT', 'P0136540701R2S019SRCLI_0000.FIT']]
+            self.pairs_srcli = [['P0136540701R1S001SRCLI_0000.FIT', 'P0136540701R2S002SRCLI_0000.FIT'], ['P0136540701R1S001SRCLI_0000.FIT', 'P0136540701R2S018SRCLI_0000.FIT']]
         
 
     def cifbuild(self):
@@ -444,8 +444,8 @@ class Observation:
         """
 
         os.chdir(self.rgsdir)
-        if self.obsid == '0136540701':
-            return
+
+        #Pair events and source regions
         flat_evenli = [item for sublist in self.pairs_events for item in sublist]
         flat_srcli = [item for sublist in self.pairs_srcli for item in sublist]
         evenli_srcli = list(zip(flat_evenli, flat_srcli))
@@ -455,51 +455,47 @@ class Observation:
         flares = {}
 
         for (evenli, srcli) in evenli_srcli:
-        
+            
             expos0 = Exposure(evenli, srcli)
             title_outputbkg0 = f"bkg{expos0.fullid}_check_rates.fit"
+            logging.info(f'Checking the flaring particle background for exposure {expos0.expid}.')
+        
+            #Retrieve data from flaring particle background
+            data = fits.open(title_outputbkg0)
+            x = data['RATE'].data['TIME']
+            y = data['RATE'].data['RATE']               
+            yerr = data['RATE'].data['ERROR']
+            mean_y = np.mean(y)
+            std_y = np.std(y)
 
-            if not glob.glob(os.path.join(self.rgsdir, title_outputbkg0)):
-                logging.info(f'Checking the flaring particle background for exposure {expos0.expid}.')
-            
-                #Retrieve data from flaring particle background
-                data = fits.open(title_outputbkg0)
-                x = data['RATE'].data['TIME']
-                y = data['RATE'].data['RATE']               
-                yerr = data['RATE'].data['ERROR']
-                mean_y = np.mean(y)
-                std_y = np.std(y)
+            #Drop NaN values by making a numpy mask
+            mask_nan = np.invert(np.isnan(y)) 
+            x = x[mask_nan]
+            y = y[mask_nan]
+            yerr = yerr[mask_nan]
 
-                #Drop NaN values by making a numpy mask
-                mask_nan = np.invert(np.isnan(y)) 
-                x = x[mask_nan]
-                y = y[mask_nan]
-                yerr = yerr[mask_nan]
-
-                #Search for significant flares
-                for rate_value in y:
-                    
-                    if rate_value > (3*std_y + mean_y):
-                        logging.info('Found flare in background!')
-                        if title_outputbkg0 in flares:
-                            if rate_value < flares[title_outputbkg0]:
-                                logging.info('Updating flare dictionary.')
-                                flares[title_outputbkg0] = rate_value
-                            else:
-                                continue
-                        else:
-                            flares[title_outputbkg0] = rate_value
-            else:
-                logging.info(f'Already checked background for exposure {expos0.expid}.')
-
-        if not glob.glob(os.path.join(self.rgsdir, title_outputbkg0)):        
-            #If there are flares, filter the eventlist for the source lightcurve
-            if len(flares)>0:
-
-                max_key = min(flares, key=flares.get)
-                maxr = flares[max_key]
-                logging.info(f"Background lightcurves present significant flares in {max_key}. Starting the selection of the GTI...")
+            #Search for significant flares
+            for rate_value in y:
                 
+                if rate_value > (3*std_y + mean_y):
+                    logging.info('Found flare in background!')
+                    if title_outputbkg0 in flares:
+                        if rate_value < flares[title_outputbkg0]:
+                            logging.info('Updating flare dictionary.')
+                            flares[title_outputbkg0] = rate_value
+                        else:
+                            continue
+                    else:
+                        flares[title_outputbkg0] = rate_value
+            
+        #If there are flares, filter the eventlist for the source lightcurve
+        if len(flares)>0:
+
+            max_key = min(flares, key=flares.get)
+            maxr = flares[max_key]
+            logging.info(f"Background lightcurves present significant flares in {max_key}. Starting the selection of the GTI...")
+            
+            if not glob.glob(os.path.join(self.rgsdir, f"gti_low_back_{max_key[13:16]}.fit")):
                 tabgtigen_back_cmmd = f"tabgtigen table={max_key} gtiset=gti_low_back_{max_key[13:16]}.fit expression='(RATE<{maxr})'"
                 status_cmmd = run_command(tabgtigen_back_cmmd)
                 
@@ -521,10 +517,11 @@ class Observation:
                 rgsproc_cmmd = "rgsproc entrystage=4:spectra"
                 status_rgsproc = run_command(rgsproc_cmmd)
                 logging.info("Finished rgsproc!")
-                
-
             else:
-                logging.info(f"Background lightcurves present no significant flares. No need in filtering.")
+                logging.info('Already filtered background.')
+
+        else:
+            logging.info(f"Background lightcurves present no significant flares. No need in filtering.")
 
 
     def fracvartest(self, screen=True, netlightcurve=True):

@@ -167,7 +167,7 @@ if __name__ == "__main__":
         rgb = '#%06X' % random.randint(0, 0xFFFFFF)  #create random color
         plt.errorbar(data=df_xs_rate, x='rate', y='xs', yerr='xs_err', xerr='erate', fmt='.', markersize=10, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color=rgb, label=df_xs_rate['observation'][0])
         
-    plt.legend()
+    plt.legend(title='Observation ID', fancybox=True)
     plt.xlabel('Rate [ct/s]')
     plt.ylabel('$<\sigma_{XS}^2>$')
     plt.grid()
@@ -176,8 +176,9 @@ if __name__ == "__main__":
     '''
     #For a single observation
     #sample_obs = ['0099280101', '0153951201', '0670920301', '0810860701'] #for spectra
-    sample_obs = ['0136541001', '0411080301', '0560980101', '0791781401', '0810860701' ] #for vaughan panels
-    '''
+    #sample_obs = ['0136541001', '0411080301', '0560980101', '0791781401', '0810860701' ] #for vaughan panels
+    sample_obs = ['0136540701']
+    
     for observation in sample_obs:
             
         obs = Observation(obsid=observation, target_dir=target_dir)   
@@ -196,7 +197,7 @@ if __name__ == "__main__":
         #obs.divide_spectrum()
         #obs.xspec_divided_spectra_average(target_REDSHIFT)
         #obs.xspec_divided_spectra(target_REDSHIFT)
-    '''
+    
     os.chdir(os.path.join(target_dir, 'Products', 'Plots_timeseries'))
 
     fig_xs_rate  = plt.figure(figsize=(10,5))    
@@ -205,7 +206,7 @@ if __name__ == "__main__":
         rgb = '#%06X' % random.randint(0, 0xFFFFFF)  #create random color
         plt.errorbar(data=df_xs_rate, x='rate', y='xs', yerr='xs_err', xerr='erate', fmt='.', markersize=10, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color=rgb, label=df_xs_rate['observation'][0])
         
-    plt.legend()
+    plt.legend(title='Observation ID', fancybox=True)
     plt.xlabel('Rate [ct/s]')
     plt.ylabel('$<\sigma_{XS}^2>$')
     plt.grid()
