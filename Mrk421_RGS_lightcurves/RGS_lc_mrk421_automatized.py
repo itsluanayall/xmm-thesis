@@ -109,9 +109,9 @@ if __name__ == "__main__":
             obs.lightcurve(mjdref=mjdref, use_grace=use_grace)
             obs.fracvartest(screen=True)
             obs.vaughan_panel(N=15, M=15, timescale=timescale_fvar, timebinsize=25)
-            #obs.divide_spectrum()
-            #obs.xspec_divided_spectra_average(target_REDSHIFT)
-            #obs.xspec_divided_spectra(target_REDSHIFT)
+            obs.divide_spectrum()
+            obs.xspec_divided_spectra_average(target_REDSHIFT)
+            obs.xspec_divided_spectra(target_REDSHIFT)
 
             #Save attributes of observable into a table
             if len(obs.rgsrate)==0:

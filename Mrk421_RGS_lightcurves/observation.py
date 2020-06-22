@@ -802,20 +802,18 @@ class Observation:
         :param target_REDSHIFT: redshift of target
         :type target_REDSHIFT: float
 
-        """             
-        if not glob.glob(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}/*_1.png'):
-                    
+        """    
+        # Make sure output directory exists
+        if not os.path.isdir(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}'):
+            os.mkdir(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}')
+
+        if not glob.glob(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}/*_1.png'):          
             logging.info(f"Starting spectral analysis with XSPEC for observation {self.obsid} (total, average spectra).")
             os.chdir(f"{self.target_dir}/{self.obsid}/rgs")
-            
-
-
-            if not os.path.isdir(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}'):
-                os.mkdir(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}')
 
             #Set XSPEC verbosity and create xspec log file
             xspec.Xset.chatter = 10
-            xspec.Xset.logChatter = 20
+            xspec.Xset.logChatter = 10
             logFile = xspec.Xset.openLog(f"{self.target_dir}/Products/RGS_Spectra/{self.obsid}/XSPECLogFile_average_spectrum.txt") 
             logFile = xspec.Xset.log
 
@@ -1009,17 +1007,16 @@ class Observation:
 
             #Set XSPEC verbosity and create xspec log file
             xspec.Xset.chatter = 10
-            xspec.Xset.logChatter = 20
+            xspec.Xset.logChatter = 10
             logFile = xspec.Xset.openLog(f"{self._target_dir}/Products/RGS_Spectra/{self.obsid}/XSPECLogFile_divided_spectra.txt") 
             logFile = xspec.Xset.log
-            print(len(self.pairs_spectra))
+
             for s in range(len(self.pairs_spectra)):
                 expos0 = Exposure(self.pairs_events[s][0], self.pairs_srcli[s][0], self.pairs_spectra[s][0], self.pairs_bkg[s][0], self.pairs_respli[s][0])
                 expos1 = Exposure(self.pairs_events[s][1], self.pairs_srcli[s][1], self.pairs_spectra[s][1], self.pairs_bkg[s][1], self.pairs_respli[s][1])
                 start_time, stop_time = expos0.synchronous_times(expos1)
 
                 # Perform spectral analysis looping over the pieces
-                print(self.n_intervals_array)
                 self.n_intervals_pairs = [self.n_intervals_array[x:x+2] for x in range(0, len(self.n_intervals_array), 2)]
                 print(self.n_intervals_pairs)
                 for i in range(self.n_intervals_pairs[s][0], self.n_intervals_pairs[s][1]):
@@ -1055,6 +1052,7 @@ class Observation:
                     exposure_time = max(spectrum1.exposure, spectrum2.exposure)
                     if exposure_time<500:
                         continue
+
                     #Loop over models
                     model_list = ['const*tbabs*zlogpar', 'const*tbabs*zpowerlw']
                     for model in model_list:
@@ -1075,7 +1073,8 @@ class Observation:
                         xspec.Fit.renorm()    #renormalize model to minimize statistic with current parameters
                         xspec.Fit.nIterations = 100
                         xspec.Fit.criticalDelta = 1e-1
-                        xspec.Fit.query = 'no' 
+                        xspec.Fit.query = 'yes' 
+                        
                         try:
                             xspec.Fit.perform() 
                         except Exception as e:
@@ -1089,6 +1088,7 @@ class Observation:
 
                             if m1.expression=='constant*TBabs*zpowerlw':
                                 xspec.Fit.error("stopat 1000,, maximum 1000.0 2,3,5")
+
                         except Exception as e:
                             logging.error(e)
                             continue
@@ -1106,6 +1106,7 @@ class Observation:
                             flux_low = spectrum1.flux[1]
                             lumin_up = spectrum1.lumin[2]
                             lumin_low = spectrum1.lumin[1]
+
                         except Exception as e:
                             logging.error(e)
                             continue
@@ -1389,7 +1390,7 @@ class Observation:
                 ax.grid(True)
                 plt.savefig(f'{self.target_dir}/Products/Plots_timeseries/{self.obsid}_{expos0.expid}+{expos1.expid}_xs_rate.png')
                 plt.close()
-                
+
                 #Save to csv file
                 obs_array = np.ndarray(len(meanx2_xs))
                 obs_array.fill(str(self.obsid))
