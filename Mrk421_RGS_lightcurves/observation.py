@@ -1335,32 +1335,52 @@ class Observation:
                 axs[5].legend()
 
                 plt.savefig(f'{self.target_dir}/Products/Plots_timeseries/{self.obsid}_{expos0.expid}+{expos1.expid}_variability_panel.png')
-            
+                plt.close()
             
                 ###------------------PLOT XS RATE CORRELATION--------------------###
 
                 #Sort xs_arr by rate
                 i = 0
+                segment = M*timebinsize
+                t_in = data['TIME'].values[0]
+                t_fin = data['TIME'].values[-1]
+                t = t_in
                 mean_rate = []
                 mean_rate_err = []
                 xs_arr_rate = []
                 xs_arr_err_rate = []
+                fvar_arr_rate = []
+                fvar_arr_err_rate = []
 
-                while(i+M<len(data)):
-                    mean_rate.append(np.mean(data[i:i+M]['RATE'].values))
-                    xs,err_xs = excess_variance(data[i:i+M]['RATE'].values, data[i:i+M]['ERROR'].values, normalized=False)
-                    xs_arr_rate.append(xs)
-                    xs_arr_err_rate.append(err_xs)
-                    i+=M
+                while(t + segment < t_fin):
+                    
+                    segment_df = data[(data['TIME']<t+segment) & (data['TIME']>t)]
+                    n_in_segment = len(segment_df)
+    
+                    if n_in_segment <= M/3:
+                        t += segment
+                        continue
 
-                xs_sorted = pd.DataFrame({'rate': mean_rate, 'xs': xs_arr_rate, 'xs_err': xs_arr_err_rate})
+                    else:
+                        mean_rate.append(np.mean(segment_df['RATE'].values))
+                        xs,err_xs = excess_variance(segment_df['RATE'].values, segment_df['ERROR'].values, normalized=False)
+                        fvar, fvar_err = fractional_variability(segment_df['RATE'].values, segment_df['ERROR'].values, segment_df['BACKV'].values, segment_df['BACKE'].values, netlightcurve=True)
+                        xs_arr_rate.append(xs)
+                        xs_arr_err_rate.append(err_xs)
+                        fvar_arr_rate.append(fvar)
+                        fvar_arr_err_rate.append(fvar_err)
+
+                        t += segment
+
+                xs_sorted = pd.DataFrame({'rate': mean_rate, 'xs': xs_arr_rate, 'xs_err': xs_arr_err_rate, 'fvar': fvar_arr_rate, 'fvar_err': fvar_arr_err_rate})
                 xs_sorted = xs_sorted.dropna()
                 xs_sorted = xs_sorted.sort_values(by=['rate'])
-                xs_sorted = xs_sorted[xs_sorted['xs']>0.]    
+                xs_sorted = xs_sorted[xs_sorted['xs']>0.]   
                 
                 #Binning
                 meanx2_rate, meanx2_xs, meanx2_rate_err, meanx2_xs_err = binning(N, 1/N, xs_sorted, 'rate', 'xs')
-
+                meanx2_rate, meanx2_fvar, meanx2_rate_err, meanx2_fvar_err = binning(N, 1/N, xs_sorted, 'rate', 'fvar')
+                
                 fig_rate, ax = plt.subplots(1,1, figsize=(10,10))
                 ax.errorbar(x=meanx2_rate, y=meanx2_xs, yerr=meanx2_xs_err, xerr=meanx2_rate_err, linestyle='', marker='.')
                 ax.set_xlabel('x')
@@ -1368,9 +1388,10 @@ class Observation:
                 ax.set_xlim(0, max(meanx2_rate)+1)
                 ax.grid(True)
                 plt.savefig(f'{self.target_dir}/Products/Plots_timeseries/{self.obsid}_{expos0.expid}+{expos1.expid}_xs_rate.png')
+                plt.close()
                 
                 #Save to csv file
                 obs_array = np.ndarray(len(meanx2_xs))
                 obs_array.fill(str(self.obsid))
-                table_rate_xs = Table({'rate': meanx2_rate, 'erate': meanx2_rate_err, 'xs': meanx2_xs, 'xs_err': meanx2_xs_err, 'observation': obs_array}, dtype=('d', 'd', 'd', 'd', 'U9'))
-                ascii.write(table =table_rate_xs, output=f'{self.target_dir}/Products/Plots_timeseries/{self.obsid}_{expos0.expid}+{expos1.expid}_rate_xs.csv', format='csv', overwrite=True)
+                table_rate_xs = Table({'rate': meanx2_rate, 'erate': meanx2_rate_err, 'xs': meanx2_xs, 'xs_err': meanx2_xs_err, 'fvar': meanx2_fvar, 'fvar_err': meanx2_fvar_err, 'observation': obs_array}, dtype=('d', 'd', 'd', 'd', 'd', 'd', 'U9'))
+                ascii.write(table=table_rate_xs, output=f'{self.target_dir}/Products/Plots_timeseries/{self.obsid}_{expos0.expid}+{expos1.expid}_rate_xs.csv', format='csv', overwrite=True)

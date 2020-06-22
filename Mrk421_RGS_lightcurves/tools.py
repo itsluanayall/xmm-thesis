@@ -164,19 +164,20 @@ def fractional_variability(rates, errrates, backv, backe, netlightcurve=True):
     """
     if netlightcurve:
         nxs, err_nxs = excess_variance(rates, errrates, True)
-        f_var = np.sqrt(nxs)
-        err_fvar = 1/(2*f_var) * err_nxs
+        
+        #A value of -1 indicates that the noise of the data is much greater than the scatter of the data.
+        if nxs<0:
+            f_var = -1.
+            err_fvar = -1.
+        else:
+            f_var = np.sqrt(nxs)
+            err_fvar = 1/(2*f_var) * err_nxs
     else:
         total_rate = rates + backv
         total_errates = np.sqrt( np.square(errrates) + np.square(backe) )
         nxs, err_nxs = excess_variance(total_rate, total_errates, True)
         f_var = np.sqrt(nxs)
         err_fvar = 1/(2*f_var) * err_nxs
-
-    #A value of -1 indicates that the noise of the data is much greater than the scatter of the data.
-    if nxs<0:
-        f_var = -1.
-        err_fvar = -1.
 
     return f_var, err_fvar
 

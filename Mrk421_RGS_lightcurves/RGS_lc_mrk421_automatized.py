@@ -85,7 +85,7 @@ if __name__ == "__main__":
     counter = 0
     mrk421_problematic_obs = ['0658802001', '0411082701']
     duration_lc_ks = []
-    '''
+    
     for obsid in os.listdir(target_dir):
         
         if obsid.startswith('0'):   #All observation folders start with 0
@@ -108,10 +108,10 @@ if __name__ == "__main__":
             obs.rgslccorr()
             obs.lightcurve(mjdref=mjdref, use_grace=use_grace)
             obs.fracvartest(screen=True)
-            obs.vaughan_panel(N=10, M=10, timescale=timescale_fvar, timebinsize=25)
-            obs.divide_spectrum()
-            obs.xspec_divided_spectra_average(target_REDSHIFT)
-            obs.xspec_divided_spectra(target_REDSHIFT)
+            obs.vaughan_panel(N=15, M=15, timescale=timescale_fvar, timebinsize=25)
+            #obs.divide_spectrum()
+            #obs.xspec_divided_spectra_average(target_REDSHIFT)
+            #obs.xspec_divided_spectra(target_REDSHIFT)
 
             #Save attributes of observable into a table
             if len(obs.rgsrate)==0:
@@ -158,26 +158,31 @@ if __name__ == "__main__":
     hist = plt.figure(figsize=(10,10))
     plt.hist(duration_lc_ks, bins=40)
     plt.savefig(f'{target_dir}/Products/RGS_Lightcurves/distribution_expos_duration_ks.png')
-    
+    plt.close()
     #Combined long observations xs vs rate
     os.chdir(os.path.join(target_dir, 'Products', 'Plots_timeseries'))
-    fig_xs_rate  = plt.figure(figsize=(10,5))    
+    fig_xs_rate, axs  = plt.subplots(2, 1, figsize=(8, 8), sharex=True, gridspec_kw={'hspace':0.1})   
+    
     for filename in glob.glob('*.{}'.format("csv")):
         df_xs_rate = pd.read_csv(filename) #read csv file of single observation
         rgb = '#%06X' % random.randint(0, 0xFFFFFF)  #create random color
-        plt.errorbar(data=df_xs_rate, x='rate', y='xs', yerr='xs_err', xerr='erate', fmt='.', markersize=10, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color=rgb, label=df_xs_rate['observation'][0])
-        
-    plt.legend(title='Observation ID', fancybox=True)
-    plt.xlabel('Rate [ct/s]')
-    plt.ylabel('$<\sigma_{XS}^2>$')
-    plt.grid()
+        axs[0].errorbar(data=df_xs_rate, x='rate', y='xs', yerr='xs_err', xerr='erate', fmt='.', markersize=10, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color=rgb, label=df_xs_rate['observation'][0])
+        axs[1].errorbar(data=df_xs_rate, x='rate', y='fvar', yerr='fvar_err', xerr='erate', fmt='.', markersize=10, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color=rgb, label=df_xs_rate['observation'][0])
+    
+    axs[0].legend(title='Observation ID', fancybox=True)
+    axs[0].set_ylabel('$<\sigma_{XS}^2>$')
+    axs[0].grid()
+    axs[1].set_xlabel('Rate [ct/s]')
+    axs[1].set_ylabel('$<F_{var}>$')
+    axs[1].grid(True)
     plt.savefig(f'{target_dir}/Products/Plots_timeseries/xs_rate_combined.png')
-
+    plt.close()
     '''
     #For a single observation
     #sample_obs = ['0099280101', '0153951201', '0670920301', '0810860701'] #for spectra
-    #sample_obs = ['0136541001', '0411080301', '0560980101', '0791781401', '0810860701' ] #for vaughan panels
-    sample_obs = ['0136540701']
+    #sample_obs = ['0136541001', '0411080301', '0560980101', '0791781401', '0810860701', '0791782001'] #for vaughan panels
+    sample_obs = ['0791782001']
+    #sample_obs = ['0136540701']
     
     for observation in sample_obs:
             
@@ -200,14 +205,19 @@ if __name__ == "__main__":
     
     os.chdir(os.path.join(target_dir, 'Products', 'Plots_timeseries'))
 
-    fig_xs_rate  = plt.figure(figsize=(10,5))    
+    fig_xs_rate, axs  = plt.subplots(2, 1, figsize=(8, 8), sharex=True, gridspec_kw={'hspace':0.1})   
+    
     for filename in glob.glob('*.{}'.format("csv")):
         df_xs_rate = pd.read_csv(filename) #read csv file of single observation
         rgb = '#%06X' % random.randint(0, 0xFFFFFF)  #create random color
-        plt.errorbar(data=df_xs_rate, x='rate', y='xs', yerr='xs_err', xerr='erate', fmt='.', markersize=10, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color=rgb, label=df_xs_rate['observation'][0])
-        
-    plt.legend(title='Observation ID', fancybox=True)
-    plt.xlabel('Rate [ct/s]')
-    plt.ylabel('$<\sigma_{XS}^2>$')
-    plt.grid()
+        axs[0].errorbar(data=df_xs_rate, x='rate', y='xs', yerr='xs_err', xerr='erate', fmt='.', markersize=10, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color=rgb, label=df_xs_rate['observation'][0])
+        axs[1].errorbar(data=df_xs_rate, x='rate', y='fvar', yerr='fvar_err', xerr='erate', fmt='.', markersize=10, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color=rgb, label=df_xs_rate['observation'][0])
+    
+    axs[0].legend(title='Observation ID', fancybox=True)
+    axs[0].set_ylabel('$<\sigma_{XS}^2>$')
+    axs[0].grid()
+    axs[1].set_xlabel('Rate [ct/s]')
+    axs[1].set_ylabel('$<F_{var}>$')
+    axs[1].grid(True)
     plt.savefig(f'{target_dir}/Products/Plots_timeseries/xs_rate_combined.png')
+    '''
