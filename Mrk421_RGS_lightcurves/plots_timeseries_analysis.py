@@ -8,6 +8,7 @@ import glob
 from array import array
 from brokenaxes import brokenaxes
 from config import CONFIG
+from tools import *
 
 
 import pandas as pd
@@ -18,7 +19,7 @@ MJDREF = 50814.0
 MAKE_FVAR_PLOTS = True
 MAKE_MEAN_LC = False
 MAKE_LC = False
-MAKE_EXCESS_VARIANCE = True 
+MAKE_EXCESS_VARIANCE = False 
 M = 15
 
 def plot(x, y, title, xlabel, ylabel, output_folder, dy, dx=[]):
@@ -350,7 +351,7 @@ if __name__ == "__main__":
         data['F_var'] = data['F_var'].apply(lambda x: x*100)
         data['F_var_sigma'] = data['F_var_sigma'].apply(lambda x: x*100)
         data = data.sort_values(by=['RGS_Rate'])
-        title = f'Fractional Variability vs Rate \n timescale {timescale_fvar}'
+        title = f'Fractional Variability vs Rate'
         print("# datapoints fvar =", len(data))
         plot(data['RGS_Rate'].values, data['F_var'].values, dx=data['RGS_erate'].values, dy=data['F_var_sigma'].values, title=title, output_folder=f"{target_dir}/Products/Plots_timeseries", xlabel='Mean rate [ct/s]', ylabel='Fractional Variability [%]')
         
@@ -392,14 +393,12 @@ if __name__ == "__main__":
         for directory in os.listdir(target_dir):
             if directory.startswith('0'):
                 os.chdir(f"{target_dir}/{directory}/rgs")
-                
+
                 for filename in glob.glob('*_RGS_rates.ds'):
-                    hdul = Table.read(filename, hdu=1)    
-                    data = hdul.to_pandas()
-                    data.dropna()
-                    total_lightcurve_rates.extend(data['RATE'].values)
-                    total_lightcurve_errates.extend(data['ERROR'].values)
-                    total_lightcurve_times.extend(data['TIME'].values)
+                    x, y, yerr, fracexp, y_bg, yerr_bg = mask_fracexp15(filename)
+                    total_lightcurve_rates.extend(y)
+                    total_lightcurve_errates.extend(yerr)
+                    total_lightcurve_times.extend(x)
             
         total_lightcurve_rates = np.asarray(total_lightcurve_rates)
         total_lightcurve_errates = np.asarray(total_lightcurve_errates)
@@ -460,7 +459,6 @@ if __name__ == "__main__":
         data_lc['YEAR'] = year_array  
         data_lc = data_lc.reset_index(drop=True)
         data_lc = data_lc.reset_index()
-        print(data_lc)
         #sample_data = data_lc[0:792]
         #sample_data.to_csv(f'{target_dir}/Products/data_lc_mrk421.csv', index=False)    
 
