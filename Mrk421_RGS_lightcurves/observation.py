@@ -349,13 +349,13 @@ class Observation:
 
                     #Plot data: 1 panel for source lc, one panel for background lc
                     fig, axs = plt.subplots(2, 1, figsize=(15,10), sharex=True, gridspec_kw={'hspace':0})
-                    axs[0].errorbar(x, y, yerr=yerr, color='black', marker='.', ecolor='gray', label=f'RGS Lightcurve ObsId {self.obsid}, exposures {output_name[11:18]} ')
+                    axs[0].errorbar(x, y, yerr=yerr, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, ecolor='gray', label=f'RGS Lightcurve ObsId {self.obsid}, exposures {output_name[11:18]} ')
                     axs[0].grid(True)
                     axs[0].set_ylabel('Rate [ct/s]', fontsize=13)
                     axs[0].hlines(avg_rate, plt.xlim()[0], plt.xlim()[1], colors='b', label=f'Average rate: {avg_rate: .2f} +- {stdev_rate:.2f} [ct/s]')
                     axs[0].tick_params(axis='both', which='major', labelsize=13)
 
-                    axs[1].errorbar(x, y_bg, yerr=yerr_bg, color='red', marker='.', ecolor='rosybrown', label=f'Background')
+                    axs[1].errorbar(x, y_bg, yerr=yerr_bg, color='red',fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, ecolor='rosybrown', label=f'Background')
                     axs[1].set_xlabel('Time [s]', fontsize=13)
                     axs[1].set_ylabel('Background Rate [ct/s]', fontsize=13)
                     axs[1].grid(True)
@@ -811,9 +811,9 @@ class Observation:
         """    
         # Make sure output directory exists
         if not os.path.isdir(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}'):
-            os.mkdir(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}/*')
+            os.mkdir(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}')
 
-        if not glob.glob(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}'):          
+        if not glob.glob(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}/*_1.png'):          
             logging.info(f"Starting spectral analysis with XSPEC for observation {self.obsid} (total, average spectra).")
             os.chdir(f"{self.target_dir}/{self.obsid}/rgs")
 
@@ -1006,7 +1006,7 @@ class Observation:
         :type target_REDSHIFT: float
         
         """
-        if not glob.glob(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}/*'):
+        if not glob.glob(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}/*_1.png'):
                 
             logging.info(f"Starting spectral analysis with XSPEC for observation {self.obsid}, split spectrum.")
             os.chdir(f"{self.target_dir}/{self.obsid}/rgs")
