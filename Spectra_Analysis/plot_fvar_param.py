@@ -168,4 +168,23 @@ if __name__ == "__main__":
             plt.ylabel('beta', fontsize=15)
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "beta_vs_rate.png"))
     
-    
+    if not args.fvar and not args.rate:
+        if args.phoindex and if args.beta:
+            data_spec_zlogp = data_spec_zlogp[data_spec_zlogp['phoindex_up']!=0.]
+            df_plot_zlogp = pd.DataFrame({'alpha': data_spec_zlogp['phoindex'].values, 
+                                            'alpha_top': data_spec_zlogp['phoindex_up'].values - data_spec_zlogp['phoindex'].values,
+                                            'alpha_bot': data_spec_zlogp['phoindex'].values - data_spec_zlogp['phoindex_low'].values,
+                                            'beta': data_spec_zlogp['beta'].values, 
+                                            'beta_top': data_spec_zlogp['beta_up'].values - data_spec_zlogp['beta'].values,
+                                            'beta_bot': data_spec_zlogp['beta'].values - data_spec_zlogp['beta_low'].values,
+                                            "obsid": data_spec_zlogp['obsid'].values})
+            
+            data_spec_zpowe = data_spec_zpowe[data_spec_zpowe['phoindex_up']!=0.]
+
+            figure = plt.figure(figsize=(10,5))
+            plt.errorbar(y=df_plot_zlogp['alpha'].values, x=df_plot_zlogp['beta'].values, yerr=(df_plot_zlogp['alpha_bot'].values, df_plot_zlogp['alpha_top'].values),
+                        xerr = (df_plot_zlogp['beta_bot'].values, df_plot_zlogp['beta_top'].values), fmt='.', markersize=5, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color='black')
+            plt.grid()
+            plt.xlabel('beta', fontsize=15)
+            plt.ylabel('alpha', fontsize=15)
+            plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "alpha_vs_beta.png"))

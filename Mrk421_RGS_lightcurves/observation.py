@@ -1079,7 +1079,7 @@ class Observation:
                         xspec.Fit.renorm()    #renormalize model to minimize statistic with current parameters
                         xspec.Fit.nIterations = 100
                         xspec.Fit.criticalDelta = 1e-1
-                        xspec.Fit.query = 'yes' 
+                        xspec.Fit.query = 'no' 
                         
                         try:
                             xspec.Fit.perform() 
@@ -1208,7 +1208,7 @@ class Observation:
                 if self.obsid== '0560980101':
                     data = data[3:]
                 ###### --------------------------PANEL ----------------------------------#####
-                fig, axs = plt.subplots(6, 1, figsize=(15,20), sharex=True, gridspec_kw={'hspace':0})
+                fig, axs = plt.subplots(6, 1, figsize=(15,20), sharex=True, gridspec_kw={'hspace':0, 'wspace':0})
                 fig.suptitle(f'RGS Lightcurve ObsId {self.obsid}, {expos0.expid}+{expos1.expid}, binsize {timebinsize}s \n N ={N}, M = {M}', fontsize=15, y=0.92)
                 
                 #Subplot x (lightcurve)
@@ -1237,7 +1237,7 @@ class Observation:
                     segment_df = data[(data['TIME']<t+segment) & (data['TIME']>t)]
                     n_in_segment = len(segment_df)
                     
-                    if n_in_segment <= N/3:
+                    if n_in_segment <= N/2:
                         t += segment
                         continue
 
@@ -1266,7 +1266,14 @@ class Observation:
                 df_mean_xs = pd.DataFrame({'time': mean_time_nonneg, 'xs': xs_arr, 'xs_err': xs_err_arr})
                 meanx2_times, mean_xs, meanx2_times_err, mean_xs_err = binning(M, N*timebinsize, df_mean_xs, 'time', 'xs')
                 
+                conf90_positive = np.mean(mean_xs)*(10**(0.46)) # confidence intervals 90% given by Vaughan, 2003 (Table 1)
+                conf90_negative = np.mean(mean_xs)*(10**(-0.78))
+                #conf99_positive = np.mean(mean_xs)*(10**(0.75)) # confidence intervals 99%
+                #conf99_negative = np.mean(mean_xs)*(10**(-1.16))
+
                 axs[3].errorbar(meanx2_times, mean_xs, mean_xs_err, xerr=meanx2_times_err,  linestyle='', color='black', marker='.', ecolor='gray')
+                axs[3].hlines((conf90_positive, conf90_negative), t_in, t_fin, color='black', linestyle=':')
+                #axs[3].hlines((conf99_positive, conf99_negative), plt.xlim()[0], plt.xlim()[1], color='black', linestyle='--')
                 axs[3].grid()
                 axs[3].set_ylabel('$<\sigma_{XS}^2>$', fontsize=10)
 
@@ -1283,7 +1290,7 @@ class Observation:
                     segment_df = data[(data['TIME']<t+segment) & (data['TIME']>t)]
                     n_in_segment = len(segment_df)
                     
-                    if n_in_segment <= N/3:
+                    if n_in_segment <= N/2:
                         t += segment
                         continue
 
@@ -1338,9 +1345,21 @@ class Observation:
                 chisq =(((fvar_mean_arr-constant(meanx2_times, q0) )/fvar_err_mean_arr)**2).sum()
                 ndof = len(meanx2_times) - 1
                 print('Chisquare/ndof = %f/%d' % (chisq, ndof))
-                axs[5].hlines(q0, plt.xlim()[0], plt.xlim()[1], color='red', label=f"Constant fit: {q0[0]:.3f} +- {dq[0]:.3f} \n $\chi^2$/ndof = {chisq:.2f} / {ndof}")
-                axs[5].legend()
 
+
+                #90% confidence intervals 
+                #conf90_positive = q0[0]*(10**((0.46 -np.log(np.mean(mean_data)))/2. ))
+                #conf90_negative = q0[0]*(10**((-0.78 -np.log(np.mean(mean_data)))/2. ))
+                #conf99_positive = q0[0]*(10**((0.75 -np.log(np.mean(mean_data)))/2. ))
+                #conf99_negative = q0[0]*(10**((-1.16 -np.log(np.mean(mean_data)))/2. ))
+                conf90_positive = q0[0]*10**(0.46/2.)
+                conf90_negative = q0[0]*10**(-0.78/2.)
+                axs[5].hlines((conf90_positive, conf90_negative), t_in, t_fin, color='black', linestyle=':')
+                axs[5].hlines(q0, t_in, t_fin, color='red', label=f"Constant fit: {q0[0]:.3f} +- {dq[0]:.3f} \n $\chi^2$/ndof = {chisq:.2f} / {ndof}")
+            
+                #axs[5].hlines((conf99_positive, conf99_negative), plt.xlim()[0], plt.xlim()[1], color='black', linestyle='--')
+                #plt.subplots_adjust(left=0.0, bottom=0.1, right=0.0, top=0.8)
+                axs[5].legend()
                 plt.savefig(f'{self.target_dir}/Products/Plots_timeseries/{self.obsid}_{expos0.expid}+{expos1.expid}_variability_panel.png')
                 plt.close()
             
@@ -1364,7 +1383,7 @@ class Observation:
                     segment_df = data[(data['TIME']<t+segment) & (data['TIME']>t)]
                     n_in_segment = len(segment_df)
     
-                    if n_in_segment <= M/3:
+                    if n_in_segment <= M/2 :
                         t += segment
                         continue
 
