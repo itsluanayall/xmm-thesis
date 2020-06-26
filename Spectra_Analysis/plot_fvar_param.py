@@ -21,6 +21,12 @@ parser.add_argument('--average', action='store_true',
                     help='use only average spectra')
 parser.add_argument('--bins', action='store_true',
                     help='use spectra of 1000s each')
+parser.add_argument('--panel', action='store_true',
+                    help='make panel with lightcurve and parameters')
+parser.add_argument('--logpar', action='store_true',
+                    help='use logparabola model to make the panel')
+parser.add_argument('--powerlaw', action='store_true',
+                    help='use powerlaw model to make the panel')
 args = parser.parse_args()
 
 
@@ -30,6 +36,7 @@ if __name__ == "__main__":
 
     # Go to Plots_spectra directory
     target_dir = CONFIG['target_dir'] 
+    MJDREF = 50814.0
     products_dir = os.path.join(target_dir, "Products")
     if not os.path.isdir(os.path.join(target_dir, "Products", "Plots_spectra")):
         os.makedirs(os.path.join(target_dir, "Products", "Plots_spectra"))
@@ -188,3 +195,67 @@ if __name__ == "__main__":
             plt.xlabel('beta', fontsize=15)
             plt.ylabel('alpha', fontsize=15)
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "alpha_vs_beta.png"))
+
+    if args.panel and args.bins:
+
+        #TOTAL LIGHT CURVE
+        os.chdir(target_dir)
+        total_lightcurve_rates = []
+        total_lightcurve_errates = []
+        total_lightcurve_times = []
+
+        for directory in os.listdir(target_dir):
+            if directory.startswith('0'):
+                os.chdir(f"{target_dir}/{directory}/rgs")
+
+                for filename in glob.glob('*_RGS_rates.ds'):
+                    x, y, yerr, fracexp, y_bg, yerr_bg = mask_fracexp15(filename)
+                    total_lightcurve_rates.extend(y)
+                    total_lightcurve_errates.extend(yerr)
+                    total_lightcurve_times.extend(x)
+            
+        total_lightcurve_rates = np.asarray(total_lightcurve_rates)
+        total_lightcurve_errates = np.asarray(total_lightcurve_errates)
+        total_lightcurve_times = np.asarray(total_lightcurve_times)
+        
+        data_lc = pd.DataFrame({"RATE":total_lightcurve_rates, "TIME":total_lightcurve_times, "ERROR":total_lightcurve_errates})
+        data_lc = data_lc.sort_values(by=['TIME'])
+        data_lc = data_lc.reset_index(drop=True)
+        data_lc = data_lc.reset_index()
+
+        if args.logpar:
+            pass
+
+        if args.powerlaw:
+            df_plot_powerlaw = pd.DataFrame('tbinstart': data_spec_zpowe['tbinstart'].values, 'tbinstop:' data_spec_zpowe['tbinstop'].values , 'phoindex': data_spec_zpowe['phoindex'].values,
+                                            "phoindex_top": data_spec_zpowe['phoindex_up'].values - data_spec_zpowe['phoindex'].values,
+                                            "phoindex_bot": data_spec_zpowe['phoindex'].values - data_spec_zpowe['phoindex_low'].values, 
+                                            "nH": data_spec_zpowe['nH'].values, "nH_up": data_spec_zpowe['nH_up'].values, "nH_low": data_spec_zpowe['nH_low'].values,
+                                            "nH_top": data_spec_zpowe['nH_up'].values - data_spec_zpowe['nH'].values,
+                                            "nH_bot": data_spec_zpowe['nH'].values - data_spec_zpowe['nH_low'].values)
+            
+            #Order dataframe and reset index
+            df_plot_powerlaw = df_plot_powerlaw.sort_values(by=['tbinstart')
+            df_plot_powerlaw = df_plot_powerlaw.reset_index(drop=True)
+            df_plot_powerlaw = df_plot_powerlaw.reset_index()
+
+            #Upper limits on nH
+            df_plot_nH_pegged = df_plot_powerlaw[df_plot_powerlaw['nH_low']<=1e-4]
+            df_plot_powerlaw = df_plot_powerlaw[df_plot_powerlaw['nH_low']>1e-4]
+
+            #Plot panel
+            fig_pw, axs_pw = plt.subplots(3, 1, figsize=(15,20), sharex=True, gridspec_kw={'hspace':0, 'wspace':0})
+            
+            axs_pw[0].errorbar('index', 'RATE', 'ERROR', data=data_lc, fmt='.', ecolor='gray', elinewidth=1, capsize=2, capthick=1)
+            axs_pw[1].errorbar('index', 'phoindex', yerr=(df_plot_powerlaw['phoindex_bot'].values, df_plot_powerlaw['phoindex_top'].values),
+                                data=df_plot_powerlaw, fmt='.', ecolor='gray', elinewidth=1, capsize=2, capthick=1)
+            axs_pw[2].errorbar('index', 'nH', yerr=(df_plot_powerlaw['nH_bot'].values, df_plot_powerlaw['nH_top'].values), data=df_plot_powerlaw,
+                                 fmt='.', ecolor='gray', elinewidth=1, capsize=2, capthick=1)
+            axs_pw[2].errorbar('index', 'nH_up', data=df_plot_nH_pegged, uplims=True)
+
+            axs_pw[0].grid()
+            axs_pw[1].grid()
+            axs_pw[2].grid()
+            axs_pw[0].set_ylabel("Rate [ct/s]")
+            axs_pw[1].set_ylabel("phoindex")
+            axs_pw[2].set_ylabel("nH [$10^22$ g/cm$^2$]")
