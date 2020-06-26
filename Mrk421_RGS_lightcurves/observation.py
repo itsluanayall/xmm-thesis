@@ -270,14 +270,14 @@ class Observation:
         """
         os.chdir(self.epdir)
 
-        if not glob.glob('*ImagingEvts.ds'):
+        if not glob.glob('*TimingEvts.ds'):
             logging.info(f'Running epproc command for observation number {self.obsid}...')
             epicpn_command = f'epproc'
             epicpn_status = run_command(epicpn_command)
             if (epicpn_status != 0):
                 print(f'\033[91m An error has occurred running epproc for observation {self.obsid}! \033[0m')
             else:
-                logging.info(f'Done processing EPIC-PN data. The products are in {self.emdir}.')
+                logging.info(f'Done processing EPIC-PN data. The products are in {self.epdir}.')
         
         else:
             logging.info(f'EPIC-PN event lists for observation number {self.obsid} already exist.')
