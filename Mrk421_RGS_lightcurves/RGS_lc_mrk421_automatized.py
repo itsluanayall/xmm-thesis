@@ -181,8 +181,8 @@ if __name__ == "__main__":
     #For a single observation
     #sample_obs = ['0099280101', '0153951201', '0670920301', '0810860701'] #for spectra
     #sample_obs = ['0136541001', '0411080301', '0560980101', '0791781401', '0810860701', '0791782001'] #for vaughan panels
-    sample_obs = ['0791782001']
-    #sample_obs = ['0136540701']
+    #sample_obs = ['0791782001']
+    sample_obs = ['0136540701']
     
     for observation in sample_obs:
             
@@ -199,9 +199,9 @@ if __name__ == "__main__":
         obs.lightcurve(mjdref=mjdref, use_grace=use_grace)
         obs.fracvartest(screen=True)
         obs.vaughan_panel(N=15, M=15, timescale=60, timebinsize=25)
-        #obs.divide_spectrum()
-        #obs.xspec_divided_spectra_average(target_REDSHIFT)
-        #obs.xspec_divided_spectra(target_REDSHIFT)
+        obs.divide_spectrum()
+        obs.xspec_divided_spectra_average(target_REDSHIFT)
+        obs.xspec_divided_spectra(target_REDSHIFT)
     
     os.chdir(os.path.join(target_dir, 'Products', 'Plots_timeseries'))
 

@@ -103,6 +103,8 @@ class Observation:
         self._obsdir = os.path.join(self.target_dir, self.obsid) 
         self._odfdir = os.path.join(self.obsdir, 'odf')
         self._rgsdir = os.path.join(self.obsdir, 'rgs')
+        self._emdir = os.path.join(self.obsdir, 'epic', 'mos')
+        self._epdir = os.path.join(self.obsdir, 'epic', 'pn')
         
         #The following attributes will be modified in the class methods. 
         # For now, we just inizialize them
@@ -133,7 +135,12 @@ class Observation:
     @property
     def rgsdir(self):
         return self._rgsdir
-
+    @property
+    def emdir(self):
+        return self._emdir
+    @property
+    def epdir(self):
+        return self._epdir
 
     def create_pairs_exposures(self):
         """
@@ -237,6 +244,44 @@ class Observation:
                     self.endtime = Time(line.split('/')[0], format='isot', scale='utc')
         self.duration = ((self.endtime - self.starttime)*86400).value    #duration observation in seconds
 
+
+    def emproc(self):
+        """
+        Runs the emproc SAS command to process and reduce EPIC-MOS data.
+        """
+        os.chdir(self.emdir)
+
+        if not glob.glob('*ImagingEvts.ds'):
+            logging.info(f'Running emproc command for observation number {self.obsid}...')
+            epicmos_command = f'emproc'
+            epicmos_status = run_command(epicmos_command)
+            if (epicmos_status != 0):
+                print(f'\033[91m An error has occurred running emproc for observation {self.obsid}! \033[0m')
+            else:
+                logging.info(f'Done processing EPIC-MOS data. The products are in {self.emdir}.')
+        
+        else:
+            logging.info(f'EPIC-MOS event lists for observation number {self.obsid} already exist.')
+
+
+    def epproc(self):
+        """
+        Runs the epproc SAS command to process and reduce EPIC-PN data.
+        """
+        os.chdir(self.epdir)
+
+        if not glob.glob('*ImagingEvts.ds'):
+            logging.info(f'Running epproc command for observation number {self.obsid}...')
+            epicpn_command = f'epproc'
+            epicpn_status = run_command(epicpn_command)
+            if (epicpn_status != 0):
+                print(f'\033[91m An error has occurred running epproc for observation {self.obsid}! \033[0m')
+            else:
+                logging.info(f'Done processing EPIC-PN data. The products are in {self.emdir}.')
+        
+        else:
+            logging.info(f'EPIC-PN event lists for observation number {self.obsid} already exist.')
+            
 
     def rgsproc(self):
         """
@@ -349,13 +394,13 @@ class Observation:
 
                     #Plot data: 1 panel for source lc, one panel for background lc
                     fig, axs = plt.subplots(2, 1, figsize=(15,10), sharex=True, gridspec_kw={'hspace':0})
-                    axs[0].errorbar(x, y, yerr=yerr, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, ecolor='gray', label=f'RGS Lightcurve ObsId {self.obsid}, exposures {output_name[11:18]} ')
+                    axs[0].errorbar(x, y, yerr=yerr, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='-', ecolor='gray', label=f'RGS Lightcurve ObsId {self.obsid}, exposures {output_name[11:18]} ')
                     axs[0].grid(True)
                     axs[0].set_ylabel('Rate [ct/s]', fontsize=13)
                     axs[0].hlines(avg_rate, plt.xlim()[0], plt.xlim()[1], colors='b', label=f'Average rate: {avg_rate: .2f} +- {stdev_rate:.2f} [ct/s]')
                     axs[0].tick_params(axis='both', which='major', labelsize=13)
 
-                    axs[1].errorbar(x, y_bg, yerr=yerr_bg, color='red',fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, ecolor='rosybrown', label=f'Background')
+                    axs[1].errorbar(x, y_bg, yerr=yerr_bg, color='red',fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='-', ecolor='rosybrown', label=f'Background')
                     axs[1].set_xlabel('Time [s]', fontsize=13)
                     axs[1].set_ylabel('Background Rate [ct/s]', fontsize=13)
                     axs[1].grid(True)
@@ -676,15 +721,9 @@ class Observation:
             self.pairs_bkg = [['P0510610201R1S004BGSPEC1003.FIT', 'P0510610201R2S005BGSPEC1003.FIT'], ['P0510610201R1S015BGSPEC1003.FIT', 'P0510610201R2S005BGSPEC1003.FIT']]
 
         if self.obsid=='0136540701':
-            self.pairs_respli = [['P0136540701R1S001RSPMAT1003.FIT','P0136540701R2S002RSPMAT1003.FIT' ], ['P0136540701R1S001RSPMAT1003.FIT', 'P0136540701R2S018RSPMAT1003.FIT'],
-                            ['P0136540701R1S011RSPMAT1003.FIT','P0136540701R2S018RSPMAT1003.FIT'], ['P0136540701R1S020RSPMAT1003.FIT', 'P0136540701R2S018RSPMAT1003.FIT'],
-                            ['P0136540701R1S021RSPMAT1003.FIT', 'P0136540701R2S019RSPMAT1003.FIT'], ['P0136540701R1S022RSPMAT1003.FIT','P0136540701R2S019RSPMAT1003.FIT']]
-            self.pairs_spectra = [['P0136540701R1S001SRSPEC1003.FIT','P0136540701R2S002SRSPEC1003.FIT' ], ['P0136540701R1S001SRSPEC1003.FIT', 'P0136540701R2S018SRSPEC1003.FIT'],
-                            ['P0136540701R1S011SRSPEC1003.FIT','P0136540701R2S018SRSPEC1003.FIT'], ['P0136540701R1S020SRSPEC1003.FIT', 'P0136540701R2S018SRSPEC1003.FIT'],
-                            ['P0136540701R1S021SRSPEC1003.FIT', 'P0136540701R2S019SRSPEC1003.FIT'], ['P0136540701R1S022SRSPEC1003.FIT','P0136540701R2S019SRSPEC1003.FIT']]
-            self.pairs_bkg = [['P0136540701R1S001BGSPEC1003.FIT','P0136540701R2S002BGSPEC1003.FIT' ], ['P0136540701R1S001BGSPEC1003.FIT', 'P0136540701R2S018BGSPEC1003.FIT'],
-                            ['P0136540701R1S011BGSPEC1003.FIT','P0136540701R2S018BGSPEC1003.FIT'], ['P0136540701R1S020BGSPEC1003.FIT', 'P0136540701R2S018BGSPEC1003.FIT'],
-                            ['P0136540701R1S021BGSPEC1003.FIT', 'P0136540701R2S019BGSPEC1003.FIT'], ['P0136540701R1S022BGSPEC1003.FIT','P0136540701R2S019BGSPEC1003.FIT']]
+            self.pairs_respli = [['P0136540701R1S001RSPMAT1003.FIT','P0136540701R2S002RSPMAT1003.FIT' ], ['P0136540701R1S001RSPMAT1003.FIT', 'P0136540701R2S018RSPMAT1003.FIT']]
+            self.pairs_spectra = [['P0136540701R1S001SRSPEC1003.FIT','P0136540701R2S002SRSPEC1003.FIT' ], ['P0136540701R1S001SRSPEC1003.FIT', 'P0136540701R2S018SRSPEC1003.FIT']]
+            self.pairs_bkg = [['P0136540701R1S001BGSPEC1003.FIT','P0136540701R2S002BGSPEC1003.FIT' ], ['P0136540701R1S001BGSPEC1003.FIT', 'P0136540701R2S018BGSPEC1003.FIT']]
 
         self.npairs = len(self.pairs_events)
         print("Event lists: ", self.pairs_events)
