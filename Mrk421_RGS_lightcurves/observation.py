@@ -569,6 +569,29 @@ class Observation:
             logging.info(f"Background lightcurves present no significant flares. No need in filtering.")
 
 
+    def filter_epic(self):
+        """
+        """
+        epic_timebinsize = 100 #s from 100 to 500
+
+        #MOS data
+        for epic_mos_event in glob.glob(os.path.join(self.emdir, "*ImagingEvts.ds")):
+
+            #Extract a single event, high energy light curve, from the event file to identify intervals of flaring particle background
+            evselect_rate = f"evselect table={epic_mos_event} withrateset=Y rateset={epic_mos_event[0,21]}_rate.fits maketimecolumn=Y timebinsize={epic_timebinsize} makeratecolumn=Y expression=' #XMMEA_EM && (PI>10000) && (PATTERN==0)'"
+            status_evselect_rate = run_command(evselect_rate)
+            
+            #Create the corresponding GTI file
+            tabgtigen = f"tabgtigen table={epic_mos_event[0,21]}_rate.fits expression='RATE<=0.35' gtiset={epic_mos_event[0,21]}_gti.fits"
+            status_tabgtigen = run_command(tabgtigen)
+
+            #Filter the event list
+            evelect_clean = f"evselect table={epic_mos_event} withfilteredset=Y filteredset={epic_mos_event[0,21]}_clean.fits destruct=Y keepfilteroutput=T expression='#XMMEA_EM && gti({epic_mos_event[0,21]}_gti.fits,TIME) && (PI>150)'"
+
+
+            #PN data
+
+
     def fracvartest(self, screen=True, netlightcurve=True):
         """
         Reads the FITS file containing the RGS source and background timeseries produced by rgslccorr. 
