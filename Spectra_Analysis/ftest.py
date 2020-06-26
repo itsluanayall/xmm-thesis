@@ -6,6 +6,7 @@ from astropy.table import Table
 from config import CONFIG
 import numpy as np
 import sys
+import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
 
@@ -45,4 +46,16 @@ if __name__ == "__main__":
     final_table = Table.from_pandas(data_spec)
     final_table.write(output=f'{target_dir}/Products/RGS_Spectra/spectra_table_average.fits', format='fits', overwrite=True)
 
+    #histogram
+    data_spec_clean = data_spec.dropna()
+    data_spec_LP = data_spec_clean[data_spec_clean['ftest']<0.1] #threshold comes from Bhutta et al. 2018
+    data_spec_PL = data_spec_clean[data_spec_clean['ftest']>=0.1]
     
+    data_badarg = data_spec_clean[data_spec_clean['ftest']==-999.]
+    x = np.arange(3)
+    height = (len(data_spec_LP), len(data_spec_PL), len(data_badarg))
+    print(height)
+    fig = plt.figure()
+    plt.bar(x=x, height=height)
+    plt.xticks(x, ('LogParabola', 'Powerlaw', 'Error'))
+    plt.show()
