@@ -571,6 +571,7 @@ class Observation:
 
     def filter_epic(self):
         """
+        Filter an EPIC event list for periods of high background flaring activity.
         """
         epic_timebinsize = 100 #s from 100 to 500
 
@@ -578,18 +579,28 @@ class Observation:
         for epic_mos_event in glob.glob(os.path.join(self.emdir, "*ImagingEvts.ds")):
 
             #Extract a single event, high energy light curve, from the event file to identify intervals of flaring particle background
-            evselect_rate = f"evselect table={epic_mos_event} withrateset=Y rateset={epic_mos_event[0,21]}_rate.fits maketimecolumn=Y timebinsize={epic_timebinsize} makeratecolumn=Y expression=' #XMMEA_EM && (PI>10000) && (PATTERN==0)'"
+            evselect_rate = f"evselect table={epic_mos_event} withrateset=Y rateset={epic_mos_event[0,26]}_rate.fits maketimecolumn=Y timebinsize={epic_timebinsize} makeratecolumn=Y expression='#XMMEA_EM && (PI>10000) && (PATTERN==0)'"
             status_evselect_rate = run_command(evselect_rate)
             
             #Create the corresponding GTI file
-            tabgtigen = f"tabgtigen table={epic_mos_event[0,21]}_rate.fits expression='RATE<=0.35' gtiset={epic_mos_event[0,21]}_gti.fits"
+            tabgtigen = f"tabgtigen table={epic_mos_event[0,26]}_rate.fits expression='RATE<=0.35' gtiset={epic_mos_event[0,26]}_gti.fits"
             status_tabgtigen = run_command(tabgtigen)
 
             #Filter the event list
-            evelect_clean = f"evselect table={epic_mos_event} withfilteredset=Y filteredset={epic_mos_event[0,21]}_clean.fits destruct=Y keepfilteroutput=T expression='#XMMEA_EM && gti({epic_mos_event[0,21]}_gti.fits,TIME) && (PI>150)'"
+            evselect_clean = f"evselect table={epic_mos_event} withfilteredset=Y filteredset={epic_mos_event[0,26]}_clean.fits destruct=Y keepfilteroutput=T expression='#XMMEA_EM && gti({epic_mos_event[0,26]}_gti.fits,TIME) && (PI>150)'"
+            status_evselect_clean = run_command(evselect_clean)
 
+        #PN data
+        for epic_pn_event in gob.glob(os.path.join(self.epdir, "*TimingEvts.ds")):
+            evselct_rate_pn = f"evselect table={epic_pn_event} withrateset=Y rateset={epic_pn_event[0,24]}_rate.fits maketimecolumn=Y timebinsize={epic_timebinsize} makeratecolumn=Y expression=' #XMMEA_EP && (PI>10000&&PI<12000) && (PATTERN==0)'"
+            status_evselect_rate_pn = run_command(evselct_rate_pn)]
 
-            #PN data
+            tabgtigen_pn = f"tabgtigen table={epic_pn_event[0,24]}_rate.fits expression='RATE<=0.4' gtiset={epic_pn_event[0,24]}_gti.fits"
+            status_tabgtigen_pn = run_command(tabgtigen_pn)
+
+            evselect_clean_pn = f"evselect table={epic_pn_event} withfilteredset=Y filteredset={epic_pn_event[0,24]}_clean.fits destruct=Y keepfilteroutput=T expression='#XMMEA_EP && gti({epic_pn_event[0,24]}_gti.fits,TIME) && (PI>150)'"
+            status_evselect_clean_pn = run_command(evselect_clean_pn)
+
 
 
     def fracvartest(self, screen=True, netlightcurve=True):
