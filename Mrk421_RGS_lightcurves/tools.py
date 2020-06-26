@@ -82,6 +82,7 @@ def sort_rgs_list(l, variable='expo_number'):
     
     return [sorted_l[x:x+2] for x in range(0, len(sorted_l), 2)]
 
+
 class RangeException(Exception):
     """
     Custom Exception to check if array lengths are the same.
@@ -97,6 +98,7 @@ class RangeException(Exception):
             return 'RangeException, {0} '.format(self.message)
         else:
             return 'RangeException has been raised.'
+
 
 class NoDataException(Exception):
     """

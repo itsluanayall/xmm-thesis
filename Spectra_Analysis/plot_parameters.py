@@ -132,6 +132,7 @@ if __name__ == "__main__":
             plt.ylabel('$F_{var}$', fontsize=15)
             plt.show()
     
+
     if args.rate:
 
         if args.phoindex: #user wants phoindex vs rate
@@ -175,6 +176,7 @@ if __name__ == "__main__":
             plt.ylabel('beta', fontsize=15)
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "beta_vs_rate.png"))
     
+
     if not args.fvar and not args.rate:
         if args.phoindex and if args.beta:
             data_spec_zlogp = data_spec_zlogp[data_spec_zlogp['phoindex_up']!=0.]
@@ -195,6 +197,7 @@ if __name__ == "__main__":
             plt.xlabel('beta', fontsize=15)
             plt.ylabel('alpha', fontsize=15)
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "alpha_vs_beta.png"))
+
 
     if args.panel and args.bins:
 

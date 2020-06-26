@@ -1,0 +1,48 @@
+import logging
+import os
+import glob
+import xspec
+from astropy.table import Table
+from config import CONFIG
+import numpy as np
+import sys
+
+if __name__ == "__main__":
+
+    target_dir = CONFIG['target_dir'] 
+    products_dir = os.path.join(target_dir, "Products")
+    if not os.path.isdir(os.path.join(target_dir, "Products", "Plots_spectra")):
+        os.makedirs(os.path.join(target_dir, "Products", "Plots_spectra"))
+
+    #Read spectral data 
+    hdul_spec = Table.read(os.path.join(products_dir, "RGS_Spectra", "spectra_table.fits"), hdu=1)
+    data_spec = hdul_spec.to_pandas()
+    data_spec = data_spec[data_spec['tbinid'] == 0]   #Use only average spectra
+
+    #Make ftest array
+    ftest_array = []
+
+    i = 0
+    while i<len(data_spec):
+        if data_spec['model'].values[i]=='constant*TBabs*zlogp':
+            chi2_lp = data_spec['chi2'].values[i]
+            chi2_pw = data_spec['chi2'].values[i+1]
+            dof_lp = data_spec['dof'].values[i]
+            dof_pw = data_spec['dof'].values[i+1]
+        elif data_spec['model'].values[i]=='constant*TBabs*zpowe':
+            chi2_lp = data_spec['chi2'].values[i+1]
+            chi2_pw = data_spec['chi2'].values[i]
+            dof_lp = data_spec['dof'].values[i+1]
+            dof_pw = data_spec['dof'].values[i]
+
+        print(f"Observation {data_spec['obsid'].values[i]}, exposures {data_spec['exposures_id'].values[i]}, logparabola vs powerlaw fstatistic" )
+        fstatistic = xspec.Fit.ftest(chi2_lp, int(dof_lp), chi2_pw, int(dof_pw))
+        ftest_array.append(fstatistic)
+        ftest_array.append(np.nan)
+        i+=2
+
+    data_spec['ftest'] = np.array(ftest_array)
+    final_table = Table.from_pandas(data_spec)
+    final_table.write(output=f'{target_dir}/Products/RGS_Spectra/spectra_table_average.fits', format='fits', overwrite=True)
+
+    

@@ -340,7 +340,8 @@ if __name__ == "__main__":
 
         title = 'Long-term X-ray Variability Lightcurve'
         plot(data['MJD_avg_time'].values ,data['RGS_Rate'].values, dy=data['RGS_erate'].values, title=title, xlabel='MJD', ylabel='Mean Rate [ct/s]', output_folder=f"{target_dir}/Products/Plots_timeseries" )
-        
+
+
     if MAKE_FVAR_PLOTS:
         # FRACTIONAL VARIABILITY PLOTS
         hdul = Table.read(f"{target_dir}/Products/RGS_Lightcurves/obs_table.fits", hdu=1)    
@@ -412,7 +413,7 @@ if __name__ == "__main__":
         data_lc.to_csv(f"{target_dir}/Products/Plots_timeseries/data_lc.csv")
 
 
-    #Plot time distribution
+        #Plot time distribution
         year_array = []
         for mjd in data_lc['MJD'].values:
             if mjd<51910:

@@ -37,3 +37,4 @@ if __name__ == "__main__":
         obs.odfingest()
         obs.emproc()
         obs.epproc()
+        obs.filter_epic()

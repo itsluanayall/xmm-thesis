@@ -602,7 +602,6 @@ class Observation:
             status_evselect_clean_pn = run_command(evselect_clean_pn)
 
 
-
     def fracvartest(self, screen=True, netlightcurve=True):
         """
         Reads the FITS file containing the RGS source and background timeseries produced by rgslccorr. 
