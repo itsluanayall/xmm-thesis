@@ -45,17 +45,16 @@ if __name__ == "__main__":
     fvar_flux_logpar = fvar_flux_logpar[fvar_flux_logpar['fvar']!=-1.]
     fvar_flux_pow = fvar_flux_pow[fvar_flux_pow['fvar']!= -1.]
 
-    #axs[0].errorbar(data_spec_zlogp['flux'].values, data_lc['F_var'].values, yerr=data_lc['F_var_sigma'].values, xerr=(flux_bot_logpar, flux_top_logpar), color='b', linestyle='', marker='.', markersize=0.5, ecolor='b', label='zlogpar')
-    #axs[0].errorbar(data_spec_zpowe['flux'].values, data_lc['F_var'].values, yerr=data_lc['F_var_sigma'].values, xerr=(flux_bot_pow, flux_top_pow), color='red', linestyle='', marker='.', markersize=0.5, ecolor='red', label='zpowerlaw')
-    axs[0].errorbar(data=fvar_flux_logpar, x='flux', y='fvar', yerr='fvar_err', xerr=('xerr_bot', 'xerr_top'), color='b', linestyle='', marker='.', markersize=0.5, ecolor='b', label='zlogpar')
-    axs[0].errorbar(data=fvar_flux_pow, x='flux', y='fvar', yerr='fvar_err', xerr=('xerr_bot', 'xerr_top'), color='b', linestyle='', marker='.', markersize=0.5, ecolor='b', label='zpowerlaw')
+    axs[0].errorbar(data=fvar_flux_logpar, x='flux', y='fvar', yerr='fvar_err', xerr=(fvar_flux_logpar['xerr_bot'].values, fvar_flux_logpar['xerr_top'].values), color='b', linestyle='', ecolor='cornflowerblue', fmt='.', markersize=3, elinewidth=1, capsize=2, capthick=1, label='zlogpar')
+    axs[0].errorbar(data=fvar_flux_pow, x='flux', y='fvar', yerr='fvar_err', xerr=(fvar_flux_pow['xerr_bot'].values, fvar_flux_pow['xerr_top'].values), color='red', ecolor='lightcoral', fmt='.', markersize=3, elinewidth=1, capsize=2, capthick=1, linestyle='', label='zpowerlaw')
 
     axs[0].grid(True)
     axs[0].set_ylabel('$F_{var}$', fontsize=15)
     axs[0].set_xlabel('Flux [cm$^{-2}$ erg s$^{-1}$]', fontsize=15)
     axs[0].legend()
 
-    axs[1].errorbar(data_lc['RGS_Rate'].values, data_lc['F_var'].values, yerr=data_lc['F_var_sigma'].values, color='black', linestyle='', marker='.', ecolor='gray')
+    data_lc = data_lc[data_lc['F_var']!=-1.]
+    axs[1].errorbar(data_lc['RGS_Rate'].values, data_lc['F_var'].values, yerr=data_lc['F_var_sigma'].values, color='black', linestyle='', ecolor='gray', fmt='.', markersize=3, elinewidth=1, capsize=2, capthick=1)
     axs[1].grid(True)
     axs[1].set_ylabel('$F_{var}$', fontsize=15)
     axs[1].set_xlabel('Rate [ct/s]', fontsize=15)

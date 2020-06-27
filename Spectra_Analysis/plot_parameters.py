@@ -1,4 +1,5 @@
 import os
+import glob
 import matplotlib.pyplot as plt
 from config import CONFIG
 from astropy.table import Table
@@ -7,6 +8,7 @@ import seaborn as sns
 from argparse import ArgumentParser
 import matplotlib.lines as mlines
 from matplotlib.patches import Patch
+from tools import *
 
 parser = ArgumentParser()
 parser.add_argument("--phoindex", action="store_true", 
@@ -89,15 +91,15 @@ if __name__ == "__main__":
             # Plot
             fig, axs =plt.subplots(1, 1, figsize=(10,10), gridspec_kw={'hspace':0.4})
             axs.errorbar(df_plot_zlogp_high['alpha'].values, df_plot_zlogp_high['fvar'].values, yerr=df_plot_zlogp_high['fvar_err'].values,
-                        xerr = (df_plot_zlogp_high['alpha_bot'].values, df_plot_zlogp_high['alpha_top'].values), color='b', linestyle='', marker='+', markersize=0.5, ecolor='b')
+                        xerr = (df_plot_zlogp_high['alpha_bot'].values, df_plot_zlogp_high['alpha_top'].values), color='b', linestyle='', marker='+', markersize=10, ecolor='cornflowerblue', elinewidth=1, capsize=2, capthick=1)
             axs.errorbar(df_plot_zlogp_low['alpha'].values, df_plot_zlogp_low['fvar'].values, yerr=df_plot_zlogp_low['fvar_err'].values,
-                        xerr = (df_plot_zlogp_low['alpha_bot'].values, df_plot_zlogp_low['alpha_top'].values), color='b', linestyle='', marker='x', markersize=0.5, ecolor='b')
+                        xerr = (df_plot_zlogp_low['alpha_bot'].values, df_plot_zlogp_low['alpha_top'].values), color='b', linestyle='', marker='x', markersize=10, ecolor='cornflowerblue', elinewidth=1, capsize=2, capthick=1)
             
             
             axs.errorbar(df_plot_zpowe_high['phoindex'].values, df_plot_zpowe_high['fvar'].values, yerr=df_plot_zpowe_high['fvar_err'].values,
-                        xerr = (df_plot_zpowe_high['phoindex_bot'].values, df_plot_zpowe_high['phoindex_top'].values), color='red', linestyle='', marker='+', markersize=0.5, ecolor='red')
+                        xerr = (df_plot_zpowe_high['phoindex_bot'].values, df_plot_zpowe_high['phoindex_top'].values), color='red', linestyle='', marker='+', markersize=10, ecolor='lightcoral', elinewidth=1, capsize=2, capthick=1)
             axs.errorbar(df_plot_zpowe_low['phoindex'].values, df_plot_zpowe_low['fvar'].values, yerr=df_plot_zpowe_low['fvar_err'].values,
-                        xerr = (df_plot_zpowe_low['phoindex_bot'].values, df_plot_zpowe_low['phoindex_top'].values), color='red', linestyle='', marker='x', markersize=0.5, ecolor='red')
+                        xerr = (df_plot_zpowe_low['phoindex_bot'].values, df_plot_zpowe_low['phoindex_top'].values), color='red', linestyle='', marker='x', markersize=10, ecolor='lightcoral', elinewidth=1, capsize=2, capthick=1)
 
             axs.grid(True)
             axs.set_ylabel('$F_{var}$', fontsize=15)
@@ -115,7 +117,7 @@ if __name__ == "__main__":
             #Linear fit?
             
             #sns.lmplot(x="alpha", y="fvar", data=df_plot_zlogp, lowess=True)
-            plt.show()
+            plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "fvar_phoindex_correlations.png"))
 
         if args.beta: #user wants beta vs fvar
             df_plot_zlogp = pd.DataFrame({"fvar": data_lc['F_var'].values, "fvar_err": data_lc['F_var_sigma'].values, 'beta': data_spec_zlogp['beta'].values, 
@@ -126,12 +128,12 @@ if __name__ == "__main__":
 
             figure = plt.figure(figsize=(10,10))
             plt.errorbar(df_plot_zlogp['beta'].values, df_plot_zlogp['fvar'].values, yerr=df_plot_zlogp['fvar_err'].values,
-                        xerr = (df_plot_zlogp['beta_bot'].values, df_plot_zlogp['beta_top'].values), color='b', linestyle='', marker='.', markersize=0.5, ecolor='b', label='zlogpar')
+                        xerr = (df_plot_zlogp['beta_bot'].values, df_plot_zlogp['beta_top'].values), color='b', linestyle='', marker='.', markersize=5, ecolor='cornflowerblue', elinewidth=1, capsize=2, capthick=1, label='zlogpar')
             plt.grid()
             plt.xlabel('beta', fontsize=15)
             plt.ylabel('$F_{var}$', fontsize=15)
-            plt.show()
-    
+            plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "fvar_beta_correlations.png"))
+
 
     if args.rate:
 
@@ -178,7 +180,7 @@ if __name__ == "__main__":
     
 
     if not args.fvar and not args.rate:
-        if args.phoindex and if args.beta:
+        if args.phoindex and args.beta:
             data_spec_zlogp = data_spec_zlogp[data_spec_zlogp['phoindex_up']!=0.]
             df_plot_zlogp = pd.DataFrame({'alpha': data_spec_zlogp['phoindex'].values, 
                                             'alpha_top': data_spec_zlogp['phoindex_up'].values - data_spec_zlogp['phoindex'].values,
@@ -206,55 +208,62 @@ if __name__ == "__main__":
         total_lightcurve_rates = []
         total_lightcurve_errates = []
         total_lightcurve_times = []
-
+        observations = []
         for directory in os.listdir(target_dir):
             if directory.startswith('0'):
                 os.chdir(f"{target_dir}/{directory}/rgs")
-
+                
                 for filename in glob.glob('*_RGS_rates.ds'):
                     x, y, yerr, fracexp, y_bg, yerr_bg = mask_fracexp15(filename)
-                    total_lightcurve_rates.extend(y)
-                    total_lightcurve_errates.extend(yerr)
-                    total_lightcurve_times.extend(x)
+                    total_lightcurve_rates.extend(y[:-1])
+                    total_lightcurve_errates.extend(yerr[:-1])
+                    total_lightcurve_times.extend(x[:-1])
+                    observations.extend([int(directory) for i in range(len(x)-1)])
             
         total_lightcurve_rates = np.asarray(total_lightcurve_rates)
         total_lightcurve_errates = np.asarray(total_lightcurve_errates)
         total_lightcurve_times = np.asarray(total_lightcurve_times)
-        
-        data_lc = pd.DataFrame({"RATE":total_lightcurve_rates, "TIME":total_lightcurve_times, "ERROR":total_lightcurve_errates})
+        observations = np.asarray(observations)
+      
+        data_lc = pd.DataFrame({"RATE":total_lightcurve_rates, "TIME":total_lightcurve_times, "ERROR":total_lightcurve_errates, "OBSERVATION":observations})
         data_lc = data_lc.sort_values(by=['TIME'])
         data_lc = data_lc.reset_index(drop=True)
         data_lc = data_lc.reset_index()
-
+        
         if args.logpar:
             pass
 
         if args.powerlaw:
-            df_plot_powerlaw = pd.DataFrame('tbinstart': data_spec_zpowe['tbinstart'].values, 'tbinstop:' data_spec_zpowe['tbinstop'].values , 'phoindex': data_spec_zpowe['phoindex'].values,
+
+            data_spec_zpowe = data_spec_zpowe[data_spec_zpowe['phoindex_up']!=0]
+            df_plot_powerlaw = pd.DataFrame({'tbinstart': data_spec_zpowe['tbinstart'].values, 'tbinstop': data_spec_zpowe['tbinstop'].values , 'phoindex': data_spec_zpowe['phoindex'].values,
                                             "phoindex_top": data_spec_zpowe['phoindex_up'].values - data_spec_zpowe['phoindex'].values,
                                             "phoindex_bot": data_spec_zpowe['phoindex'].values - data_spec_zpowe['phoindex_low'].values, 
                                             "nH": data_spec_zpowe['nH'].values, "nH_up": data_spec_zpowe['nH_up'].values, "nH_low": data_spec_zpowe['nH_low'].values,
                                             "nH_top": data_spec_zpowe['nH_up'].values - data_spec_zpowe['nH'].values,
-                                            "nH_bot": data_spec_zpowe['nH'].values - data_spec_zpowe['nH_low'].values)
+                                            "nH_bot": data_spec_zpowe['nH'].values - data_spec_zpowe['nH_low'].values,
+                                            "obsid": data_spec_zpowe['obsid'].values})
             
             #Order dataframe and reset index
-            df_plot_powerlaw = df_plot_powerlaw.sort_values(by=['tbinstart')
+            df_plot_powerlaw = df_plot_powerlaw.sort_values(by=['tbinstart'])
+            df_plot_powerlaw = df_plot_powerlaw[df_plot_powerlaw['nH_up']!=0]
             df_plot_powerlaw = df_plot_powerlaw.reset_index(drop=True)
             df_plot_powerlaw = df_plot_powerlaw.reset_index()
 
             #Upper limits on nH
             df_plot_nH_pegged = df_plot_powerlaw[df_plot_powerlaw['nH_low']<=1e-4]
             df_plot_powerlaw = df_plot_powerlaw[df_plot_powerlaw['nH_low']>1e-4]
-
-            #Plot panel
-            fig_pw, axs_pw = plt.subplots(3, 1, figsize=(15,20), sharex=True, gridspec_kw={'hspace':0, 'wspace':0})
             
-            axs_pw[0].errorbar('index', 'RATE', 'ERROR', data=data_lc, fmt='.', ecolor='gray', elinewidth=1, capsize=2, capthick=1)
+            #Plot panel            
+            fig_pw, axs_pw = plt.subplots(3, 1, figsize=(20,25), sharex=True, gridspec_kw={'hspace':0, 'wspace':0})
+            
+            
+            axs_pw[0].errorbar('index', 'RATE', 'ERROR', data=data_lc, ecolor='gray', linestyle='', color='black')
             axs_pw[1].errorbar('index', 'phoindex', yerr=(df_plot_powerlaw['phoindex_bot'].values, df_plot_powerlaw['phoindex_top'].values),
-                                data=df_plot_powerlaw, fmt='.', ecolor='gray', elinewidth=1, capsize=2, capthick=1)
+                                data=df_plot_powerlaw, ecolor='gray', linestyle='', color='black', capthick=1, elinewidth=1)
             axs_pw[2].errorbar('index', 'nH', yerr=(df_plot_powerlaw['nH_bot'].values, df_plot_powerlaw['nH_top'].values), data=df_plot_powerlaw,
-                                 fmt='.', ecolor='gray', elinewidth=1, capsize=2, capthick=1)
-            axs_pw[2].errorbar('index', 'nH_up', data=df_plot_nH_pegged, uplims=True)
+                                 ecolor='gray', linestyle='', color='black', capthick=1, elinewidth=1)
+            axs_pw[2].errorbar('index', 'nH_up', yerr='nH_top', data=df_plot_nH_pegged, uplims=True, linestyle='', capthick=1, elinewidth=1, ecolor='gray')
 
             axs_pw[0].grid()
             axs_pw[1].grid()
@@ -262,3 +271,7 @@ if __name__ == "__main__":
             axs_pw[0].set_ylabel("Rate [ct/s]")
             axs_pw[1].set_ylabel("phoindex")
             axs_pw[2].set_ylabel("nH [$10^22$ g/cm$^2$]")
+            plt.margins(0)
+            plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "panel_powerlaw.png"))
+            plt.show()
+            

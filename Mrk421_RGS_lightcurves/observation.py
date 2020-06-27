@@ -1321,7 +1321,7 @@ class Observation:
                     segment_df = data[(data['TIME']<t+segment) & (data['TIME']>t)]
                     n_in_segment = len(segment_df)
                     
-                    if n_in_segment <= N/2:
+                    if n_in_segment <= N/3:
                         t += segment
                         continue
 
@@ -1374,7 +1374,7 @@ class Observation:
                     segment_df = data[(data['TIME']<t+segment) & (data['TIME']>t)]
                     n_in_segment = len(segment_df)
                     
-                    if n_in_segment <= N/2:
+                    if n_in_segment <= N/3:
                         t += segment
                         continue
 
@@ -1467,7 +1467,7 @@ class Observation:
                     segment_df = data[(data['TIME']<t+segment) & (data['TIME']>t)]
                     n_in_segment = len(segment_df)
     
-                    if n_in_segment <= M/2 :
+                    if n_in_segment <= M/3 :
                         t += segment
                         continue
 

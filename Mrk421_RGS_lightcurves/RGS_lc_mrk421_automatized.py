@@ -159,16 +159,19 @@ if __name__ == "__main__":
     plt.hist(duration_lc_ks, bins=40)
     plt.savefig(f'{target_dir}/Products/RGS_Lightcurves/distribution_expos_duration_ks.png')
     plt.close()
+    
     #Combined long observations xs vs rate
     os.chdir(os.path.join(target_dir, 'Products', 'Plots_timeseries'))
     fig_xs_rate, axs  = plt.subplots(2, 1, figsize=(8, 8), sharex=True, gridspec_kw={'hspace':0.1})   
     
     for filename in glob.glob('*.{}'.format("csv")):
-        df_xs_rate = pd.read_csv(filename) #read csv file of single observation
-        rgb = '#%06X' % random.randint(0, 0xFFFFFF)  #create random color
-        axs[0].errorbar(data=df_xs_rate, x='rate', y='xs', yerr='xs_err', xerr='erate', fmt='.', markersize=10, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color=rgb, label=df_xs_rate['observation'][0])
-        axs[1].errorbar(data=df_xs_rate, x='rate', y='fvar', yerr='fvar_err', xerr='erate', fmt='.', markersize=10, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color=rgb, label=df_xs_rate['observation'][0])
-    
+        if filename!='data_lc.csv':
+            df_xs_rate = pd.read_csv(filename) #read csv file of single observation
+            rgb = '#%06X' % random.randint(0, 0xFFFFFF)  #create random color
+            print(df_xs_rate)
+            axs[0].errorbar(data=df_xs_rate, x='rate', y='xs', yerr='xs_err', xerr='erate', fmt='.', markersize=10, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color=rgb, label=df_xs_rate['observation'][0])
+            axs[1].errorbar(data=df_xs_rate, x='rate', y='fvar', yerr='fvar_err', xerr='erate', fmt='.', markersize=10, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color=rgb, label=df_xs_rate['observation'][0])
+        
     axs[0].legend(title='Observation ID', fancybox=True)
     axs[0].set_ylabel('$<\sigma_{XS}^2>$')
     axs[0].grid()
