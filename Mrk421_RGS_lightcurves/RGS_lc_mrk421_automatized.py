@@ -168,7 +168,6 @@ if __name__ == "__main__":
         if filename!='data_lc.csv':
             df_xs_rate = pd.read_csv(filename) #read csv file of single observation
             rgb = '#%06X' % random.randint(0, 0xFFFFFF)  #create random color
-            print(df_xs_rate)
             axs[0].errorbar(data=df_xs_rate, x='rate', y='xs', yerr='xs_err', xerr='erate', fmt='.', markersize=10, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color=rgb, label=df_xs_rate['observation'][0])
             axs[1].errorbar(data=df_xs_rate, x='rate', y='fvar', yerr='fvar_err', xerr='erate', fmt='.', markersize=10, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color=rgb, label=df_xs_rate['observation'][0])
         

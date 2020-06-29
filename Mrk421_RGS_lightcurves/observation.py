@@ -1352,13 +1352,14 @@ class Observation:
                 
                 conf90_positive = np.mean(mean_xs)*(10**(0.46)) # confidence intervals 90% given by Vaughan, 2003 (Table 1)
                 conf90_negative = np.mean(mean_xs)*(10**(-0.78))
-                #conf99_positive = np.mean(mean_xs)*(10**(0.75)) # confidence intervals 99%
-                #conf99_negative = np.mean(mean_xs)*(10**(-1.16))
+                conf99_positive = np.mean(mean_xs)*(10**(0.75)) # confidence intervals 99%
+                conf99_negative = np.mean(mean_xs)*(10**(-1.16))
 
                 axs[3].errorbar(meanx2_times, mean_xs, mean_xs_err, xerr=meanx2_times_err,  linestyle='', color='black', marker='.', ecolor='gray')
                 axs[3].hlines((conf90_positive, conf90_negative), t_in, t_fin, color='black', linestyle=':')
-                #axs[3].hlines((conf99_positive, conf99_negative), plt.xlim()[0], plt.xlim()[1], color='black', linestyle='--')
+                axs[3].hlines((conf99_positive, conf99_negative), t_in, t_fin, color='black', linestyle='--')
                 axs[3].grid()
+                axs[3].set_yscale('log')
                 axs[3].set_ylabel('$<\sigma_{XS}^2>$', fontsize=10)
 
                 #Subplot F_var
@@ -1413,7 +1414,6 @@ class Observation:
                 meanx2_times_err = np.array(meanx2_times_err)
                 fvar_err_mean_arr = np.array(fvar_err_mean_arr)
                 avg_value_fvar = np.mean(fvar_mean_arr)
-                #meanx2_times = meanx2_times - meanx2_times[0]
 
                 # Initial values
                 initial_values =(avg_value_fvar)
@@ -1432,18 +1432,15 @@ class Observation:
 
 
                 #90% confidence intervals 
-                #conf90_positive = q0[0]*(10**((0.46 -np.log(np.mean(mean_data)))/2. ))
-                #conf90_negative = q0[0]*(10**((-0.78 -np.log(np.mean(mean_data)))/2. ))
-                #conf99_positive = q0[0]*(10**((0.75 -np.log(np.mean(mean_data)))/2. ))
-                #conf99_negative = q0[0]*(10**((-1.16 -np.log(np.mean(mean_data)))/2. ))
                 conf90_positive = q0[0]*10**(0.46/2.)
                 conf90_negative = q0[0]*10**(-0.78/2.)
+                conf99_positive = q0[0]*10**(0.75/2.)
+                conf99_negative = q0[0]*10**(-1.16/2.)
                 axs[5].hlines((conf90_positive, conf90_negative), t_in, t_fin, color='black', linestyle=':')
+                axs[5].hlines((conf99_positive, conf99_negative), t_in, t_fin, color='black', linestyle='--')
                 axs[5].hlines(q0, t_in, t_fin, color='red', label=f"Constant fit: {q0[0]:.3f} +- {dq[0]:.3f} \n $\chi^2$/ndof = {chisq:.2f} / {ndof}")
-            
-                #axs[5].hlines((conf99_positive, conf99_negative), plt.xlim()[0], plt.xlim()[1], color='black', linestyle='--')
-                #plt.subplots_adjust(left=0.0, bottom=0.1, right=0.0, top=0.8)
                 axs[5].legend()
+                axs[5].set_yscale('log')
                 plt.savefig(f'{self.target_dir}/Products/Plots_timeseries/{self.obsid}_{expos0.expid}+{expos1.expid}_variability_panel.png')
                 plt.close()
             
