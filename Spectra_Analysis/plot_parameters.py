@@ -29,6 +29,8 @@ parser.add_argument('--fvar', action='store_true',
                     help='make fvar plot')
 parser.add_argument('--rate', action='store_true',
                     help='make rate plot')
+parser.add_argument('--distribution', action='store_true',
+                    help='plot the distributions of low and high state parameters')
 parser.add_argument('--average', action='store_true',
                     help='use only average spectra')
 parser.add_argument('--bins', action='store_true',
@@ -352,6 +354,7 @@ if __name__ == "__main__":
             axs_logp[1].margins(0)
             axs_logp[2].margins(0)
             axs_logp[3].margins(0)
+            plt.xticks(ticks=year_endpoints, labels=labels, rotation=60)
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "panel_logpar.png"))
             plt.show()
             
@@ -406,4 +409,43 @@ if __name__ == "__main__":
             plt.xticks(ticks=year_endpoints, labels=labels, rotation=60)
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "panel_powerlaw.png"))
             plt.show()
-            
+    
+
+    if args.distribution:
+
+        if args.logpar:
+
+            # Separate data into low and high state (rate >20)
+            data_spec_zlogp = data_spec_zlogp[data_spec_zlogp['phoindex_up']!=0]
+            data_spec_zlogp_high = data_spec_zlogp[data_spec_zlogp['rate']>=20]
+            data_spec_zlogp_low = data_spec_zlogp[data_spec_zlogp['rate']<20]
+
+            # Plot distribution for alpha and beta 
+            fig, axs = plt.subplots(2, 2, figsize=(5,7), sharex=True, gridspec_kw={'hspace':0.1})
+            axs[0,0].hist(data_spec_zlogp_high['phoindex'].values, bins=15, color='red')
+            axs[1,0].hist(data_spec_zlogp_low['phoindex'].values, bins=15, color='blue')
+            axs[0,1].hist(data_spec_zlogp_high['beta'].values, bins=15, color='red')
+            axs[1,1].hist(data_spec_zlogp_low['beta'].values, bins=15, color='blue')
+            red_patch =  Patch(facecolor='red', edgecolor='black', label='high state')
+            blue_patch =  Patch(facecolor='b', edgecolor='black', label='low state')
+            axs[0,1].legend(handles=[red_patch, blue_patch], loc='upper right',  fancybox=True, shadow=True)
+            axs[1,0].set_xlabel('phoindex logparabola')
+            axs[1,1].set_xlabel('beta logparabola')
+            plt.show()
+
+        if args.powerlaw:
+
+            # Separate data into low and high state (rate >20)
+            data_spec_zpowe = data_spec_zpowe[data_spec_zpowe['phoindex_up']!=0]
+            data_spec_zpowe_high = data_spec_zpowe[data_spec_zpowe['rate']>=20]
+            data_spec_zpowe_low = data_spec_zpowe[data_spec_zpowe['rate']<20]
+
+            #Plot distribution only for photon index
+            fig, axs = plt.subplots(2, 1, figsize=(5,7), sharex=True, gridspec_kw={'hspace':0.1})
+            y_high, x_high, _ = axs[0].hist(data_spec_zpowe_high['phoindex'].values, bins=15, color='red')
+            y_low, x_low, _ = axs[1].hist(data_spec_zpowe_low['phoindex'].values, bins=15, color='blue')
+            red_patch =  Patch(facecolor='red', edgecolor='black', label='high state')
+            blue_patch =  Patch(facecolor='b', edgecolor='black', label='low state')
+            axs[0].legend(handles=[red_patch, blue_patch])
+            axs[0].set_xlabel('phoindex powerlaw')
+            plt.show()

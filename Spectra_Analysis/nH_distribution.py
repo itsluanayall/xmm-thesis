@@ -31,8 +31,8 @@ if __name__ == "__main__":
     nH_bot_powerlaw = data_spec_zpowe['nH'].values - data_spec_zpowe['nH_low'].values
 
 
-    g = (sns.jointplot("nH_logpar", "nH_powerlaw", data=data_distrib, space=0, color="skyblue", marker='.').plot_joint(sns.kdeplot,zorder=0, n_levels=6))
-    plt.errorbar(data_distrib.nH_logpar, data_distrib.nH_powerlaw, linestyle='', ecolor='gray', alpha=0.4, xerr=(nH_bot_logpar, nH_top_logpar), yerr=(nH_bot_powerlaw, nH_top_powerlaw))
+    g = (sns.jointplot("nH_logpar", "nH_powerlaw", data=data_distrib, space=0, color="royalblue", marker='.').plot_joint(sns.kdeplot,zorder=0, n_levels=6))
+    plt.errorbar(data_distrib.nH_logpar, data_distrib.nH_powerlaw, linestyle='', ecolor='lightsteelblue', alpha=0.4, xerr=(nH_bot_logpar, nH_top_logpar), yerr=(nH_bot_powerlaw, nH_top_powerlaw))
     
     #Plot maximum (for now doesn't work)
     '''
