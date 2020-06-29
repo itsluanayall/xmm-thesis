@@ -36,12 +36,12 @@ def plot(x, y, title, xlabel, ylabel, output_folder, dy, dx=[]):
 
     if len(dx)==0:
         
-        plt.errorbar(x,y, yerr=dy, color='black', ecolor='gray', linestyle='', markersize=5, elinewidth=1, capsize=2, capthick=1)
+        plt.errorbar(x,y, yerr=dy, color='black', ecolor='gray', linestyle='', fmt='.', markersize=5, elinewidth=1, capsize=2, capthick=1)
     
     else:
 
         #dx = dx[mask_nan]
-        plt.errorbar(x,y, yerr=dy, xerr=dx, color='black', ecolor='gray', linestyle='', markersize=5, elinewidth=1, capsize=2, capthick=1)
+        plt.errorbar(x,y, yerr=dy, xerr=dx, color='black', ecolor='gray', fmt='.', linestyle='', markersize=5, elinewidth=1, capsize=2, capthick=1)
     
     plt.grid(True)
     plt.title(title, fontsize=20)
