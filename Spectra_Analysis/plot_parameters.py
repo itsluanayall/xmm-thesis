@@ -1,3 +1,13 @@
+"""
+Welcome to plot_parameters.py! This scripts allows you to make some interesting plot regarding the spectral
+parameters (phoindex, beta...) of blazars. Possible options are:
+
+ --fvar --phoindex (--beta) --average, 
+ --rate --phoindex (--beta) --bins, 
+ --phoindex --beta, 
+ --panel --bins --logpar (--powerlaw) 
+"""
+
 import os
 import glob
 import matplotlib.pyplot as plt
@@ -10,7 +20,7 @@ import matplotlib.lines as mlines
 from matplotlib.patches import Patch
 from tools import *
 
-parser = ArgumentParser()
+parser = ArgumentParser(description=__doc__)
 parser.add_argument("--phoindex", action="store_true", 
                     help="make phoindex  plot")
 parser.add_argument('--beta', action='store_true',
@@ -89,7 +99,7 @@ if __name__ == "__main__":
             df_plot_zpowe_low =  df_plot_zpowe[df_plot_zpowe['fvar']<=3*df_plot_zpowe['fvar_err']]
             
             # Plot
-            fig, axs =plt.subplots(1, 1, figsize=(10,10), gridspec_kw={'hspace':0.4})
+            fig, axs =plt.subplots(1, 1, figsize=(5,5), gridspec_kw={'hspace':0.4})
             axs.errorbar(df_plot_zlogp_high['alpha'].values, df_plot_zlogp_high['fvar'].values, yerr=df_plot_zlogp_high['fvar_err'].values,
                         xerr = (df_plot_zlogp_high['alpha_bot'].values, df_plot_zlogp_high['alpha_top'].values), color='b', linestyle='', marker='+', markersize=10, ecolor='cornflowerblue', elinewidth=1, capsize=2, capthick=1)
             axs.errorbar(df_plot_zlogp_low['alpha'].values, df_plot_zlogp_low['fvar'].values, yerr=df_plot_zlogp_low['fvar_err'].values,
@@ -126,7 +136,7 @@ if __name__ == "__main__":
                                           "obsid": data_lc['ObsId'].values})
             df_plot_zlogp = df_plot_zlogp[df_plot_zlogp['fvar'] != -1.]
 
-            figure = plt.figure(figsize=(10,10))
+            figure = plt.figure(figsize=(5,5))
             plt.errorbar(df_plot_zlogp['beta'].values, df_plot_zlogp['fvar'].values, yerr=df_plot_zlogp['fvar_err'].values,
                         xerr = (df_plot_zlogp['beta_bot'].values, df_plot_zlogp['beta_top'].values), color='b', linestyle='', marker='.', markersize=5, ecolor='cornflowerblue', elinewidth=1, capsize=2, capthick=1, label='zlogpar')
             plt.grid()
@@ -225,13 +235,126 @@ if __name__ == "__main__":
         total_lightcurve_times = np.asarray(total_lightcurve_times)
         observations = np.asarray(observations)
       
-        data_lc = pd.DataFrame({"RATE":total_lightcurve_rates, "TIME":total_lightcurve_times, "ERROR":total_lightcurve_errates, "OBSERVATION":observations})
+        # Conversion of times (from MET to MJD)
+        total_lightcurve_times_mjd = MJDREF + (total_lightcurve_times/86400.0)
+
+        data_lc = pd.DataFrame({"RATE":total_lightcurve_rates, "TIME":total_lightcurve_times, "ERROR":total_lightcurve_errates, "MJD": total_lightcurve_times_mjd, "OBSERVATION":observations})
         data_lc = data_lc.sort_values(by=['TIME'])
+        
+        #Add year column to dataframe
+        year_array = []
+        for mjd in data_lc['MJD'].values:
+            if mjd<51910:
+                year_array.append(int(2000))
+            elif mjd<52275:
+                year_array.append(int(2001))
+            elif mjd<52640:
+                year_array.append(int(2002))
+            elif mjd<53005:
+                year_array.append(int(2003))
+            elif mjd<53371:
+                year_array.append(int(2004))
+            elif mjd<53736:
+                year_array.append(int(2005))
+            elif mjd<54101:
+                year_array.append(int(2006))
+            elif mjd<54466:
+                year_array.append(int(2007))
+            elif mjd<54832:
+                year_array.append(int(2008))
+            elif mjd<55197:
+                year_array.append(int(2009))
+            elif mjd<55562:
+                year_array.append(int(2010))
+            elif mjd<55927:
+                year_array.append(int(2011))
+            elif mjd<56293:
+                year_array.append(int(2012))
+            elif mjd<56658:
+                year_array.append(int(2013))
+            elif mjd<57023:
+                year_array.append(int(2014))
+            elif mjd<57388:
+                year_array.append(int(2015))
+            elif mjd<57754:
+                year_array.append(int(2016))
+            elif mjd<58119:
+                year_array.append(int(2017))
+            elif mjd<58484:
+                year_array.append(int(2018))
+            elif mjd<58849:
+                year_array.append(int(2019))
+
+        data_lc['YEAR'] = year_array  
         data_lc = data_lc.reset_index(drop=True)
         data_lc = data_lc.reset_index()
         
+        #indexes where to place the xticks in the plot
+        year_endpoints = []
+        for i in range(1, len(data_lc)):
+            if data_lc['YEAR'][i] != data_lc['YEAR'][i-1]:
+                year_endpoints.append(data_lc['index'][i])
+        labels = np.linspace(start=2000,stop=2019,num=20,dtype=int)
+        labels = np.delete(labels, [12,13])  #delete year 2012 and 2013
+        year_endpoints = np.array(year_endpoints)
+        year_endpoints = np.insert(year_endpoints, 0, values=0)
+        
         if args.logpar:
-            pass
+            data_spec_zlogp = data_spec_zlogp[data_spec_zlogp['phoindex_up']!=0]
+            df_plot_zlogp = pd.DataFrame({'tbinstart': data_spec_zlogp['tbinstart'].values, 'tbinstop': data_spec_zlogp['tbinstop'].values , 'phoindex': data_spec_zlogp['phoindex'].values,
+                                            "phoindex_top": data_spec_zlogp['phoindex_up'].values - data_spec_zlogp['phoindex'].values,
+                                            "phoindex_bot": data_spec_zlogp['phoindex'].values - data_spec_zlogp['phoindex_low'].values, 
+                                            "beta": data_spec_zlogp['beta'].values, "beta_top": data_spec_zlogp['beta_up'].values - data_spec_zlogp['beta'].values,
+                                            "beta_bot": data_spec_zlogp['beta'].values - data_spec_zlogp['beta_low'].values,
+                                            "nH": data_spec_zlogp['nH'].values, "nH_up": data_spec_zlogp['nH_up'].values, "nH_low": data_spec_zlogp['nH_low'].values,
+                                            "nH_top": data_spec_zlogp['nH_up'].values - data_spec_zlogp['nH'].values,
+                                            "nH_bot": data_spec_zlogp['nH'].values - data_spec_zlogp['nH_low'].values,
+                                            "obsid": data_spec_zlogp['obsid'].values})
+            #Order dataframe and reset index
+            df_plot_zlogp = df_plot_zlogp.sort_values(by=['tbinstart'])
+            df_plot_zlogp = df_plot_zlogp[df_plot_zlogp['nH_up']!=0]
+            df_plot_zlogp = df_plot_zlogp.reset_index(drop=True)
+            df_plot_zlogp = df_plot_zlogp.reset_index()
+
+            #Upper limits on nH
+            df_plot_nH_pegged = df_plot_zlogp[df_plot_zlogp['nH_low']<=1e-4]
+            df_plot_zlogp = df_plot_zlogp[df_plot_zlogp['nH_low']>1e-4]
+
+            #Plot panel            
+            fig_logp, axs_logp = plt.subplots(4, 1, figsize=(16,13), sharex=True, gridspec_kw={'hspace':0, 'wspace':0})
+    
+            axs_logp[0].errorbar('index', 'RATE', 'ERROR', data=data_lc, ecolor='black', linestyle='', color='black')
+            axs_logp[1].errorbar('index', 'phoindex', yerr=(df_plot_zlogp['phoindex_bot'].values, df_plot_zlogp['phoindex_top'].values),
+                                data=df_plot_zlogp, ecolor='black', linestyle='', color='black', capthick=1, elinewidth=1)
+            axs_logp[2].errorbar('index', 'beta', yerr=(df_plot_zlogp['beta_bot'].values, df_plot_zlogp['beta_top'].values),
+                                data=df_plot_zlogp, ecolor='black', linestyle='', color='black', capthick=1, elinewidth=1)
+            axs_logp[3].errorbar('index', 'nH', yerr=(df_plot_zlogp['nH_bot'].values, df_plot_zlogp['nH_top'].values), data=df_plot_zlogp,
+                                 ecolor='black', linestyle='', color='black', capthick=1, elinewidth=1)
+            axs_logp[3].errorbar('index', 'nH_up', yerr='nH_top', data=df_plot_nH_pegged, uplims=True, linestyle='', capthick=1, elinewidth=1, ecolor='black')
+
+            #Add vertical lines separating years
+            axs_logp[0].vlines(year_endpoints, 0, 60, colors='r', linestyles='solid')
+            axs_logp[1].vlines(year_endpoints, 1, 3.6, colors='r', linestyles='solid')
+            axs_logp[2].vlines(year_endpoints, -0.7, 2, colors='r', linestyles='solid')
+            axs_logp[3].vlines(year_endpoints, -0.015, 0.145, colors='r', linestyles='solid')
+            
+            #Bellurie
+            axs_logp[0].grid()
+            axs_logp[1].grid()
+            axs_logp[2].grid()
+            axs_logp[3].grid()
+            axs_logp[0].set_ylabel("Rate [ct/s]")
+            axs_logp[1].set_ylabel("phoindex")
+            axs_logp[2].set_ylabel("beta")
+            axs_logp[3].set_ylabel("nH [$10^{22}$ g/cm$^2$]")
+            axs_logp[3].set_xlabel("Year")
+            axs_logp[0].margins(0)
+            axs_logp[1].margins(0)
+            axs_logp[2].margins(0)
+            axs_logp[3].margins(0)
+            plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "panel_logpar.png"))
+            plt.show()
+            
 
         if args.powerlaw:
 
@@ -255,23 +378,32 @@ if __name__ == "__main__":
             df_plot_powerlaw = df_plot_powerlaw[df_plot_powerlaw['nH_low']>1e-4]
             
             #Plot panel            
-            fig_pw, axs_pw = plt.subplots(3, 1, figsize=(20,25), sharex=True, gridspec_kw={'hspace':0, 'wspace':0})
-            
-            
-            axs_pw[0].errorbar('index', 'RATE', 'ERROR', data=data_lc, ecolor='gray', linestyle='', color='black')
+            fig_pw, axs_pw = plt.subplots(3, 1, figsize=(16,12), sharex=True, gridspec_kw={'hspace':0, 'wspace':0})
+    
+            axs_pw[0].errorbar('index', 'RATE', 'ERROR', data=data_lc, ecolor='black', linestyle='', color='black')
             axs_pw[1].errorbar('index', 'phoindex', yerr=(df_plot_powerlaw['phoindex_bot'].values, df_plot_powerlaw['phoindex_top'].values),
-                                data=df_plot_powerlaw, ecolor='gray', linestyle='', color='black', capthick=1, elinewidth=1)
+                                data=df_plot_powerlaw, ecolor='black', linestyle='', color='black', capthick=1, elinewidth=1)
             axs_pw[2].errorbar('index', 'nH', yerr=(df_plot_powerlaw['nH_bot'].values, df_plot_powerlaw['nH_top'].values), data=df_plot_powerlaw,
-                                 ecolor='gray', linestyle='', color='black', capthick=1, elinewidth=1)
-            axs_pw[2].errorbar('index', 'nH_up', yerr='nH_top', data=df_plot_nH_pegged, uplims=True, linestyle='', capthick=1, elinewidth=1, ecolor='gray')
+                                 ecolor='black', linestyle='', color='black', capthick=1, elinewidth=1)
+            axs_pw[2].errorbar('index', 'nH_up', yerr='nH_top', data=df_plot_nH_pegged, uplims=True, linestyle='', capthick=1, elinewidth=1, ecolor='black')
 
+            #Add vertical lines separating years
+            axs_pw[0].vlines(year_endpoints, 0, 60, colors='r', linestyles='solid')
+            axs_pw[1].vlines(year_endpoints, 1.5, 3.7, colors='r', linestyles='solid')
+            axs_pw[2].vlines(year_endpoints, -0.015, 0.145, colors='r', linestyles='solid')
+            
+            #Bellurie
             axs_pw[0].grid()
             axs_pw[1].grid()
             axs_pw[2].grid()
             axs_pw[0].set_ylabel("Rate [ct/s]")
             axs_pw[1].set_ylabel("phoindex")
-            axs_pw[2].set_ylabel("nH [$10^22$ g/cm$^2$]")
-            plt.margins(0)
+            axs_pw[2].set_ylabel("nH [$10^{22}$ g/cm$^2$]")
+            axs_pw[2].set_xlabel("Year")
+            axs_pw[0].margins(0)
+            axs_pw[1].margins(0)
+            axs_pw[2].margins(0)
+            plt.xticks(ticks=year_endpoints, labels=labels, rotation=60)
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "panel_powerlaw.png"))
             plt.show()
             
