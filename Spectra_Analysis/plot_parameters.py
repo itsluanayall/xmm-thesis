@@ -45,6 +45,8 @@ parser.add_argument('--logpar', action='store_true',
                     help='use logparabola model to make the panel')
 parser.add_argument('--powerlaw', action='store_true',
                     help='use powerlaw model to make the panel')
+parser.add_argument('--state', action='store_true',
+                    help='make plot differentiating between low and high state')
 args = parser.parse_args()
 
 
@@ -196,9 +198,14 @@ if __name__ == "__main__":
     
 
     if args.flux:
+
         if args.phoindex: #user wants phoindex vs flux
+
+            #Logpar dataframe
+            data_spec_zlogp = data_spec_zlogp[data_spec_zlogp['flux_low']!=0.]
             data_spec_zlogp = data_spec_zlogp[data_spec_zlogp['phoindex_up']!=0.]
-            df_plot_zlogp = pd.DataFrame({"flux": data_spec_zlogp['flux'].values, "flux_top": data_spec_zlogp['flux_up'].values - data_spec_zlogp['flux'],
+            df_plot_zlogp = pd.DataFrame({"rate": data_spec_zlogp['rate'].values, "erate": data_spec_zlogp['erate'].values, 
+                                          "flux": data_spec_zlogp['flux'].values, "flux_top": data_spec_zlogp['flux_up'].values - data_spec_zlogp['flux'],
                                           'flux_bot': data_spec_zlogp['flux'].values - data_spec_zlogp['flux_low'],
                                           "flux_up": data_spec_zlogp['flux_up'].values, "flux_low":  data_spec_zlogp['flux_low'].values,
                                           'alpha': data_spec_zlogp['phoindex'].values, 
@@ -206,9 +213,11 @@ if __name__ == "__main__":
                                           'alpha_bot': data_spec_zlogp['phoindex'].values - data_spec_zlogp['phoindex_low'].values,
                                           "obsid": data_spec_zlogp['obsid'].values})
             
+            #Powerlaw dataframe
             data_spec_zpowe = data_spec_zpowe[data_spec_zpowe['phoindex_up']!=0.]
             data_spec_zpowe = data_spec_zpowe[data_spec_zpowe['flux_low']!=0]
-            df_plot_zpowe = pd.DataFrame({"flux": data_spec_zpowe['flux'].values, "flux_top": data_spec_zpowe['flux_up'].values - data_spec_zpowe['flux'],
+            df_plot_zpowe = pd.DataFrame({"rate": data_spec_zpowe['rate'].values, "erate": data_spec_zpowe['erate'].values,
+                                          "flux": data_spec_zpowe['flux'].values, "flux_top": data_spec_zpowe['flux_up'].values - data_spec_zpowe['flux'],
                                           "flux_bot": data_spec_zpowe['flux'].values - data_spec_zpowe['flux_low'],
                                           "flux_up": data_spec_zpowe['flux_up'].values, "flux_low": data_spec_zpowe['flux_low'].values,
                                           "phoindex": data_spec_zpowe['phoindex'].values,
@@ -216,44 +225,80 @@ if __name__ == "__main__":
                                           "phoindex_bot": data_spec_zpowe['phoindex'].values - data_spec_zpowe['phoindex_low'].values,
                                           "obsid": data_spec_zpowe['obsid'].values})
 
-            #Upper limits on flux
-            df_plot_zlogp_pegged = df_plot_zlogp[df_plot_zlogp['flux_low']==0.]
-            df_plot_zlogp = df_plot_zlogp[df_plot_zlogp['flux_low']!=0.]
-            df_plot_zpowe_pegged = df_plot_zpowe[df_plot_zpowe['flux_low']==0.]
-            df_plot_zpowe = df_plot_zpowe[df_plot_zpowe['flux_low']!=0.]
+            if args.state:  #separate in high and low state
+                df_plot_zlogp_high = df_plot_zlogp[df_plot_zlogp['rate']>=20]
+                df_plot_zlogp_low = df_plot_zlogp[df_plot_zlogp['rate']<20]
+                df_plot_zpowe_high = df_plot_zpowe[df_plot_zpowe['rate']>=20]
+                df_plot_zpowe_low = df_plot_zpowe[df_plot_zpowe['rate']<20]               
 
-            #Plot phoinex vs flux for zlogpar and powerlaw
-            figure = plt.figure(figsize=(10,5))
-            plt.errorbar(y=df_plot_zlogp['alpha'].values, x=df_plot_zlogp['flux'].values, xerr=(df_plot_zlogp['flux_bot'].values, df_plot_zlogp['flux_top'].values),
-                        yerr = (df_plot_zlogp['alpha_bot'].values, df_plot_zlogp['alpha_top'].values), fmt='.', markersize=5, ecolor='cornflowerblue', elinewidth=1, capsize=2, capthick=1, color='b', label='zlogpar')
-            plt.errorbar(y=df_plot_zpowe['phoindex'].values, x=df_plot_zpowe['flux'].values, xerr=(df_plot_zpowe['flux_bot'].values, df_plot_zpowe['flux_top'].values),
-                        yerr = (df_plot_zpowe['phoindex_bot'].values, df_plot_zpowe['phoindex_top'].values), fmt='.', color='red', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='lightcoral', label='zpowerlaw')
-            plt.grid()
-            plt.xlabel('Flux [cm$^{-2}$ erg s$^{-1}$]', fontsize=15)
-            plt.ylabel('phoindex', fontsize=15)
-            plt.legend()
-            plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "phoindex_vs_flux.png"))
+            #Plot phoindex vs flux for zlogpar and powerlaw
+            if args.state:
+                figure, axs = plt.subplots(2,1, figsize=(10,5), sharex=True, gridspec_kw={'hspace':0.3})
+                axs[0].errorbar(y=df_plot_zlogp_high['alpha'].values, x=df_plot_zlogp_high['flux'].values, xerr=(df_plot_zlogp_high['flux_bot'].values, df_plot_zlogp_high['flux_top'].values),
+                            yerr = (df_plot_zlogp_high['alpha_bot'].values, df_plot_zlogp_high['alpha_top'].values), fmt='.', markersize=3, ecolor='peachpuff', elinewidth=1, capsize=2, capthick=1, color='orange', label='High state')
+                axs[0].errorbar(y=df_plot_zlogp_low['alpha'].values, x=df_plot_zlogp_low['flux'].values, xerr=(df_plot_zlogp_low['flux_bot'].values, df_plot_zlogp_low['flux_top'].values),
+                            yerr = (df_plot_zlogp_low['alpha_bot'].values, df_plot_zlogp_low['alpha_top'].values),fmt='.', markersize=3, ecolor='mediumseagreen', elinewidth=1, capsize=2, capthick=1, color='g', label='Low state')
+                axs[1].errorbar(y=df_plot_zpowe_high['phoindex'].values, x=df_plot_zpowe_high['flux'].values, xerr=(df_plot_zpowe_high['flux_bot'].values, df_plot_zpowe_high['flux_top'].values),
+                            yerr = (df_plot_zpowe_high['phoindex_bot'].values, df_plot_zpowe_high['phoindex_top'].values), fmt='.', color='orange', markersize=3, elinewidth=1, capsize=2, capthick=1, ecolor='peachpuff', label='High state')
+                axs[1].errorbar(y=df_plot_zpowe_low['phoindex'].values, x=df_plot_zpowe_low['flux'].values, xerr=(df_plot_zpowe_low['flux_bot'].values, df_plot_zpowe_low['flux_top'].values),
+                            yerr = (df_plot_zpowe_low['phoindex_bot'].values, df_plot_zpowe_low['phoindex_top'].values), fmt='.', color='g', markersize=3, elinewidth=1, capsize=2, capthick=1, ecolor='mediumseagreen', label='Low state')
+                
+                axs[1].set_xlabel('Flux [cm$^{-2}$ erg s$^{-1}$]', fontsize=15)
+                axs[1].set_ylabel('phoindex', fontsize=15)
+                axs[0].set_ylabel('alpha', fontsize=15)
+                axs[0].set_title('Logparabola')
+                axs[1].set_title('Powerlaw')
+                axs[0].legend(loc="upper right")
+                plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "phoindex_vs_flux_state.png"))
+
+            else:  #plot without distinguishing betweeen low and high state
+                figure = plt.figure(figsize=(10,5))
+                plt.errorbar(y=df_plot_zlogp['alpha'].values, x=df_plot_zlogp['flux'].values, xerr=(df_plot_zlogp['flux_bot'].values, df_plot_zlogp['flux_top'].values),
+                            yerr = (df_plot_zlogp['alpha_bot'].values, df_plot_zlogp['alpha_top'].values), fmt='.', markersize=5, ecolor='cornflowerblue', elinewidth=1, capsize=2, capthick=1, color='b', label='zlogpar')
+                plt.errorbar(y=df_plot_zpowe['phoindex'].values, x=df_plot_zpowe['flux'].values, xerr=(df_plot_zpowe['flux_bot'].values, df_plot_zpowe['flux_top'].values),
+                            yerr = (df_plot_zpowe['phoindex_bot'].values, df_plot_zpowe['phoindex_top'].values), fmt='.', color='red', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='lightcoral', label='zpowerlaw')
+                plt.grid()
+                plt.xlabel('Flux [cm$^{-2}$ erg s$^{-1}$]', fontsize=15)
+                plt.ylabel('phoindex', fontsize=15)
+                plt.legend()
+                plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "phoindex_vs_flux.png"))
 
 
         if args.beta:
             data_spec_zlogp = data_spec_zlogp[data_spec_zlogp['flux_low']!=0.]
-            df_plot_zlogp = pd.DataFrame({"flux": data_spec_zlogp['flux'].values, "flux_top": data_spec_zlogp['flux_up'].values - data_spec_zlogp['flux'].values, 
+            df_plot_zlogp = pd.DataFrame({"rate": data_spec_zlogp['rate'].values, "erate": data_spec_zlogp['erate'].values,
+                                          "flux": data_spec_zlogp['flux'].values, "flux_top": data_spec_zlogp['flux_up'].values - data_spec_zlogp['flux'].values, 
                                           'flux_bot': data_spec_zlogp['flux'].values - data_spec_zlogp['flux_low'].values,
                                           'beta': data_spec_zlogp['beta'].values, 
                                           'beta_top': data_spec_zlogp['beta_up'].values - data_spec_zlogp['beta'].values,
                                           'beta_bot': data_spec_zlogp['beta'].values - data_spec_zlogp['beta_low'].values,
                                           "obsid": data_spec_zlogp['obsid'].values})
-            
+            if args.state:  #separate in high and low state
+                df_plot_zlogp_high = df_plot_zlogp[df_plot_zlogp['rate']>=20]
+                df_plot_zlogp_low = df_plot_zlogp[df_plot_zlogp['rate']<20]           
 
             figure = plt.figure(figsize=(10,5))
-            plt.errorbar(y=df_plot_zlogp['beta'].values, x=df_plot_zlogp['flux'].values, xerr=(df_plot_zlogp['flux_bot'].values, df_plot_zlogp['flux_top'].values),
-                        yerr = (df_plot_zlogp['beta_bot'].values, df_plot_zlogp['beta_top'].values), fmt='.', markersize=5, ecolor='cornflowerblue', elinewidth=1, capsize=2, capthick=1, color='b', label='zlogpar')
+            if args.state:
+                
+                plt.errorbar(y=df_plot_zlogp_high['beta'].values, x=df_plot_zlogp_high['flux'].values, xerr=(df_plot_zlogp_high['flux_bot'].values, df_plot_zlogp_high['flux_top'].values),
+                            yerr = (df_plot_zlogp_high['beta_bot'].values, df_plot_zlogp_high['beta_top'].values), fmt='.', markersize=3, ecolor='peachpuff', elinewidth=1, capsize=2, capthick=1, color='orange', label='High state')
+                plt.errorbar(y=df_plot_zlogp_low['beta'].values, x=df_plot_zlogp_low['flux'].values, xerr=(df_plot_zlogp_low['flux_bot'].values, df_plot_zlogp_low['flux_top'].values),
+                            yerr = (df_plot_zlogp_low['beta_bot'].values, df_plot_zlogp_low['beta_top'].values),fmt='.', markersize=3, ecolor='mediumseagreen', elinewidth=1, capsize=2, capthick=1, color='g', label='Low state')
+                plt.legend()
+
+            else:
+                plt.errorbar(y=df_plot_zlogp['beta'].values, x=df_plot_zlogp['flux'].values, xerr=(df_plot_zlogp['flux_bot'].values, df_plot_zlogp['flux_top'].values),
+                            yerr = (df_plot_zlogp['beta_bot'].values, df_plot_zlogp['beta_top'].values), fmt='.', markersize=5, ecolor='cornflowerblue', elinewidth=1, capsize=2, capthick=1, color='b', label='zlogpar')
             plt.grid()
             plt.xlabel('Flux [cm$^{-2}$ erg s$^{-1}$]', fontsize=15)
             plt.ylabel('beta', fontsize=15)
-            plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "beta_vs_flux.png"))
-    
 
+            #Save figure
+            if args.state:
+                plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "beta_vs_flux_state.png"))
+            else:
+                plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "beta_vs_flux.png"))
+    
 
     if not args.fvar and not args.rate:
         if args.phoindex and args.beta:
@@ -495,7 +540,7 @@ if __name__ == "__main__":
             axs[0,1].legend(handles=[red_patch, blue_patch], loc='upper right',  fancybox=True, shadow=True)
             axs[1,0].set_xlabel('phoindex logparabola')
             axs[1,1].set_xlabel('beta logparabola')
-            plt.show()
+            plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "distribution_logpar.png"))
 
         if args.powerlaw:
 
@@ -512,4 +557,5 @@ if __name__ == "__main__":
             blue_patch =  Patch(facecolor='b', edgecolor='black', label='low state')
             axs[0].legend(handles=[red_patch, blue_patch])
             axs[0].set_xlabel('phoindex powerlaw')
-            plt.show()
+            plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "distribution_powerlaw.png"))
+
