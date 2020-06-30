@@ -112,49 +112,51 @@ if __name__ == "__main__":
             df_plot_zpowe_low =  df_plot_zpowe[df_plot_zpowe['fvar']<=3*df_plot_zpowe['fvar_err']]
             
             # Plot
-            fig, axs =plt.subplots(1, 1, figsize=(5,5), gridspec_kw={'hspace':0.4})
-            axs.errorbar(df_plot_zlogp_high['alpha'].values, df_plot_zlogp_high['fvar'].values, yerr=df_plot_zlogp_high['fvar_err'].values,
-                        xerr = (df_plot_zlogp_high['alpha_bot'].values, df_plot_zlogp_high['alpha_top'].values), color='b', linestyle='', marker='+', markersize=10, ecolor='cornflowerblue', elinewidth=1, capsize=2, capthick=1)
-            axs.errorbar(df_plot_zlogp_low['alpha'].values, df_plot_zlogp_low['fvar'].values, yerr=df_plot_zlogp_low['fvar_err'].values,
-                        xerr = (df_plot_zlogp_low['alpha_bot'].values, df_plot_zlogp_low['alpha_top'].values), color='b', linestyle='', marker='x', markersize=10, ecolor='cornflowerblue', elinewidth=1, capsize=2, capthick=1)
+            fig, axs =plt.subplots(1, 2, figsize=(7,5), sharey=True, gridspec_kw={'wspace':0.1})
+            axs[0].errorbar(df_plot_zlogp_high['alpha'].values, df_plot_zlogp_high['fvar'].values, yerr=df_plot_zlogp_high['fvar_err'].values,
+                        xerr = (df_plot_zlogp_high['alpha_bot'].values, df_plot_zlogp_high['alpha_top'].values), color='orange', fmt='.', markersize=5, ecolor='peachpuff', elinewidth=1, capsize=2, capthick=1, label='High F$_{var}$')
+            axs[0].errorbar(df_plot_zlogp_low['alpha'].values, df_plot_zlogp_low['fvar'].values, yerr=df_plot_zlogp_low['fvar_err'].values,
+                        xerr = (df_plot_zlogp_low['alpha_bot'].values, df_plot_zlogp_low['alpha_top'].values), color='g', fmt='.', markersize=5, ecolor='mediumseagreen', elinewidth=1, capsize=2, capthick=1, label='Low F$_{var}$')
             
             
-            axs.errorbar(df_plot_zpowe_high['phoindex'].values, df_plot_zpowe_high['fvar'].values, yerr=df_plot_zpowe_high['fvar_err'].values,
-                        xerr = (df_plot_zpowe_high['phoindex_bot'].values, df_plot_zpowe_high['phoindex_top'].values), color='red', linestyle='', marker='+', markersize=10, ecolor='lightcoral', elinewidth=1, capsize=2, capthick=1)
-            axs.errorbar(df_plot_zpowe_low['phoindex'].values, df_plot_zpowe_low['fvar'].values, yerr=df_plot_zpowe_low['fvar_err'].values,
-                        xerr = (df_plot_zpowe_low['phoindex_bot'].values, df_plot_zpowe_low['phoindex_top'].values), color='red', linestyle='', marker='x', markersize=10, ecolor='lightcoral', elinewidth=1, capsize=2, capthick=1)
+            axs[1].errorbar(df_plot_zpowe_high['phoindex'].values, df_plot_zpowe_high['fvar'].values, yerr=df_plot_zpowe_high['fvar_err'].values,
+                        xerr = (df_plot_zpowe_high['phoindex_bot'].values, df_plot_zpowe_high['phoindex_top'].values), color='orange', fmt='.', markersize=5, ecolor='peachpuff', elinewidth=1, capsize=2, capthick=1, label='High F$_{var}$')
+            axs[1].errorbar(df_plot_zpowe_low['phoindex'].values, df_plot_zpowe_low['fvar'].values, yerr=df_plot_zpowe_low['fvar_err'].values,
+                        xerr = (df_plot_zpowe_low['phoindex_bot'].values, df_plot_zpowe_low['phoindex_top'].values), color='g', fmt='.', markersize=5, ecolor='mediumseagreen', elinewidth=1, capsize=2, capthick=1, label='Low F$_{var}$')
 
-            axs.grid(True)
-            axs.set_ylabel('$F_{var}$', fontsize=15)
-            axs.set_xlabel('phoindex', fontsize=15)
-            
-            #Make legend 
-            cross = mlines.Line2D([], [], color='black', marker='x', linestyle='None',
-                            markersize=10, label='Low Fvar')
-            plus = mlines.Line2D([], [], color='black', marker='+', linestyle='None',
-                            markersize=10, label='High Fvar')
-            red_patch =  Patch(facecolor='red', edgecolor='black', label='zpowerlaw')
-            blue_patch =  Patch(facecolor='b', edgecolor='black', label='zlogpar')
-            axs.legend(handles=[plus, cross, red_patch, blue_patch])
-            
-            #Linear fit?
-            
-            #sns.lmplot(x="alpha", y="fvar", data=df_plot_zlogp, lowess=True)
+            axs[0].grid(True)
+            axs[1].grid(True)
+            axs[0].set_title('Logparabola')
+            axs[1].set_title('Powerlaw')
+            axs[0].set_ylabel('$F_{var}$', fontsize=15)
+            axs[1].set_xlabel('phoindex', fontsize=15)
+            axs[0].legend(loc='upper left')
+
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "fvar_phoindex_correlations.png"))
 
         if args.beta: #user wants beta vs fvar
+            
             df_plot_zlogp = pd.DataFrame({"fvar": data_lc['F_var'].values, "fvar_err": data_lc['F_var_sigma'].values, 'beta': data_spec_zlogp['beta'].values, 
                                           'beta_top': data_spec_zlogp['beta_up'].values - data_spec_zlogp['beta'].values,
                                           'beta_bot': data_spec_zlogp['beta'].values - data_spec_zlogp['beta_low'].values,
                                           "obsid": data_lc['ObsId'].values})
             df_plot_zlogp = df_plot_zlogp[df_plot_zlogp['fvar'] != -1.]
 
-            figure = plt.figure(figsize=(5,5))
-            plt.errorbar(df_plot_zlogp['beta'].values, df_plot_zlogp['fvar'].values, yerr=df_plot_zlogp['fvar_err'].values,
-                        xerr = (df_plot_zlogp['beta_bot'].values, df_plot_zlogp['beta_top'].values), color='b', linestyle='', marker='.', markersize=5, ecolor='cornflowerblue', elinewidth=1, capsize=2, capthick=1, label='zlogpar')
+            # Distinguish between fvar high (+) and fvar low (x)
+            df_plot_zlogp_high = df_plot_zlogp[df_plot_zlogp['fvar']>3*df_plot_zlogp['fvar_err']]
+            df_plot_zlogp_low =  df_plot_zlogp[df_plot_zlogp['fvar']<=3*df_plot_zlogp['fvar_err']]
+
+            #Plot
+            figure = plt.figure(figsize=(6,5))
+            plt.errorbar(df_plot_zlogp_high['beta'].values, df_plot_zlogp_high['fvar'].values, yerr=df_plot_zlogp_high['fvar_err'].values,
+                        xerr = (df_plot_zlogp_high['beta_bot'].values, df_plot_zlogp_high['beta_top'].values), color='orange', linestyle='', marker='.', markersize=5, ecolor='peachpuff', elinewidth=1, capsize=2, capthick=1, label='High F$_{var}$')
+            plt.errorbar(df_plot_zlogp_low['beta'].values, df_plot_zlogp_low['fvar'].values, yerr=df_plot_zlogp_low['fvar_err'].values,
+                        xerr = (df_plot_zlogp_low['beta_bot'].values, df_plot_zlogp_low['beta_top'].values), color='g', linestyle='', marker='.', markersize=5, ecolor='mediumseagreen', elinewidth=1, capsize=2, capthick=1, label='Low F$_{var}$')
+            
             plt.grid()
             plt.xlabel('beta', fontsize=15)
             plt.ylabel('$F_{var}$', fontsize=15)
+            plt.legend(loc='upper left')
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "fvar_beta_correlations.png"))
 
 
