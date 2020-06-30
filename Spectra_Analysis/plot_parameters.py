@@ -29,6 +29,10 @@ parser.add_argument('--fvar', action='store_true',
                     help='make fvar plot')
 parser.add_argument('--rate', action='store_true',
                     help='make rate plot')
+parser.add_argument('--flux', action='store_true',
+                    help='make flux plot')
+parser.add_argument('--lumin', action='store_true',
+                    help='make lumionosity plot')
 parser.add_argument('--distribution', action='store_true',
                     help='plot the distributions of low and high state parameters')
 parser.add_argument('--average', action='store_true',
@@ -190,6 +194,66 @@ if __name__ == "__main__":
             plt.ylabel('beta', fontsize=15)
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "beta_vs_rate.png"))
     
+
+    if args.flux:
+        if args.phoindex: #user wants phoindex vs flux
+            data_spec_zlogp = data_spec_zlogp[data_spec_zlogp['phoindex_up']!=0.]
+            df_plot_zlogp = pd.DataFrame({"flux": data_spec_zlogp['flux'].values, "flux_top": data_spec_zlogp['flux_up'].values - data_spec_zlogp['flux'],
+                                          'flux_bot': data_spec_zlogp['flux'].values - data_spec_zlogp['flux_low'],
+                                          "flux_up": data_spec_zlogp['flux_up'].values, "flux_low":  data_spec_zlogp['flux_low'].values,
+                                          'alpha': data_spec_zlogp['phoindex'].values, 
+                                          'alpha_top': data_spec_zlogp['phoindex_up'].values - data_spec_zlogp['phoindex'].values,
+                                          'alpha_bot': data_spec_zlogp['phoindex'].values - data_spec_zlogp['phoindex_low'].values,
+                                          "obsid": data_spec_zlogp['obsid'].values})
+            
+            data_spec_zpowe = data_spec_zpowe[data_spec_zpowe['phoindex_up']!=0.]
+            data_spec_zpowe = data_spec_zpowe[data_spec_zpowe['flux_low']!=0]
+            df_plot_zpowe = pd.DataFrame({"flux": data_spec_zpowe['flux'].values, "flux_top": data_spec_zpowe['flux_up'].values - data_spec_zpowe['flux'],
+                                          "flux_bot": data_spec_zpowe['flux'].values - data_spec_zpowe['flux_low'],
+                                          "flux_up": data_spec_zpowe['flux_up'].values, "flux_low": data_spec_zpowe['flux_low'].values,
+                                          "phoindex": data_spec_zpowe['phoindex'].values,
+                                          "phoindex_top": data_spec_zpowe['phoindex_up'].values - data_spec_zpowe['phoindex'].values,
+                                          "phoindex_bot": data_spec_zpowe['phoindex'].values - data_spec_zpowe['phoindex_low'].values,
+                                          "obsid": data_spec_zpowe['obsid'].values})
+
+            #Upper limits on flux
+            df_plot_zlogp_pegged = df_plot_zlogp[df_plot_zlogp['flux_low']==0.]
+            df_plot_zlogp = df_plot_zlogp[df_plot_zlogp['flux_low']!=0.]
+            df_plot_zpowe_pegged = df_plot_zpowe[df_plot_zpowe['flux_low']==0.]
+            df_plot_zpowe = df_plot_zpowe[df_plot_zpowe['flux_low']!=0.]
+
+            #Plot phoinex vs flux for zlogpar and powerlaw
+            figure = plt.figure(figsize=(10,5))
+            plt.errorbar(y=df_plot_zlogp['alpha'].values, x=df_plot_zlogp['flux'].values, xerr=(df_plot_zlogp['flux_bot'].values, df_plot_zlogp['flux_top'].values),
+                        yerr = (df_plot_zlogp['alpha_bot'].values, df_plot_zlogp['alpha_top'].values), fmt='.', markersize=5, ecolor='cornflowerblue', elinewidth=1, capsize=2, capthick=1, color='b', label='zlogpar')
+            plt.errorbar(y=df_plot_zpowe['phoindex'].values, x=df_plot_zpowe['flux'].values, xerr=(df_plot_zpowe['flux_bot'].values, df_plot_zpowe['flux_top'].values),
+                        yerr = (df_plot_zpowe['phoindex_bot'].values, df_plot_zpowe['phoindex_top'].values), fmt='.', color='red', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='lightcoral', label='zpowerlaw')
+            plt.grid()
+            plt.xlabel('Flux [cm$^{-2}$ erg s$^{-1}$]', fontsize=15)
+            plt.ylabel('phoindex', fontsize=15)
+            plt.legend()
+            plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "phoindex_vs_flux.png"))
+
+
+        if args.beta:
+            data_spec_zlogp = data_spec_zlogp[data_spec_zlogp['flux_low']!=0.]
+            df_plot_zlogp = pd.DataFrame({"flux": data_spec_zlogp['flux'].values, "flux_top": data_spec_zlogp['flux_up'].values - data_spec_zlogp['flux'].values, 
+                                          'flux_bot': data_spec_zlogp['flux'].values - data_spec_zlogp['flux_low'].values,
+                                          'beta': data_spec_zlogp['beta'].values, 
+                                          'beta_top': data_spec_zlogp['beta_up'].values - data_spec_zlogp['beta'].values,
+                                          'beta_bot': data_spec_zlogp['beta'].values - data_spec_zlogp['beta_low'].values,
+                                          "obsid": data_spec_zlogp['obsid'].values})
+            
+
+            figure = plt.figure(figsize=(10,5))
+            plt.errorbar(y=df_plot_zlogp['beta'].values, x=df_plot_zlogp['flux'].values, xerr=(df_plot_zlogp['flux_bot'].values, df_plot_zlogp['flux_top'].values),
+                        yerr = (df_plot_zlogp['beta_bot'].values, df_plot_zlogp['beta_top'].values), fmt='.', markersize=5, ecolor='cornflowerblue', elinewidth=1, capsize=2, capthick=1, color='b', label='zlogpar')
+            plt.grid()
+            plt.xlabel('Flux [cm$^{-2}$ erg s$^{-1}$]', fontsize=15)
+            plt.ylabel('beta', fontsize=15)
+            plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "beta_vs_flux.png"))
+    
+
 
     if not args.fvar and not args.rate:
         if args.phoindex and args.beta:
