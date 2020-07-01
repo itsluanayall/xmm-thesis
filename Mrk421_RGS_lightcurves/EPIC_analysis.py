@@ -31,10 +31,11 @@ if __name__ == "__main__":
 
     for obsid in epic_observations:
         obs = Observation(obsid=obsid, target_dir=target_dir)
-
+        print('-----------------------------------------------------------')
         #Process each observation
         obs.cifbuild()
         obs.odfingest()
         obs.emproc()
         obs.epproc()
         obs.filter_epic()
+        obs.epiclccorr()

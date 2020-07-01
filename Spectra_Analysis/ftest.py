@@ -48,14 +48,18 @@ if __name__ == "__main__":
 
     #histogram
     data_spec_clean = data_spec.dropna()
-    data_spec_LP = data_spec_clean[data_spec_clean['ftest']<0.1] #threshold comes from Bhutta et al. 2018
+    data_badarg = data_spec_clean[data_spec_clean['ftest']==-999.]
+    data_spec_LP = data_spec_clean[(data_spec_clean['ftest']<0.1) & (data_spec_clean['ftest']!=-999.)]  #threshold comes from Bhutta et al. 2018
     data_spec_PL = data_spec_clean[data_spec_clean['ftest']>=0.1]
     
-    data_badarg = data_spec_clean[data_spec_clean['ftest']==-999.]
+    
     x = np.arange(3)
-    height = (len(data_spec_LP), len(data_spec_PL), len(data_badarg))
+    height = np.array([len(data_spec_LP), len(data_spec_PL), len(data_badarg)])
     print(height)
+    height = [75, 13, 14]
     fig = plt.figure()
+
     plt.bar(x=x, height=height)
     plt.xticks(x, ('LogParabola', 'Powerlaw', 'Error'))
-    plt.show()
+    plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "ftest_barchart.png")
+)

@@ -284,6 +284,57 @@ class Observation:
             logging.info(f'EPIC-PN event lists for observation number {self.obsid} already exist.')
             
 
+    def epiclccorr(self):
+        """
+        """
+        os.chdir(self.emdir)
+        
+
+        for mos_table in glob.glob("*_clean.fits"):
+
+            logging.info("Extracting image for EPIC-MOS...")
+            evselect_cmmd = f"evselect table={mos_table} imagebinning=binSize imageset={mos_table[0:21]}_image.img withimageset=yes xcolumn=X ycolumn=Y ximagebinsize=80 yimagebinsize=80"
+            evselect_status = run_command(evselect_cmmd)
+
+            if not glob.glob("*.reg"):
+
+                logging.ERROR("Please extract source and background coordinates into a .reg file.")
+            
+            else:
+
+                #Soft lightcurve
+                logging.info(f"Extracting Source+Background soft lightcurve for {mos_table}...")
+                center = 
+                radius = 
+                evselect_source_cmmd = f"evselect table={mos_table} energycolumn=PI expression=#XMMEA_EM && (PATTERN<=12) && ((X,Y) IN circle({center[0]},{center[1]},{radius})) && (PI in [200:2000]) withrateset=yes rateset='{mos_table[0:21]}_soft_raw.lc' timebinsize=100 maketimecolumn=yes makeratecolumn=yes"
+                evselect_source_status = run_command(evselect_source_cmmd)
+
+                center_bkg =
+                radius_bkg = 
+                evselect_bkg_cmmd = f"evselect table={mos_table} energycolumn=PI expression=#XMMEA_EM && (PATTERN<=12) && ((X,Y) IN circle({center_bkg[0]},{center_bkg[1]},{radius_bkg})) && (PI in [200:2000]) withrateset=yes rateset='{mos_table[0:21]}_bkg_soft_raw.lc' timebinsize=100 maketimecolumn=yes makeratecolumn=yes"
+                 
+                logging.info(f'Running epiclccorr for soft lightcurve of EPIC-MOS for {mos_table}...')
+                epiclccorr_soft_cmmd = f"epiclccorr srctslist={mos_table[0:21]}_soft_raw.lc eventlist={mos_table} outset={mos_table[0:21]}_soft.lc bkgtslist={mos_table[0:21]}_bkg_soft_raw.lc withbkgset=yes applyabsolutecorrections=yes"
+                epiclccorr_soft_status = run_command(epiclccorr_soft_cmmd)
+
+                #Hard lightcurve
+                logging.info(f"Extracting Source+Background hard lightcurve for {mos_table}...")
+                center = 
+                radius = 
+                evselect_source_cmmd = f"evselect table={mos_table} energycolumn=PI expression=#XMMEA_EM && (PATTERN<=12) && ((X,Y) IN circle({center[0]},{center[1]},{radius})) && (PI in [2000:10000]) withrateset=yes rateset='{mos_table[0:21]}_hard_raw.lc' timebinsize=100 maketimecolumn=yes makeratecolumn=yes"
+                evselect_source_status = run_command(evselect_source_cmmd)
+
+                center_bkg =
+                radius_bkg = 
+                evselect_bkg_cmmd = f"evselect table={mos_table} energycolumn=PI expression=#XMMEA_EM && (PATTERN<=12) && ((X,Y) IN circle({center_bkg[0]},{center_bkg[1]},{radius_bkg})) && (PI in [2000:10000]) withrateset=yes rateset='{mos_table[0:21]}_bkg_hard_raw.lc' timebinsize=100 maketimecolumn=yes makeratecolumn=yes"
+                 
+                logging.info(f'Running epiclccorr for hard lightcurve of EPIC-MOS for {mos_table}...')
+                epiclccorr_hard_cmmd = f"epiclccorr srctslist={mos_table[0:21]}_hard_raw.lc eventlist={mos_table} outset={mos_table[0:21]}_hard.lc bkgtslist={mos_table[0:21]}_bkg_hard_raw.lc withbkgset=yes applyabsolutecorrections=yes"
+                epiclccorr_hard_status = run_command(epiclccorr_hard_cmmd)
+
+
+
+
     def rgsproc(self):
         """
         Runs the rgsproc SAS command to process and reduce RGS data. 
@@ -582,18 +633,22 @@ class Observation:
         
         for epic_mos_event in glob.glob(os.path.join(self.emdir, "*ImagingEvts.ds")):
             
-            #Extract a single event, high energy light curve, from the event file to identify intervals of flaring particle background
-            evselect_rate = f"evselect table={epic_mos_event} withrateset=Y rateset={epic_mos_event[59:80]}_rate.fits maketimecolumn=Y timebinsize={epic_timebinsize} makeratecolumn=Y expression='#XMMEA_EM && (PI>10000) && (PATTERN==0)'"
-            status_evselect_rate = run_command(evselect_rate)
-            
-            #Create the corresponding GTI file
-            tabgtigen = f"tabgtigen table={epic_mos_event[59:80]}_rate.fits expression='RATE<=0.35' gtiset={epic_mos_event[59:80]}_gti.fits"
-            status_tabgtigen = run_command(tabgtigen)
+            if not glob.glob(f"{epic_mos_event[59:80]}_clean.fits"):
 
-            #Filter the event list
-            evselect_clean = f"evselect table={epic_mos_event} withfilteredset=Y filteredset={epic_mos_event[59:80]}_clean.fits destruct=Y keepfilteroutput=T expression='#XMMEA_EM && gti({epic_mos_event[59:80]}_gti.fits,TIME) && (PI>150)'"
-            status_evselect_clean = run_command(evselect_clean)
+                #Extract a single event, high energy light curve, from the event file to identify intervals of flaring particle background
+                evselect_rate = f"evselect table={epic_mos_event} withrateset=Y rateset={epic_mos_event[59:80]}_rate.fits maketimecolumn=Y timebinsize={epic_timebinsize} makeratecolumn=Y expression='#XMMEA_EM && (PI>10000) && (PATTERN==0)'"
+                status_evselect_rate = run_command(evselect_rate)
+                
+                #Create the corresponding GTI file
+                tabgtigen = f"tabgtigen table={epic_mos_event[59:80]}_rate.fits expression='RATE<=0.35' gtiset={epic_mos_event[59:80]}_gti.fits"
+                status_tabgtigen = run_command(tabgtigen)
 
+                #Filter the event list
+                evselect_clean = f"evselect table={epic_mos_event} withfilteredset=Y filteredset={epic_mos_event[59:80]}_clean.fits destruct=Y keepfilteroutput=T expression='#XMMEA_EM && gti({epic_mos_event[59:80]}_gti.fits,TIME) && (PI>150)'"
+                status_evselect_clean = run_command(evselect_clean)
+            else:
+                logging.info(f"Already filtered EPIC-MOS. The cleaned product is {epic_mos_event[59:80]}_clean.fits")
+        
         logging.info('Done filtering EPIC-MOS!')
 
         #PN data
@@ -602,14 +657,18 @@ class Observation:
         
         for epic_pn_event in glob.glob(os.path.join(self.epdir, "*TimingEvts.ds")):
             
-            evselct_rate_pn = f"evselect table={epic_pn_event} withrateset=Y rateset={epic_pn_event[58:77]}_rate.fits maketimecolumn=Y timebinsize={epic_timebinsize} makeratecolumn=Y expression=' #XMMEA_EP && (PI>10000&&PI<12000) && (PATTERN==0)'"
-            status_evselect_rate_pn = run_command(evselct_rate_pn)
+            if not glob.glob(f"{epic_pn_event[58:77]}_clean.fits"):
+                evselct_rate_pn = f"evselect table={epic_pn_event} withrateset=Y rateset={epic_pn_event[58:77]}_rate.fits maketimecolumn=Y timebinsize={epic_timebinsize} makeratecolumn=Y expression=' #XMMEA_EP && (PI>10000&&PI<12000) && (PATTERN==0)'"
+                status_evselect_rate_pn = run_command(evselct_rate_pn)
 
-            tabgtigen_pn = f"tabgtigen table={epic_pn_event[58:77]}_rate.fits expression='RATE<=0.4' gtiset={epic_pn_event[58:77]}_gti.fits"
-            status_tabgtigen_pn = run_command(tabgtigen_pn)
+                tabgtigen_pn = f"tabgtigen table={epic_pn_event[58:77]}_rate.fits expression='RATE<=0.4' gtiset={epic_pn_event[58:77]}_gti.fits"
+                status_tabgtigen_pn = run_command(tabgtigen_pn)
 
-            evselect_clean_pn = f"evselect table={epic_pn_event} withfilteredset=Y filteredset={epic_pn_event[58:77]}_clean.fits destruct=Y keepfilteroutput=T expression='#XMMEA_EP && gti({epic_pn_event[58:77]}_gti.fits,TIME) && (PI>150)'"
-            status_evselect_clean_pn = run_command(evselect_clean_pn)
+                evselect_clean_pn = f"evselect table={epic_pn_event} withfilteredset=Y filteredset={epic_pn_event[58:77]}_clean.fits destruct=Y keepfilteroutput=T expression='#XMMEA_EP && gti({epic_pn_event[58:77]}_gti.fits,TIME) && (PI>150)'"
+                status_evselect_clean_pn = run_command(evselect_clean_pn)
+        
+            else:
+                logging.info(f"Already filtered EPIC-PN. The clean product is {epic_pn_event[58:77]}_clean.fits.")
         
         logging.info('Done filtering EPIC-PN!')
 
