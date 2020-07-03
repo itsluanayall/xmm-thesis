@@ -19,6 +19,7 @@ from argparse import ArgumentParser
 import matplotlib.lines as mlines
 from matplotlib.patches import Patch
 from tools import *
+import random
 
 parser = ArgumentParser(description=__doc__)
 parser.add_argument("--phoindex", action="store_true", 
@@ -220,6 +221,8 @@ if __name__ == "__main__":
                                           'alpha_bot': data_spec_zlogp['phoindex'].values - data_spec_zlogp['phoindex_low'].values,
                                           "obsid": data_spec_zlogp['obsid'].values})
             
+            df_plot_zlogp = df_plot_zlogp[df_plot_zlogp['obsid']==791781401]
+
             #Powerlaw dataframe
             data_spec_zpowe = data_spec_zpowe[data_spec_zpowe['phoindex_up']!=0.]
             data_spec_zpowe = data_spec_zpowe[data_spec_zpowe['flux_low']!=0]
@@ -231,6 +234,8 @@ if __name__ == "__main__":
                                           "phoindex_top": data_spec_zpowe['phoindex_up'].values - data_spec_zpowe['phoindex'].values,
                                           "phoindex_bot": data_spec_zpowe['phoindex'].values - data_spec_zpowe['phoindex_low'].values,
                                           "obsid": data_spec_zpowe['obsid'].values})
+
+            df_plot_zpowe = df_plot_zpowe[df_plot_zpowe['obsid']==791781401]
 
             if args.state:  #separate in high and low state
                 df_plot_zlogp_high = df_plot_zlogp[df_plot_zlogp['rate']>=20]
@@ -260,10 +265,11 @@ if __name__ == "__main__":
 
             else:  #plot without distinguishing betweeen low and high state
                 figure = plt.figure(figsize=(10,5))
+                df_plot_zlogp = df_plot_zlogp.sort_values(by=['rate'])
                 plt.errorbar(y=df_plot_zlogp['alpha'].values, x=df_plot_zlogp['flux'].values, xerr=(df_plot_zlogp['flux_bot'].values, df_plot_zlogp['flux_top'].values),
-                            yerr = (df_plot_zlogp['alpha_bot'].values, df_plot_zlogp['alpha_top'].values), fmt='.', markersize=5, ecolor='cornflowerblue', elinewidth=1, capsize=2, capthick=1, color='b', label='zlogpar')
-                plt.errorbar(y=df_plot_zpowe['phoindex'].values, x=df_plot_zpowe['flux'].values, xerr=(df_plot_zpowe['flux_bot'].values, df_plot_zpowe['flux_top'].values),
-                            yerr = (df_plot_zpowe['phoindex_bot'].values, df_plot_zpowe['phoindex_top'].values), fmt='.', color='red', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='lightcoral', label='zpowerlaw')
+                            yerr = (df_plot_zlogp['alpha_bot'].values, df_plot_zlogp['alpha_top'].values), fmt='.', linestyle='-', markersize=5, ecolor='cornflowerblue', elinewidth=1, capsize=2, capthick=1, color='b', label='zlogpar')
+                #plt.errorbar(y=df_plot_zpowe['phoindex'].values, x=df_plot_zpowe['flux'].values, xerr=(df_plot_zpowe['flux_bot'].values, df_plot_zpowe['flux_top'].values),
+                #            yerr = (df_plot_zpowe['phoindex_bot'].values, df_plot_zpowe['phoindex_top'].values), fmt='.', color='red', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='lightcoral', label='zpowerlaw')
                 plt.grid()
                 plt.xlabel('Flux [cm$^{-2}$ erg s$^{-1}$]', fontsize=15)
                 plt.ylabel('phoindex', fontsize=15)
@@ -468,6 +474,14 @@ if __name__ == "__main__":
             axs_logp[3].errorbar('index', 'nH', yerr=(df_plot_zlogp['nH_bot'].values, df_plot_zlogp['nH_top'].values), data=df_plot_zlogp,
                                  ecolor='black', linestyle='', color='black', capthick=1, elinewidth=1)
             axs_logp[3].errorbar('index', 'nH_up', yerr='nH_top', data=df_plot_nH_pegged, uplims=True, linestyle='', capthick=1, elinewidth=1, ecolor='black')
+
+            #Locate vaughan panel observations
+            obs_vaughuan = [136541001, 158971201, 810860201, 411080301, 560980101, 791781401, 810860701, 791782001]
+            for obs in obs_vaughuan:
+                rgb = '#%06X' % random.randint(0, 0xFFFFFF)  #create random color
+                df_obs = data_lc[data_lc['OBSERVATION']==obs]
+                axs_logp[0].errorbar('index', 'RATE', 'ERROR', data=df_obs, ecolor='black', marker='.', markersize='5',linestyle='', color=rgb, label=obs)
+                axs_logp[0].annotate(obs, xy=(df_obs['index'].values[30],df_obs['RATE'].values[30]), xytext=(df_obs['index'].values[0]+20,  df_obs['RATE'].values[0]-13) ,arrowprops=dict(arrowstyle='->',facecolor='black'))
 
             #Add vertical lines separating years
             axs_logp[0].vlines(year_endpoints, 0, 60, colors='r', linestyles='solid')

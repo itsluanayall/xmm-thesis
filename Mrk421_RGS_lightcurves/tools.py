@@ -142,10 +142,13 @@ def excess_variance(rates, errrates, normalized=True):
     nxs = xs/(np.square(mean))          #normalized excess variance
     f_var = np.sqrt(nxs)                #fractional variability
 
-    # Errors on excess variance (taken from Aggrawal et al., 2018)
+    # Errors on excess variance (taken from Vaughan et al., 2003)
     err_xs = np.sqrt(2*np.square(mse)/N + 4*mse*np.square(xs)/N)
-    err_nxs = np.sqrt( np.square(np.sqrt(2/N)*mse/np.square(mean)) + np.square(np.sqrt(mse/N) *2*f_var/mean) )
-    
+    if nxs>0:
+        err_nxs = np.sqrt( np.square(np.sqrt(2/N)*mse/np.square(mean)) + np.square(np.sqrt(mse/N) *2*f_var/mean) )
+    else:
+        err_nxs = np.sqrt(2/N) * (mse/np.square(mean))
+
     if normalized:
         return nxs, err_nxs
     else:
@@ -169,8 +172,12 @@ def fractional_variability(rates, errrates, backv, backe, netlightcurve=True):
         
         #A value of -1 indicates that the noise of the data is much greater than the scatter of the data.
         if nxs<0:
-            f_var = -1.
-            err_fvar = -1.
+            nxs = nxs + err_nxs*1.64
+            
+            f_var = np.sqrt(nxs)
+            err_fvar = 1/(2*f_var) * err_nxs
+            #f_var = -1.
+            #err_fvar = -1.
         else:
             f_var = np.sqrt(nxs)
             err_fvar = 1/(2*f_var) * err_nxs
@@ -288,10 +295,11 @@ def binning(N, bintime, dataframe, colx, coly):
     while(x + segment < x_fin):
         segment_df = dataframe[(dataframe[colx]<x+segment) & (dataframe[colx]>x)]
         n_in_segment = len(segment_df)
-        if n_in_segment <= N/3:
-            
+        #print(n_in_segment)
+        if n_in_segment <= 2:
             x += segment
             continue
+
         else:
             mean_x.append(np.mean(segment_df[colx].values))
             mean_y.append(np.mean(segment_df[coly].values))
