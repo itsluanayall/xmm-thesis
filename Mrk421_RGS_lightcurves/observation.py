@@ -633,7 +633,7 @@ class Observation:
         
         for epic_mos_event in glob.glob(os.path.join(self.emdir, "*ImagingEvts.ds")):
             
-            if not glob.glob(f"{epic_mos_event[59:80]}_clean.fits"):
+            if not glob.glob(f"{epic_mos_event[59:80]}_Imaging_clean.fits"):
 
                 #Extract a single event, high energy light curve, from the event file to identify intervals of flaring particle background
                 evselect_rate = f"evselect table={epic_mos_event} withrateset=Y rateset={epic_mos_event[59:80]}_rate.fits maketimecolumn=Y timebinsize={epic_timebinsize} makeratecolumn=Y expression='#XMMEA_EM && (PI>10000) && (PATTERN==0)'"
@@ -644,11 +644,19 @@ class Observation:
                 status_tabgtigen = run_command(tabgtigen)
 
                 #Filter the event list
-                evselect_clean = f"evselect table={epic_mos_event} withfilteredset=Y filteredset={epic_mos_event[59:80]}_clean.fits destruct=Y keepfilteroutput=T expression='#XMMEA_EM && gti({epic_mos_event[59:80]}_gti.fits,TIME) && (PI>150)'"
+                evselect_clean = f"evselect table={epic_mos_event} withfilteredset=Y filteredset={epic_mos_event[59:80]}_Imaging_clean.fits destruct=Y keepfilteroutput=T expression='#XMMEA_EM && gti({epic_mos_event[59:80]}_gti.fits,TIME) && (PI>150)'"
                 status_evselect_clean = run_command(evselect_clean)
             else:
-                logging.info(f"Already filtered EPIC-MOS. The cleaned product is {epic_mos_event[59:80]}_clean.fits")
+                logging.info(f"Already filtered EPIC-MOS Imaging mode. The cleaned product is {epic_mos_event[59:80]}_Imaging_clean.fits")
         
+        for epic_mos_timingevent in glob.glob(os.path.join(self.emdir, "*TimingEvts.ds")):
+            
+            if not glob.glob(f"{epic_mos_event[59:80]}_Timing_clean.fits"):
+                evselect_clean = f"evselect table={epic_mos_timingevent} withfilteredset=Y filteredset={epic_mos_timingevent[59:80]}_Timing_clean.fits destruct=Y keepfilteroutput=T expression='#XMMEA_EM && gti({epic_mos_timingevent[59:80]}_gti.fits,TIME) && (PI>150)'"
+                status_evselect_clean = run_command(evselect_clean)
+            else:
+                logging.info(f"Already filtered EPIC-MOS Timing mode. The cleaned product is {epic_mos_event[59:80]}_Timing_clean.fits")
+
         logging.info('Done filtering EPIC-MOS!')
 
         #PN data
@@ -657,18 +665,18 @@ class Observation:
         
         for epic_pn_event in glob.glob(os.path.join(self.epdir, "*TimingEvts.ds")):
             
-            if not glob.glob(f"{epic_pn_event[58:77]}_clean.fits"):
-                evselct_rate_pn = f"evselect table={epic_pn_event} withrateset=Y rateset={epic_pn_event[58:77]}_rate.fits maketimecolumn=Y timebinsize={epic_timebinsize} makeratecolumn=Y expression=' #XMMEA_EP && (PI>10000&&PI<12000) && (PATTERN==0)'"
+            if not glob.glob(f"PNclean.fits"):  #58:77
+                evselct_rate_pn = f"evselect table={epic_pn_event} withrateset=Y rateset=PNrate.fits maketimecolumn=Y timebinsize={epic_timebinsize} makeratecolumn=Y expression=' #XMMEA_EP && (PI>10000&&PI<12000) && (PATTERN==0)'"
                 status_evselect_rate_pn = run_command(evselct_rate_pn)
 
-                tabgtigen_pn = f"tabgtigen table={epic_pn_event[58:77]}_rate.fits expression='RATE<=0.4' gtiset={epic_pn_event[58:77]}_gti.fits"
+                tabgtigen_pn = f"tabgtigen table=PNrate.fits expression='RATE<=0.4' gtiset=PNgti.fits"
                 status_tabgtigen_pn = run_command(tabgtigen_pn)
 
-                evselect_clean_pn = f"evselect table={epic_pn_event} withfilteredset=Y filteredset={epic_pn_event[58:77]}_clean.fits destruct=Y keepfilteroutput=T expression='#XMMEA_EP && gti({epic_pn_event[58:77]}_gti.fits,TIME) && (PI>150)'"
+                evselect_clean_pn = f"evselect table={epic_pn_event} withfilteredset=Y filteredset=PNclean.fits destruct=Y keepfilteroutput=T expression='#XMMEA_EP && gti(PNgti.fits,TIME) && (PI>150)'"
                 status_evselect_clean_pn = run_command(evselect_clean_pn)
         
             else:
-                logging.info(f"Already filtered EPIC-PN. The clean product is {epic_pn_event[58:77]}_clean.fits.")
+                logging.info(f"Already filtered EPIC-PN. The clean product is PNclean.fits.")
         
         logging.info('Done filtering EPIC-PN!')
 
@@ -787,6 +795,78 @@ class Observation:
                 for key, value in self.fracvardict[i].items():
                     print(key, ' : ', value)
             i+=1
+
+
+    def mos_spectrum(self):
+        """
+        Follows https://www.cosmos.esa.int/web/xmm-newton/sas-thread-mos-spectrum-timing
+        """
+        os.chdir(self.emdir)
+
+
+    def pn_spectrum(self):
+        """
+        Follows https://www.cosmos.esa.int/web/xmm-newton/sas-thread-pn-spectrum-timing
+        """
+        os.chdir(self.epdir)
+
+        #Open ds9 file where the coordinates of the source and background region are stored
+        try:
+
+            with open("ds9.reg") as f:
+                region = f.read()
+            
+            region = region.split('\n') #divide text file into lines
+
+            #Source coordinates
+            coordinates = region[3][4:-1].split(',')
+            xcenter = float(coordinates[0])
+            xmax = xcenter + float(coordinates[2])/2
+            xmin = xcenter - float(coordinates[2])/2
+
+            #Background coordinates
+            coordinates_bkg = region[4][4:-1].split(',')
+            xcenter_bkg = float(coordinates_bkg[0])
+            xmax_bkg = xcenter_bkg + float(coordinates_bkg[2])/2
+            xmin_bkg = xcenter_bkg - float(coordinates_bkg[2])/2
+
+            #Extract a source spectrum
+            logging.info("Extracting source spectrum...")
+            evselect_src_cmmd = f"evselect table=PNclean.fits withspectrumset=yes spectrumset=PNsource_spectrum.fits energycolumn=PI spectralbinsize=5 withspecranges=yes specchannelmin=0 specchannelmax=20479 expression='(FLAG==0) && (PATTERN<=4) && (RAWX>={xmin}) && (RAWX<={xmax})'"
+            status_evselect_src = run_command(evselect_src_cmmd)
+
+            #Extract a background spectrum
+            logging.info("Extracting background spectrum...")
+            evselect_bkg_cmmd = f"evselect table=PNclean.fits withspectrumset=yes spectrumset=PNbackground_spectrum.fits \
+                                energycolumn=PI spectralbinsize=5 withspecranges=yes specchannelmin=0 specchannelmax=20479 \
+                                expression='(FLAG==0) && (PATTERN<=4) && (RAWX>={xmin_bkg}) && (RAWX<={xmax_bkg})'"
+            status_evselect_bkg = run_command(evselect_bkg_cmmd)
+
+            #Calculate the area of source and background region used to make the spectral files
+            logging.info('Calculating the area of source and background region used to make the spectral files...')
+            backscale_cmmd = "backscale spectrumset=PNsource_spectrum.fits badpixlocation=PNclean.fits"
+            status_backscale_cmmd = run_command(backscale_cmmd)
+    
+            backscale_bkg_cmmd = "backscale spectrumset=PNbackground_spectrum.fits badpixlocation=PNclean.fits"
+            status_backscale_bkg_cmmd = run_command(backscale_bkg_cmmd)
+
+            #Generate a redistribution matrix
+            logging.info('Generating a redistribution matrix...')
+            rmf_cmmd = "rmfgen spectrumset=PNsource_spectrum.fits rmfset=PN.rmf"
+            status_rmf = run_command(rmf_cmmd)
+
+            #Generate an ancillary file 
+            logging.info('Generating an ancillary file...')
+            arf_cmmd = "arfgen spectrumset=PNsource_spectrum.fits arfset=PN.arf withrmfset=yes rmfset=PN.rmf badpixlocation=PNclean.fits detmaptype=psf"
+            status_arf = run_command(arf_cmmd)
+
+            #Rebin the spectrum
+            logging.info('Ribinning the spectrum...')
+            spec_grp_cmmd = "specgroup spectrumset=PNsource_spectrum.fits mincounts=25 oversample=3 rmfset=PN.rmf arfset=PN.arf backgndset=PNbackground_spectrum.fits groupedset=PN_spectrum_grp.fits"
+            status_grp = run_command(spec_grp_cmmd)
+        
+        except Exception as e:
+            print(e)
 
 
     def divide_spectrum(self):

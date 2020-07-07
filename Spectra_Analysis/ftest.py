@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
     #Make ftest array
     ftest_array = []
-
+    ftest_dict = {'logpar': 0, 'powerlaw': 0}
     i = 0
     while i<len(data_spec):
         if data_spec['model'].values[i]=='constant*TBabs*zlogp':
@@ -37,11 +37,31 @@ if __name__ == "__main__":
             dof_pw = data_spec['dof'].values[i]
 
         print(f"Observation {data_spec['obsid'].values[i]}, exposures {data_spec['exposures_id'].values[i]}, logparabola vs powerlaw fstatistic" )
-        fstatistic = xspec.Fit.ftest(chi2_lp, int(dof_lp), chi2_pw, int(dof_pw))
+        print('chi2 lp:', chi2_lpm )
+        print('chi2 pw:', chi2_pw)
+
+        if chi2_lp<chi2_pw:
+            print('logpar prima')
+            fstatistic = xspec.Fit.ftest(chi2_lp, int(dof_lp), chi2_pw, int(dof_pw))
+            if fstatistic<0.1:
+                ftest_dict['logpar'] += 1
+            else:
+                ftest_dict['powerlaw'] += 1
+
+        else:
+            print('pw prima')
+            fstatistic = xspec.Fit.ftest(chi2_pw, int(dof_pw), chi2_lp, int(dof_lp))
+            if fstatistic<0.1:
+                ftest_dict['powerlaw'] += 1
+            else:
+                ftest_dict['logpar'] += 1
+
         ftest_array.append(fstatistic)
         ftest_array.append(np.nan)
         i+=2
 
+    print(ftest_dict)
+    sys.exit()
     data_spec['ftest'] = np.array(ftest_array)
     final_table = Table.from_pandas(data_spec)
     final_table.write(output=f'{target_dir}/Products/RGS_Spectra/spectra_table_average.fits', format='fits', overwrite=True)
@@ -57,6 +77,7 @@ if __name__ == "__main__":
     height = np.array([len(data_spec_LP), len(data_spec_PL), len(data_badarg)])
     print(height)
     height = [75, 13, 14]
+    sys.exit()
     fig = plt.figure()
 
     plt.bar(x=x, height=height)
