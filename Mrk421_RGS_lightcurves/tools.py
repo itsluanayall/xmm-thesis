@@ -252,12 +252,12 @@ def spectrum_plot_xspec(observation, expid0, expid1, model, target_dir, i=0):
     axs[0].errorbar(chans1, xspec.Plot.y(1), xerr=chans1_err, yerr=xspec.Plot.yErr(1), color='wheat', linestyle='', marker='.', markersize=0.2, label='Background RGS1')
     axs[0].errorbar(chans2, xspec.Plot.y(2), xerr=chans2_err, yerr=xspec.Plot.yErr(2), color='tan', linestyle='', marker='.', markersize=0.2, label='Background RGS2')
     
-    axs[0].set_yscale('log')
+    #axs[0].set_yscale('log')
     axs[0].set_xscale('log')
-    axs[0].set_ylim(1e-7, 150)
+    #axs[0].set_ylim(1e-7)
     axs[0].set_xlim(0.331, 2.001)
     axs[0].set_ylabel('Normalized counts [s-1 keV-1]', fontsize=17)
-    axs[0].legend(loc='lower right', fontsize='x-large')
+    axs[0].legend(loc='upper right', fontsize='x-large')
 
     # Second panel: Residuals
     xspec.Plot('resid')

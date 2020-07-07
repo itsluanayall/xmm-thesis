@@ -34,7 +34,6 @@ from astropy.table import Table
 import matplotlib.pyplot as plt
 from astropy.io import ascii
 import pandas as pd
-import seaborn as sns
 import glob
 import numpy as np
 import random
@@ -182,7 +181,8 @@ if __name__ == "__main__":
     '''
     #For a single observation
     #sample_obs = ['0099280101', '0153951201', '0670920301', '0810860701'] #for spectra
-    sample_obs = ['0136541001', '0158971201', '0810860201', '0411080301', '0560980101', '0791781401', '0810860701', '0791782001'] #for vaughan panels
+    sample_obs = ['0153951201']
+    #sample_obs = ['0136541001', '0158971201', '0810860201', '0411080301', '0560980101', '0791781401', '0810860701', '0791782001'] #for vaughan panels
     #sample_obs = ['0791782001']
     #sample_obs = ['0136540701']
     

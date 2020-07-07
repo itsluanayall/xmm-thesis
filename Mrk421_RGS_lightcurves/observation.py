@@ -969,8 +969,10 @@ class Observation:
             # Create Table that we will fill with the output (parameters, flux, luminosity...)
             self.spectra_table = Table(names=('obsid', 'instrid', 'exposures_id',
                                         'tbinid', 'tbinstart', 'tbinstop', 'exposure', 'model',
-                                        'nH', 'nH_low', 'nH_up', 'phoindex', 'phoindex_low', 'phoindex_up',
-                                        'beta', 'beta_low', 'beta_up', 'norm', 'norm_low', 'norm_up',
+                                        'nH', 'nH_low', 'nH_up', 'nH_low68', 'nH_up68', 
+                                        'phoindex', 'phoindex_low', 'phoindex_up', 'phoindex_low68', 'phoindex_up68',
+                                        'beta', 'beta_low', 'beta_up', 'beta_low68', 'beta_up68', 
+                                        'norm', 'norm_low', 'norm_up', 'norm_low68', 'norm_up68',
                                         'cstat', 'chi2', 'dof', 
                                         'src_cts', 'esrc_cts', 'bkg_cts', 'ebkg_cts',
                                         'rate', 'erate', 
@@ -979,8 +981,10 @@ class Observation:
                                         ),
                                         dtype=('i','U9', 'U9',
                                             'i', 'd', 'd', 'd','U20',
-                                            'd','d', 'd','d', 'd', 'd',
-                                            'd','d','d','d', 'd', 'd',
+                                            'd','d', 'd','d', 'd',
+                                            'd','d', 'd','d', 'd',
+                                            'd','d','d','d', 'd', 
+                                            'd','d','d','d', 'd', 
                                             'd','d','i', 
                                             'd', 'd', 'd', 'd',
                                             'd', 'd',
@@ -1033,9 +1037,9 @@ class Observation:
                     xspec.Fit.query = 'yes'
                     xspec.Fit.perform() 
 
-                    #Error calculation (confidence intervals)
+                    #Error calculation (confidence intervals 3 sigma)
                     if m1.expression=='constant*TBabs*zlogpar':
-                        xspec.Fit.error("stopat 1000,, maximum 1000.0 2,3,4,7")    
+                        xspec.Fit.error("stopat 1000,, maximum 1000.0 2,3,4,7")   
 
                     if m1.expression=='constant*TBabs*zpowerlw':
                         xspec.Fit.error("stopat 1000,, maximum 1000.0 2,3,5")
@@ -1058,7 +1062,8 @@ class Observation:
                         nH = m1(2).values[0]
                         phoindex = m1(3).values[0]
                         norm = m1(5).values[0]
-                        #Confidence intervals
+
+                        #Confidence intervals 90%
                         nH_low = m1(2).error[0]
                         nH_up = m1(2).error[1]
                         phoindex_low = m1(3).error[0]
@@ -1067,12 +1072,24 @@ class Observation:
                         norm_up = m1(5).error[1]
                         beta, beta_up, beta_low = (np.nan, np.nan, np.nan)
 
+                        #Confidence intervals 68%
+                        xspec.Fit.error("stopat 1000,, maximum 1000.0 2,3,5")
+                        nH_low68 = m1(2).error[0]
+                        nH_up68 = m1(2).error[1]
+                        phoindex_low68 = m1(3).error[0]
+                        phoindex_up68 = m1(3).error[1]
+                        norm_low68 = m1(5).error[0]
+                        norm_up68 = m1(5).error[1]
+                        beta, beta_up68, beta_low68 = (np.nan, np.nan, np.nan)
+
+
                     if m1.expression=='constant*TBabs*zlogpar':
                         nH = m1(2).values[0]
                         phoindex = m1(3).values[0]
                         beta = m1(4).values[0]
                         norm = m1(7).values[0]
-                        #Confidence intervals
+
+                        #Confidence intervals 90%
                         nH_low = m1(2).error[0]
                         nH_up = m1(2).error[1]
                         phoindex_low = m1(3).error[0]
@@ -1081,6 +1098,17 @@ class Observation:
                         beta_up = m1(4).error[1]
                         norm_low = m1(7).error[0]
                         norm_up = m1(7).error[1]
+
+                        #Confidence intervals 68%
+                        xspec.Fit.error("stopat 1000,, maximum 1000.0 1.0 2,3,4,7") 
+                        nH_low68 = m1(2).error[0]
+                        nH_up68 = m1(2).error[1]
+                        phoindex_low68 = m1(3).error[0]
+                        phoindex_up68 = m1(3).error[1]
+                        beta_low68 = m1(4).error[0]
+                        beta_up68 = m1(4).error[1]
+                        norm_low68 = m1(7).error[0]
+                        norm_up68 = m1(7).error[1]
 
                     fit_statistic = xspec.Fit.statistic
                     test_statistic = xspec.Fit.testStatistic
@@ -1099,7 +1127,9 @@ class Observation:
 
                     #Save output table
                     self.spectra_table.add_row((self.obsid, "rgs12", f"{expos0.expid}+{expos1.expid}", 0, start_time, stop_time,  exposure_time, m1.expression, nH, nH_low, nH_up,
-                                        phoindex, phoindex_low, phoindex_up, beta, beta_low, beta_up, norm, norm_low, norm_up, fit_statistic, test_statistic,
+                                        nH_low68, nH_up68, phoindex, phoindex_low, phoindex_up, phoindex_low68, phoindex_up68,
+                                        beta, beta_low, beta_up, beta_low68, beta_up68, norm, norm_low, norm_up, norm_low68, norm_up68,
+                                        fit_statistic, test_statistic,
                                         dof, src_cts, src_ects, bkg_cts, bkg_ects, src_rate, src_rate_std, 
                                         flux, flux_up, flux_low, lumin, lumin_up, lumin_low))
 
@@ -1230,7 +1260,7 @@ class Observation:
                             logging.error(e)
                             continue
 
-                        #Error calculation (confidence intervals)
+                        #Error calculation (3 sigma confidence intervals)
                         try:
                             if m1.expression=='constant*TBabs*zlogpar':
                                 xspec.Fit.error("stopat 1000,, maximum 1000.0 2,3,4,7")    
@@ -1245,7 +1275,7 @@ class Observation:
                         #Plotting
                         spectrum_plot_xspec(self.obsid, expos0.expid, expos1.expid, model, self.target_dir, i)
 
-                        #Calculate Flux and Luminosity and store their values 
+                        #Calculate Flux and Luminosity and store their values (90% confidence intervals)
                         try:
                             xspec.AllModels.calcFlux('0.331 2.001 err 100 90')
                             xspec.AllModels.calcLumin(f'0.331 2.001 {target_REDSHIFT} err') 
@@ -1265,6 +1295,7 @@ class Observation:
                             nH = m1(2).values[0]
                             phoindex = m1(3).values[0]
                             norm = m1(5).values[0]
+
                             #Confidence intervals
                             nH_low = m1(2).error[0]
                             nH_up = m1(2).error[1]
@@ -1274,11 +1305,22 @@ class Observation:
                             norm_up = m1(5).error[1]
                             beta, beta_up, beta_low = (np.nan, np.nan, np.nan)
 
+                            #Confidence intervals 68%
+                            xspec.Fit.error("stopat 1000,, maximum 1000.0 1.0 2,3,5") 
+                            nH_low68 = m1(2).error[0]
+                            nH_up68 = m1(2).error[1]
+                            phoindex_low68 = m1(3).error[0]
+                            phoindex_up68 = m1(3).error[1]
+                            norm_low68 = m1(5).error[0]
+                            norm_up68 = m1(5).error[1]
+                            beta, beta_up68, beta_low68 = (np.nan, np.nan, np.nan)
+
                         if m1.expression=='constant*TBabs*zlogpar':
                             nH = m1(2).values[0]
                             phoindex = m1(3).values[0]
                             beta = m1(4).values[0]
                             norm = m1(7).values[0]
+
                             #Confidence intervals
                             nH_low = m1(2).error[0]
                             nH_up = m1(2).error[1]
@@ -1288,6 +1330,17 @@ class Observation:
                             beta_up = m1(4).error[1]
                             norm_low = m1(7).error[0]
                             norm_up = m1(7).error[1]
+
+                            #Confidence intervals 68%
+                            xspec.Fit.error("stopat 1000,, maximum 1000.0 1.0 2,3,4,7") 
+                            nH_low68 = m1(2).error[0]
+                            nH_up68 = m1(2).error[1]
+                            phoindex_low68 = m1(3).error[0]
+                            phoindex_up68 = m1(3).error[1]
+                            beta_low68 = m1(4).error[0]
+                            beta_up68 = m1(4).error[1]
+                            norm_low68 = m1(7).error[0]
+                            norm_up68 = m1(7).error[1]
 
                         fit_statistic = xspec.Fit.statistic
                         test_statistic = xspec.Fit.testStatistic
@@ -1304,8 +1357,12 @@ class Observation:
                         bkg_ects = (1. - frac/100) *src_ects
 
                         #Save output table
-                        self.spectra_table.add_row((self.obsid,"rgs12", f"{expos0.expid}+{expos1.expid}", i, tstart, tstop,  exposure_time, m1.expression, nH, nH_low, nH_up,
-                                        phoindex, phoindex_low, phoindex_up, beta, beta_low, beta_up, norm, norm_low, norm_up, fit_statistic, test_statistic,
+                        self.spectra_table.add_row((self.obsid,"rgs12", f"{expos0.expid}+{expos1.expid}", i, tstart, tstop,  exposure_time, m1.expression,
+                                        nH, nH_low, nH_up, nH_low68, nH_up68,
+                                        phoindex, phoindex_low, phoindex_up, phoindex_low68, phoindex_up68,
+                                        beta, beta_low, beta_up, beta_low68, beta_up68, 
+                                        norm, norm_low, norm_up, norm_low68, norm_up68,
+                                        fit_statistic, test_statistic,
                                         dof, src_cts, src_ects, bkg_cts, bkg_ects, src_rate, src_rate_std,
                                         flux, flux_up, flux_low, lumin, lumin_up, lumin_low))
 

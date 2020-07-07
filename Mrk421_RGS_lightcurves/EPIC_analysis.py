@@ -28,7 +28,7 @@ if __name__ == "__main__":
     logging.info(f'Timescale chosen for fractional variability: {timescale_fvar} ks')
 
     epic_observations = ['0670920301', '0670920401', '0670920501', '0302180101', '0150498701', '0502030101']
-
+    epic_observations = ['0670920401']
     for obsid in epic_observations:
         obs = Observation(obsid=obsid, target_dir=target_dir)
         print('-----------------------------------------------------------')
