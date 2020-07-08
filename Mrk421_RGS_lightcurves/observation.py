@@ -651,7 +651,7 @@ class Observation:
         
         for epic_mos_timingevent in glob.glob(os.path.join(self.emdir, "*TimingEvts.ds")):
             
-            if not glob.glob(f"{epic_mos_event[59:80]}_Timing_clean.fits"):
+            if not glob.glob(f"{epic_mos_timingevent[59:80]}_Timing_clean.fits"):
                 evselect_clean = f"evselect table={epic_mos_timingevent} withfilteredset=Y filteredset={epic_mos_timingevent[59:80]}_Timing_clean.fits destruct=Y keepfilteroutput=T expression='#XMMEA_EM && gti({epic_mos_timingevent[59:80]}_gti.fits,TIME) && (PI>150)'"
                 status_evselect_clean = run_command(evselect_clean)
             else:
@@ -802,6 +802,65 @@ class Observation:
         Follows https://www.cosmos.esa.int/web/xmm-newton/sas-thread-mos-spectrum-timing
         """
         os.chdir(self.emdir)
+
+        #Open ds9 file where the coordinates of the source and background region are stored
+        try:
+
+            with open("source_mos2.reg") as f:
+                region = f.read()
+            
+            region = region.split('\n') #divide text file into lines
+
+            #Source coordinates
+            coordinates = region[3][4:-1].split(',')
+            xcenter = float(coordinates[0])
+            xmax = xcenter + float(coordinates[2])/2
+            xmin = xcenter - float(coordinates[2])/2
+        
+        except Exception as e:
+            print(e)
+
+        #Same foir background region
+        try:
+            with open("back_mos2.reg") as f:
+                back = f.read()
+            
+            back = back.split('\n') #divide text file into lines
+            box_coord = back[3][3:]
+        
+        
+
+            #Extract source spectrum
+            mos2_timing_file = glob.glob('*EMOS2_S002_Timing_clean.fits')
+            evselect_src_cmmd = f"evselect table={mos2_timing_file} withspectrumset=yes spectrumset=MOS2source_spectrum.fits energycolumn=PI spectralbinsize=5 withspecranges=yes specchannelmin=0 specchannelmax=11999 expression='(FLAG==0) && (PATTERN<=0) && (RAWX>={xmin}) && (RAWX<={xmax})'"
+            status_evselect_src = run_command(evselect_src_cmmd)
+
+            #Extract background spectrum
+            mos2_imaging_file = glob.glob("*EMOS2_S002_Imaging_clean.fits")
+            evselect_bkg_cmmd = f"evselect table={mos2_imaging_file} withspectrumset=yes spectrumset=MOS2background_spectrum.fits energycolumn=PI spectralbinsize=5 withspecranges=yes specchannelmin=0 specchannelmax=11999 expression='(FLAG==0) && (PATTERN<=1 || PATTERN==3) && ((DETX,DETY) in BOX{box_coord})'"
+            status_evselect_bkg = run_command(evselect_bkg_cmmd)
+
+            #Calculate the area of source and background region used to make the spectral files
+            backscale_src_cmmd = f"backscale spectrumset=MOS2source_spectrum.fits badpixlocation={mos2_timing_file}"
+            status_backscale_src = run_command(backscale_src_cmmd)
+    
+            backscale_bkg_cmmd = f"backscale spectrumset=MOS2background_spectrum.fits badpixlocation={mos2_imaging_file}"
+            status_backscale_bkg = run_command(backscale_bkg_cmmd)
+
+            #Generate a redistribution matrix
+            rmfgen_cmmd = f"rmfgen spectrumset=MOS2source_spectrum.fits rmfset=MOS2.rmf"
+            status_rmfgen = run_command(rmfgen_cmmd)
+
+            #Create an ancilary file 
+            arfgen_cmmd = f"arfgen spectrumset=MOS2source_spectrum.fits arfset=MOS2.arf withrmfset=yes rmfset=MOS2.rmf badpixlocation={mos2_timing_file} detmaptype=psf"
+            status_arfgen = run_command(arfgen_cmmd)
+
+            #Rebin the spectrum
+            specgroup_cmmd = f"specgroup spectrumset=MOS2source_spectrum.fits mincounts=25 oversample=3 rmfset=MOS2.rmf arfset=MOS2.arf backgndset=MOS2background_spectrum.fits groupedset=MOS2_spectrum_grp.fits"
+            status_specgroup = run_command(specgroup_cmmd)
+
+        except Exception as e:
+            print(e)
 
 
     def pn_spectrum(self):
