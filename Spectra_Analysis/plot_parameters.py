@@ -48,6 +48,8 @@ parser.add_argument('--powerlaw', action='store_true',
                     help='use powerlaw model to make the panel')
 parser.add_argument('--state', action='store_true',
                     help='make plot differentiating between low and high state')
+parser.add_argument('--hysteresis', type=int,
+                    help='make phoindex vs rate plot of a given observation ID to search for hysteresis cycles')
 args = parser.parse_args()
 
 
@@ -205,6 +207,88 @@ if __name__ == "__main__":
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "beta_vs_rate.png"))
     
 
+    if args.hysteresis:
+
+        data_spec_zlogp = data_spec_zlogp[data_spec_zlogp['phoindex_up']!=0.]
+        df_plot_zlogp = pd.DataFrame({"time":data_spec_zlogp['tbinstart'].values, "rate": data_spec_zlogp['rate'].values, "erate": data_spec_zlogp['erate'].values, 'alpha': data_spec_zlogp['phoindex'].values, 
+                                        'alpha_top': data_spec_zlogp['phoindex_up'].values - data_spec_zlogp['phoindex'].values,
+                                        'alpha_bot': data_spec_zlogp['phoindex'].values - data_spec_zlogp['phoindex_low'].values,
+                                        "obsid": data_spec_zlogp['obsid'].values})
+        
+        # Take only data from observation specified by command line
+        df_plot_zlogp = df_plot_zlogp[df_plot_zlogp['obsid']==args.hysteresis]
+
+
+        data_spec_zpowe = data_spec_zpowe[data_spec_zpowe['phoindex_up']!=0.]
+        df_plot_zpowe = pd.DataFrame({"time": data_spec_zpowe['tbinstart'].values,"rate": data_spec_zpowe['rate'].values, "erate": data_spec_zpowe['erate'].values,
+                                        "phoindex": data_spec_zpowe['phoindex'].values,
+                                        "phoindex_top": data_spec_zpowe['phoindex_up'].values - data_spec_zpowe['phoindex'].values,
+                                        "phoindex_bot": data_spec_zpowe['phoindex'].values - data_spec_zpowe['phoindex_low'].values,
+                                        "obsid": data_spec_zpowe['obsid'].values})
+        
+        df_plot_zpowe = df_plot_zpowe[df_plot_zpowe['obsid']==args.hysteresis]
+
+        #Make figure
+        figure, axs = plt.subplots(3,1, figsize=(8,8), gridspec_kw={'hspace':0.3})
+        
+        #Separate data into 3 parts 
+        segment = (df_plot_zlogp['time'].values[-1] - df_plot_zlogp['time'].values[0])/3
+        df_plot_zlogp1 = df_plot_zlogp[df_plot_zlogp['time']<=(df_plot_zlogp['time'].values[0]+segment)]
+        df_plot_zlogp2 = df_plot_zlogp[(df_plot_zlogp['time']>(df_plot_zlogp['time'].values[0]+segment)) & (df_plot_zlogp['time']<=(df_plot_zlogp['time'].values[0]+2*segment))]
+        df_plot_zlogp3 = df_plot_zlogp[(df_plot_zlogp['time']>(df_plot_zlogp['time'].values[0]+2*segment)) & (df_plot_zlogp['time']<=(df_plot_zlogp['time'].values[-1]))]
+
+        df_plot_zpowe1 = df_plot_zpowe[df_plot_zpowe['time']<=(df_plot_zpowe['time'].values[0]+segment)]
+        df_plot_zpowe2 = df_plot_zpowe[(df_plot_zpowe['time']>(df_plot_zpowe['time'].values[0]+segment)) & (df_plot_zpowe['time']<=(df_plot_zpowe['time'].values[0]+2*segment))]
+        df_plot_zpowe3 = df_plot_zpowe[(df_plot_zpowe['time']>(df_plot_zpowe['time'].values[0]+2*segment)) & (df_plot_zpowe['time']<=(df_plot_zpowe['time'].values[-1]))]
+
+
+
+        #Subplot 1: lightcurve
+        #axs[0].errorbar(y=df_plot_zpowe['rate'].values, x=df_plot_zpowe['time'].values, yerr=df_plot_zpowe['erate'].values,
+        #                fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1)
+        axs[0].errorbar(y=df_plot_zpowe1['rate'].values, x=df_plot_zpowe1['time'].values, yerr=df_plot_zpowe1['erate'].values,
+                        fmt='.',color='red', ecolor='lightcoral', markersize=5, elinewidth=1, capsize=2, capthick=1)
+        axs[0].errorbar(y=df_plot_zpowe2['rate'].values, x=df_plot_zpowe2['time'].values, yerr=df_plot_zpowe2['erate'].values,
+                        fmt='.',color='g', ecolor='yellowgreen', markersize=5, elinewidth=1, capsize=2, capthick=1)
+        axs[0].errorbar(y=df_plot_zpowe3['rate'].values, x=df_plot_zpowe3['time'].values, yerr=df_plot_zpowe3['erate'].values,
+                        fmt='.',color='b', ecolor='cornflowerblue', markersize=5, elinewidth=1, capsize=2, capthick=1)
+        
+        #Subplot 2 photon index vs rate (powerlaw)
+        #axs[1].errorbar(y=df_plot_zpowe['phoindex'].values, x=df_plot_zpowe['rate'].values, xerr=df_plot_zpowe['erate'].values,
+        #            yerr = (df_plot_zpowe['phoindex_bot'].values, df_plot_zpowe['phoindex_top'].values), fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='zpowerlaw')
+        axs[1].errorbar(y=df_plot_zpowe1['phoindex'].values, x=df_plot_zpowe1['rate'].values, xerr=df_plot_zpowe1['erate'].values,
+                    yerr = (df_plot_zpowe1['phoindex_bot'].values, df_plot_zpowe1['phoindex_top'].values), fmt='.',color='red', markersize=10, elinewidth=1, capsize=2, capthick=1, ecolor='lightcoral', label='zpowerlaw')
+        axs[1].errorbar(y=df_plot_zpowe2['phoindex'].values, x=df_plot_zpowe2['rate'].values, xerr=df_plot_zpowe2['erate'].values,
+                    yerr = (df_plot_zpowe2['phoindex_bot'].values, df_plot_zpowe2['phoindex_top'].values), fmt='.',color='g', markersize=10, elinewidth=1, capsize=2, capthick=1, ecolor='yellowgreen', label='zpowerlaw')
+        axs[1].errorbar(y=df_plot_zpowe3['phoindex'].values, x=df_plot_zpowe3['rate'].values, xerr=df_plot_zpowe3['erate'].values,
+                    yerr = (df_plot_zpowe3['phoindex_bot'].values, df_plot_zpowe3['phoindex_top'].values), fmt='.',color='b', markersize=10, elinewidth=1, capsize=2, capthick=1, ecolor='cornflowerblue', label='zpowerlaw')
+
+        #Subplot 3: alpha vs rate (logpar)      
+        #axs[2].errorbar(y=df_plot_zlogp['alpha'].values, x=df_plot_zlogp['rate'].values, xerr=df_plot_zlogp['erate'].values,
+        #            yerr = (df_plot_zlogp['alpha_bot'].values, df_plot_zlogp['alpha_top'].values), fmt='.', linestyle='',markersize=5, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color='black', label='zlogpar')
+        axs[2].errorbar(y=df_plot_zlogp1['alpha'].values, x=df_plot_zlogp1['rate'].values, xerr=df_plot_zlogp1['erate'].values,
+                    yerr = (df_plot_zlogp1['alpha_bot'].values, df_plot_zlogp1['alpha_top'].values), fmt='.', linestyle='',markersize=10, ecolor='lightcoral', elinewidth=1, capsize=2, capthick=1, color='red', label='zlogpar')
+        axs[2].errorbar(y=df_plot_zlogp2['alpha'].values, x=df_plot_zlogp2['rate'].values, xerr=df_plot_zlogp2['erate'].values,
+                    yerr = (df_plot_zlogp2['alpha_bot'].values, df_plot_zlogp2['alpha_top'].values), fmt='.', linestyle='',markersize=10, ecolor='yellowgreen', elinewidth=1, capsize=2, capthick=1, color='green', label='zlogpar')
+        axs[2].errorbar(y=df_plot_zlogp3['alpha'].values, x=df_plot_zlogp3['rate'].values, xerr=df_plot_zlogp3['erate'].values,
+                    yerr = (df_plot_zlogp3['alpha_bot'].values, df_plot_zlogp3['alpha_top'].values), fmt='.', linestyle='',markersize=10, ecolor='cornflowerblue', elinewidth=1, capsize=2, capthick=1, color='b', label='zlogpar')
+                
+        #Linestyle arrow 
+        axs[1].quiver(df_plot_zpowe['rate'].values[:-1], df_plot_zpowe['phoindex'].values[:-1], df_plot_zpowe['rate'].values[1:]-df_plot_zpowe['rate'].values[:-1], df_plot_zpowe['phoindex'].values[1:]-df_plot_zpowe['phoindex'].values[:-1], scale_units='xy', angles='xy', scale=1, width=0.003, headwidth=8)
+        axs[2].quiver(df_plot_zlogp['rate'].values[:-1], df_plot_zlogp['alpha'].values[:-1], df_plot_zlogp['rate'].values[1:]-df_plot_zlogp['rate'].values[:-1], df_plot_zlogp['alpha'].values[1:]-df_plot_zlogp['alpha'].values[:-1], scale_units='xy', angles='xy', scale=1, width=0.003, headwidth=8)
+
+        #Labels and stuff
+        axs[0].grid()
+        axs[0].set_xlabel('Time [s]')
+        axs[0].set_ylabel('Rate [ct/s]')
+        axs[1].grid()
+        axs[1].set_xlabel('Rate [ct/s]')
+        axs[1].set_ylabel('phoindex (zpowerlaw)')
+        axs[2].grid()
+        axs[2].set_xlabel('Rate [ct/s]')
+        axs[2].set_ylabel('alpha (zlogpar)')
+        plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", f"hysteresis_{args.hysteresis}.png"))
+
     if args.flux:
 
         if args.phoindex: #user wants phoindex vs flux
@@ -221,7 +305,7 @@ if __name__ == "__main__":
                                           'alpha_bot': data_spec_zlogp['phoindex'].values - data_spec_zlogp['phoindex_low'].values,
                                           "obsid": data_spec_zlogp['obsid'].values})
             
-            df_plot_zlogp = df_plot_zlogp[df_plot_zlogp['obsid']==791781401]
+            
 
             #Powerlaw dataframe
             data_spec_zpowe = data_spec_zpowe[data_spec_zpowe['phoindex_up']!=0.]
@@ -235,7 +319,6 @@ if __name__ == "__main__":
                                           "phoindex_bot": data_spec_zpowe['phoindex'].values - data_spec_zpowe['phoindex_low'].values,
                                           "obsid": data_spec_zpowe['obsid'].values})
 
-            df_plot_zpowe = df_plot_zpowe[df_plot_zpowe['obsid']==791781401]
 
             if args.state:  #separate in high and low state
                 df_plot_zlogp_high = df_plot_zlogp[df_plot_zlogp['rate']>=20]
@@ -598,4 +681,3 @@ if __name__ == "__main__":
             axs[0].legend(handles=[red_patch, blue_patch])
             axs[0].set_xlabel('phoindex powerlaw')
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "distribution_powerlaw.png"))
-
