@@ -84,7 +84,7 @@ if __name__ == "__main__":
     counter = 0
     mrk421_problematic_obs = ['0658802001', '0411082701']
     duration_lc_ks = []
-    '''
+    
     for obsid in os.listdir(target_dir):
         
         if obsid.startswith('0'):   #All observation folders start with 0
@@ -181,8 +181,8 @@ if __name__ == "__main__":
     '''
     #For a single observation
     #sample_obs = ['0099280101', '0153951201', '0670920301', '0810860701'] #for spectra
-    sample_obs = ['0153951201']
-    #sample_obs = ['0136541001', '0158971201', '0810860201', '0411080301', '0560980101', '0791781401', '0810860701', '0791782001'] #for vaughan panels
+    #sample_obs = ['0153951201']
+    sample_obs = ['0136541001', '0158971201', '0810860201', '0411080301', '0560980101', '0791781401', '0810860701', '0791782001'] #for vaughan panels
     #sample_obs = ['0791782001']
     #sample_obs = ['0136540701']
     
@@ -223,4 +223,4 @@ if __name__ == "__main__":
     axs[1].set_ylabel('$<F_{var}>$')
     axs[1].grid(True)
     plt.savefig(f'{target_dir}/Products/Plots_timeseries/xs_rate_combined.png')
-    
+    '''

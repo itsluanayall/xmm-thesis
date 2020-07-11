@@ -1176,12 +1176,12 @@ class Observation:
                     xspec.Fit.query = 'yes'
                     xspec.Fit.perform() 
 
-                    #Error calculation (confidence intervals 3 sigma)
+                    #Error calculation (confidence intervals 3 sigma, 90% confidence)
                     if m1.expression=='constant*TBabs*zlogpar':
-                        xspec.Fit.error("stopat 1000,, maximum 1000.0 2,3,4,7")   
+                        xspec.Fit.error("stopat 1000,, maximum 1000.0 2.706 2,3,4,7")   
 
                     if m1.expression=='constant*TBabs*zpowerlw':
-                        xspec.Fit.error("stopat 1000,, maximum 1000.0 2,3,5")
+                        xspec.Fit.error("stopat 1000,, maximum 1000.0 2.706 2,3,5")
 
                     #Plot
                     spectrum_plot_xspec(self.obsid, expos0.expid, expos1.expid, model, self.target_dir, 0)
@@ -1212,7 +1212,7 @@ class Observation:
                         beta, beta_up, beta_low = (np.nan, np.nan, np.nan)
 
                         #Confidence intervals 68%
-                        xspec.Fit.error("stopat 1000,, maximum 1000.0 2,3,5")
+                        xspec.Fit.error("stopat 1000,, maximum 1000.0 1.0 2,3,5")
                         nH_low68 = m1(2).error[0]
                         nH_up68 = m1(2).error[1]
                         phoindex_low68 = m1(3).error[0]
@@ -1402,10 +1402,10 @@ class Observation:
                         #Error calculation (3 sigma confidence intervals)
                         try:
                             if m1.expression=='constant*TBabs*zlogpar':
-                                xspec.Fit.error("stopat 1000,, maximum 1000.0 2,3,4,7")    
+                                xspec.Fit.error("stopat 1000,, maximum 1000.0 2.706 2,3,4,7")    
 
                             if m1.expression=='constant*TBabs*zpowerlw':
-                                xspec.Fit.error("stopat 1000,, maximum 1000.0 2,3,5")
+                                xspec.Fit.error("stopat 1000,, maximum 1000.0 2.706 2,3,5")
 
                         except Exception as e:
                             logging.error(e)
@@ -1544,10 +1544,11 @@ class Observation:
                 #Read LC data
                 time, rate, erate, fracexp, backv, backe = mask_fracexp15(f"{self.rgsdir}/{self.obsid}_{expos0.expid}+{expos1.expid}_RGS_rates_{timebinsize}bin.ds")
                 data = pd.DataFrame({'RATE': rate, "TIME": time, "ERROR": erate, 'BACKV': backv, "BACKE": backe})
+                data = data[2:]
                 if self.obsid == '0560980101':
-                    data = data[3:]
-                if self.obsid == '0791781401':
-                    data = data[2:]
+                    data = data[1:]
+                
+                
 
                 ###### --------------------------PANEL ----------------------------------#####
                 fig, axs = plt.subplots(6, 1, figsize=(15,20), sharex=True, gridspec_kw={'hspace':0, 'wspace':0})
