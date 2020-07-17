@@ -281,6 +281,58 @@ def spectrum_plot_xspec(observation, expid0, expid1, model, target_dir, i=0):
     plt.close()
 
 
+def epic_spectrum_plot_xspec(observation, expid, model, target_dir):
+    """
+    Plot spectrum in PyXspec for EPIC-pn.
+    """
+
+    xspec.Plot.device = '/null'
+    xspec.Plot.xAxis = 'keV'
+    xspec.Plot.setRebin(minSig=3, maxBins=4096) 
+    xspec.Plot.background = True
+    xspec.Plot('data')
+
+    # Use matplotlib
+    # Store x and y for EPIC-pn
+    chans1 = xspec.Plot.x(1)
+    chans1_err = xspec.Plot.xErr(1)
+    rates1 = xspec.Plot.y(1)
+    rates1_err = xspec.Plot.yErr(1)
+
+    fig, axs = plt.subplots(3, 1, sharex=True, gridspec_kw={'hspace':0.1}, figsize=(11,9))
+    fig.suptitle(f"Average spectra {observation}, expo {expid}, {model} ", fontsize=15, y=0.92)
+
+    # First panel: Source Spectrum
+    axs[0].errorbar(chans1, rates1, yerr=rates1_err, xerr=chans1_err, linestyle='', color='black', label='EPIC-pn')
+    
+    # First panel: Background Spectrum
+    xspec.Plot('back')
+    axs[0].errorbar(chans1, xspec.Plot.y(1), xerr=chans1_err, yerr=xspec.Plot.yErr(1), color='salmon', linestyle='', marker='.', markersize=0.2, label='Background')
+    
+    axs[0].set_yscale('log')
+    axs[0].set_xscale('log')
+    #axs[0].set_ylim(1e-7)
+    axs[0].set_xlim(0.4, 12)
+    axs[0].set_ylabel('Normalized counts [s-1 keV-1]', fontsize=10)
+    axs[0].legend(loc='upper right', fontsize='x-large')
+
+    # Second panel: Residuals
+    xspec.Plot('resid')
+    axs[1].errorbar(chans1, xspec.Plot.y(1), yerr=xspec.Plot.yErr(1), xerr=chans1_err, linestyle='', color='black', label='RGS1')
+    axs[1].hlines(0, plt.xlim()[0], plt.xlim()[1], color='lime')   
+    axs[1].set_ylabel('Normalized counts [s-1 keV-1]', fontsize=10)
+
+    # Third panel: delchi
+    xspec.Plot('delchi')
+    axs[2].errorbar(chans1, xspec.Plot.y(1), yerr=1., xerr=chans1_err, linestyle='', color='black', label='RGS1')
+    axs[2].hlines(0, plt.xlim()[0], plt.xlim()[1], color='lime')  
+    axs[2].set_xlabel('Energy [keV]', fontsize=10)
+    axs[2].set_ylabel('(data-model)/error', fontsize=10)
+
+    plt.savefig(f"{target_dir}/Products/EPIC_Spectra/average_{observation}_{model}.png")
+    plt.close()
+
+
 def binning(N, bintime, dataframe, colx, coly):
     
     segment = N*bintime
