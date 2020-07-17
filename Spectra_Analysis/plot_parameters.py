@@ -50,6 +50,9 @@ parser.add_argument('--state', action='store_true',
                     help='make plot differentiating between low and high state')
 parser.add_argument('--hysteresis', type=int,
                     help='make phoindex vs rate plot of a given observation ID to search for hysteresis cycles')
+parser.add_argument('--vaughan', action='store_true',
+                    help='use only long observations (the ones used to make vaughan variability panels)')
+
 args = parser.parse_args()
 
 
@@ -106,6 +109,11 @@ if __name__ == "__main__":
                                          "phoindex_top": data_spec_zpowe['phoindex_up'].values - data_spec_zpowe['phoindex'].values,
                                          "phoindex_bot": data_spec_zpowe['phoindex'].values - data_spec_zpowe['phoindex_low'].values})
             df_plot_zpowe = df_plot_zpowe[df_plot_zpowe['fvar'] != -1.]
+
+            if args.vaughan:
+                vaughan_obs = ['0136541001', '0158971201', '0810860201', '0411080301', '0560980101', '0791781401', '0810860701', '0791782001']
+                df_plot_zpowe = df_plot_zpowe[df_plot_zpowe.obsid.isin(vaughan_obs)] #filter on obsid
+                df_plot_zlogp = df_plot_zlogp[df_plot_zlogp.obsid.isin(vaughan_obs)] #filter on obsid
 
             # Distinguish between fvar high (+) and fvar low (x)
             df_plot_zlogp_high = df_plot_zlogp[df_plot_zlogp['fvar']>3*df_plot_zlogp['fvar_err']]

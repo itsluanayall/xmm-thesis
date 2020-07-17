@@ -246,25 +246,6 @@ class Observation:
         self.duration = ((self.endtime - self.starttime)*86400).value    #duration observation in seconds
 
 
-    def emproc(self):
-        """
-        Runs the emproc SAS command to process and reduce EPIC-MOS data.
-        """
-        os.chdir(self.emdir)
-
-        if not glob.glob('*ImagingEvts.ds'):
-            logging.info(f'Running emproc command for observation number {self.obsid}...')
-            epicmos_command = f'emproc'
-            epicmos_status = run_command(epicmos_command)
-            if (epicmos_status != 0):
-                print(f'\033[91m An error has occurred running emproc for observation {self.obsid}! \033[0m')
-            else:
-                logging.info(f'Done processing EPIC-MOS data. The products are in {self.emdir}.')
-        
-        else:
-            logging.info(f'EPIC-MOS event lists for observation number {self.obsid} already exist.')
-
-
     def epproc(self):
         """
         Runs the epproc SAS command to process and reduce EPIC-PN data.
@@ -627,38 +608,6 @@ class Observation:
         """
         epic_timebinsize = 100 #s from 100 to 500
         
-        #MOS data
-        logging.info('Starting filtering from background flaring activity for EPIC-MOS..')
-        os.chdir(self.emdir)
-        
-        for epic_mos_event in glob.glob(os.path.join(self.emdir, "*ImagingEvts.ds")):
-            
-            if not glob.glob(f"{epic_mos_event[59:80]}_Imaging_clean.fits"):
-
-                #Extract a single event, high energy light curve, from the event file to identify intervals of flaring particle background
-                evselect_rate = f"evselect table={epic_mos_event} withrateset=Y rateset={epic_mos_event[59:80]}_rate.fits maketimecolumn=Y timebinsize={epic_timebinsize} makeratecolumn=Y expression='#XMMEA_EM && (PI>10000) && (PATTERN==0)'"
-                status_evselect_rate = run_command(evselect_rate)
-                
-                #Create the corresponding GTI file
-                tabgtigen = f"tabgtigen table={epic_mos_event[59:80]}_rate.fits expression='RATE<=0.35' gtiset={epic_mos_event[59:80]}_gti.fits"
-                status_tabgtigen = run_command(tabgtigen)
-
-                #Filter the event list
-                evselect_clean = f"evselect table={epic_mos_event} withfilteredset=Y filteredset={epic_mos_event[59:80]}_Imaging_clean.fits destruct=Y keepfilteroutput=T expression='#XMMEA_EM && gti({epic_mos_event[59:80]}_gti.fits,TIME) && (PI>150)'"
-                status_evselect_clean = run_command(evselect_clean)
-            else:
-                logging.info(f"Already filtered EPIC-MOS Imaging mode. The cleaned product is {epic_mos_event[59:80]}_Imaging_clean.fits")
-        
-        for epic_mos_timingevent in glob.glob(os.path.join(self.emdir, "*TimingEvts.ds")):
-            
-            if not glob.glob(f"{epic_mos_timingevent[59:80]}_Timing_clean.fits"):
-                evselect_clean = f"evselect table={epic_mos_timingevent} withfilteredset=Y filteredset={epic_mos_timingevent[59:80]}_Timing_clean.fits destruct=Y keepfilteroutput=T expression='#XMMEA_EM && gti({epic_mos_timingevent[59:80]}_gti.fits,TIME) && (PI>150)'"
-                status_evselect_clean = run_command(evselect_clean)
-            else:
-                logging.info(f"Already filtered EPIC-MOS Timing mode. The cleaned product is {epic_mos_event[59:80]}_Timing_clean.fits")
-
-        logging.info('Done filtering EPIC-MOS!')
-
         #PN data
         logging.info('Starting filtering from background flaring activity for EPIC-PN..')
         os.chdir(self.epdir)
@@ -1648,10 +1597,10 @@ class Observation:
                 conf99_positive = q0[0]*(10**(0.75)) # confidence intervals 99%
                 conf99_negative = q0[0]*(10**(-1.16))
 
+                axs[3].hlines(q0, t_in, t_fin, color='red', label=f"Constant fit: {q0[0]:.3f} +- {dq[0]:.3f} \n $\chi^2$/ndof = {chisq:.2f} / {ndof}")
                 axs[3].errorbar(meanx2_times, mean_xs, mean_xs_err, xerr=meanx2_times_err,  linestyle='', color='black', marker='.', ecolor='gray')
                 axs[3].hlines((conf90_positive, conf90_negative), t_in, t_fin, color='black', linestyle=':')
                 axs[3].hlines((conf99_positive, conf99_negative), t_in, t_fin, color='black', linestyle='--')
-                axs[3].hlines(q0, t_in, t_fin, color='red', label=f"Constant fit: {q0[0]:.3f} +- {dq[0]:.3f} \n $\chi^2$/ndof = {chisq:.2f} / {ndof}")
                 axs[3].grid()
                 axs[3].legend(loc='lower right', fancybox=True)
                 axs[3].set_yscale('log')
@@ -1732,9 +1681,9 @@ class Observation:
                 conf90_negative = q0[0]*10**(-0.78/2.)
                 conf99_positive = q0[0]*10**(0.75/2.)
                 conf99_negative = q0[0]*10**(-1.16/2.)
+                axs[5].hlines(q0, t_in, t_fin, color='red', label=f"Constant fit: {q0[0]:.3f} +- {dq[0]:.3f} \n $\chi^2$/ndof = {chisq:.2f} / {ndof}")
                 axs[5].hlines((conf90_positive, conf90_negative), t_in, t_fin, color='black', linestyle=':')
                 axs[5].hlines((conf99_positive, conf99_negative), t_in, t_fin, color='black', linestyle='--')
-                axs[5].hlines(q0, t_in, t_fin, color='red', label=f"Constant fit: {q0[0]:.3f} +- {dq[0]:.3f} \n $\chi^2$/ndof = {chisq:.2f} / {ndof}")
                 axs[5].legend(loc='lower right', fancybox=True)
                 axs[5].set_yscale('log')
                 plt.savefig(f'{self.target_dir}/Products/Plots_timeseries/{self.obsid}_{expos0.expid}+{expos1.expid}_variability_panel.png')
