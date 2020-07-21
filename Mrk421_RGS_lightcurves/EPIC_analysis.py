@@ -28,24 +28,25 @@ if __name__ == "__main__":
     logging.info(f'Timescale chosen for fractional variability: {timescale_fvar} ks')
 
     epic_observations = ['0670920301', '0670920401', '0670920501', '0302180101', '0150498701', '0502030101']
-    epic_observations = ['0670920301']
+    epic_observations_pileup = [True, True, True, False, True, True]
 
     #Make final table
     EPIC_obs_table = Table(names=('ObsId', 'RevolutionId', 'ExposureID', 'Start', 
                             'End', 'Duration_Obs', 'EPIC_rate_soft', 'EPIC_erate_soft',
-                            'EPIC_rate_hard', 'EPIC_erate_hard', 'HR',
+                            'EPIC_rate_hard', 'EPIC_erate_hard',
                             'fvar_soft', 'efvar_soft', 'xs_soft', 'exs_soft', 
                             'nxs_soft', 'enxs_soft', 'VA_soft', 'eVA_soft',
                             'fvar_hard', 'efvar_hard', 'xs_hard', 'exs_hard', 
                             'nxs_hard', 'enxs_hard', 'VA_hard', 'eVA_hard'), 
                     dtype=('i', 'i', 'U9', 'U30',
                             'U30', 'd', 'd', 'd',
-                            'd', 'd', 'd',
+                            'd', 'd', 
                             'd', 'd', 'd', 'd',
                             'd', 'd', 'd', 'd',
                             'd', 'd', 'd', 'd',
                             'd', 'd', 'd', 'd') 
                         )
+    i = 0
     for obsid in epic_observations:
         obs = Observation(obsid=obsid, target_dir=target_dir)
         print('-----------------------------------------------------------')
@@ -54,17 +55,17 @@ if __name__ == "__main__":
         obs.cifbuild()
         obs.odfingest()
         obs.epproc()
-        obs.filter_epic(pileup=True)
-        obs.epiclccorr()
+        obs.filter_epic(pileup=epic_observations_pileup[i])
+        obs.epiclccorr(pileup=epic_observations_pileup[i])
         obs.epic_lightcurve()
         obs.fracvartest(instrument='epic')
-        obs.pn_spectrum()
-        obs.pn_xspec(target_REDSHIFT)
+        #obs.pn_spectrum(pileup=epic_observations_pileup[i])
+        #obs.pn_xspec(target_REDSHIFT)
         
         #Save attributes of observation into the EPIC_table (to edit)
         EPIC_obs_table.add_row((str(obs.obsid), str(obs.revolution),  f"{obs.epic_expid}" , str(obs.starttime), 
                                 str(obs.endtime), str(int(obs.duration)), obs.epicrate[0], obs.epic_erate[0],
-                                obs.epicrate[1], obs.epic_erate[1], obs.hardness_ratio,
+                                obs.epicrate[1], obs.epic_erate[1],
                                 obs.fracvardict[0].get('Fractional Variability'), obs.fracvardict[0].get('Fractional Variability Error'),
                                 obs.fracvardict[0].get('Excess variance'), obs.fracvardict[0].get('Excess variance error'),
                                 obs.fracvardict[0].get('Normalized excess variance'), obs.fracvardict[0].get('Normalized excess variance error'),
@@ -74,4 +75,7 @@ if __name__ == "__main__":
                                 obs.fracvardict[1].get('Normalized excess variance'), obs.fracvardict[1].get('Normalized excess variance error'),
                                 obs.fracvardict[1].get('Variability Amplitude'), obs.fracvardict[1].get('Variability amplitude error')))
                             
-        print(EPIC_obs_table)
+        i+=1
+
+    EPIC_obs_table.write(output=f'{target_dir}/Products/EPIC_Lightcurves/EPIC_obs_table.fits', format='fits', overwrite=True)
+    print(EPIC_obs_table)

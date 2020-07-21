@@ -608,6 +608,11 @@ if __name__ == "__main__":
                                             "nH": data_spec_zpowe['nH'].values, "nH_up": data_spec_zpowe['nH_up'].values, "nH_low": data_spec_zpowe['nH_low'].values,
                                             "nH_top": data_spec_zpowe['nH_up'].values - data_spec_zpowe['nH'].values,
                                             "nH_bot": data_spec_zpowe['nH'].values - data_spec_zpowe['nH_low'].values,
+                                            "phoindex_top68": data_spec_zpowe['phoindex_up68'].values - data_spec_zpowe['phoindex'].values,
+                                            "phoindex_bot68": data_spec_zpowe['phoindex'].values - data_spec_zpowe['phoindex_low68'].values, 
+                                            "nH_up68": data_spec_zpowe['nH_up68'].values, "nH_low68": data_spec_zpowe['nH_low68'].values,
+                                            "nH_top68": data_spec_zpowe['nH_up68'].values - data_spec_zpowe['nH'].values,
+                                            "nH_bot68": data_spec_zpowe['nH'].values - data_spec_zpowe['nH_low68'].values,
                                             "obsid": data_spec_zpowe['obsid'].values})
             
             #Order dataframe and reset index
@@ -621,13 +626,20 @@ if __name__ == "__main__":
             df_plot_powerlaw = df_plot_powerlaw[df_plot_powerlaw['nH_low']>1e-4]
             
             #Plot panel            
-            fig_pw, axs_pw = plt.subplots(3, 1, figsize=(16,12), sharex=True, gridspec_kw={'hspace':0, 'wspace':0})
-    
+            fig_pw, axs_pw = plt.subplots(3, 1, figsize=(17,10), sharex=True, gridspec_kw={'hspace':0, 'wspace':0})
+                #90% confidence intervals
             axs_pw[0].errorbar('index', 'RATE', 'ERROR', data=data_lc, ecolor='black', linestyle='', color='black')
             axs_pw[1].errorbar('index', 'phoindex', yerr=(df_plot_powerlaw['phoindex_bot'].values, df_plot_powerlaw['phoindex_top'].values),
+                                data=df_plot_powerlaw, ecolor='gray', linestyle='', color='black', capthick=1, elinewidth=1)
+                #68% confidence intervals
+            axs_pw[1].errorbar('index', 'phoindex', yerr=(df_plot_powerlaw['phoindex_bot68'].values, df_plot_powerlaw['phoindex_top68'].values),
                                 data=df_plot_powerlaw, ecolor='black', linestyle='', color='black', capthick=1, elinewidth=1)
+            
             axs_pw[2].errorbar('index', 'nH', yerr=(df_plot_powerlaw['nH_bot'].values, df_plot_powerlaw['nH_top'].values), data=df_plot_powerlaw,
+                                 ecolor='gray', linestyle='', color='black', capthick=1, elinewidth=1)
+            axs_pw[2].errorbar('index', 'nH', yerr=(df_plot_powerlaw['nH_bot68'].values, df_plot_powerlaw['nH_top68'].values), data=df_plot_powerlaw,
                                  ecolor='black', linestyle='', color='black', capthick=1, elinewidth=1)
+                #upper limits on nH
             axs_pw[2].errorbar('index', 'nH_up', yerr='nH_top', data=df_plot_nH_pegged, uplims=True, linestyle='', capthick=1, elinewidth=1, ecolor='black')
 
             #Add vertical lines separating years

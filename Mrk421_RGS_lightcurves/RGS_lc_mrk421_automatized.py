@@ -106,7 +106,7 @@ if __name__ == "__main__":
             obs.check_flaring_particle_bkgr()
             obs.rgslccorr()
             obs.lightcurve(mjdref=mjdref, use_grace=use_grace)
-            obs.fracvartest(screen=True)
+            obs.fracvartest(screen=True, instrument='rgs')
             obs.vaughan_panel(N=15, M=15, timescale=timescale_fvar, timebinsize=25)
             obs.divide_spectrum()
             obs.xspec_divided_spectra_average(target_REDSHIFT)

@@ -121,8 +121,6 @@ class Observation:
         self.expoid = []
         self.epic_expid = 0.
         self.longterm_lc_times = []
-        self.hardness_ratio = 0.
-
         self.duration_lc_ks = []
 
     @property
@@ -272,64 +270,71 @@ class Observation:
             self.epic_expid = hdul[1].header['EXPIDSTR']
 
 
-    def epiclccorr(self):
+    def epiclccorr(self, pileup=False):
         """
         Extracts a source and background raw lightcurve for EPIC-pn and runs epiclccorr to correct the raw lightcurve.
         """
         os.chdir(self.epdir)       
 
-        if not glob.glob("PN_soft.lc"):
+        if not glob.glob(f"PN_soft.lc"):
 
-            if not glob.glob("*.reg"):
-
-                logging.ERROR("Please extract manually source and background coordinates into a .reg file using ds9 software.")
-            
-            else:
-
+            try:
                 with open("ds9.reg") as f:
                     region = f.read()
+
+            except FileNotFoundError as e:
+                logging.ERROR("Please extract manually source and background coordinates into a .reg file using ds9 software.")
+                sys.exit(0)
                 
-                region = region.split('\n') #divide text file into lines
+            region = region.split('\n') #divide text file into lines
 
-                #Source coordinates
-                coordinates = region[3][4:-1].split(',')
-                xcenter = float(coordinates[0])
-                xmax = xcenter + float(coordinates[2])/2
-                xmin = xcenter - float(coordinates[2])/2
+            #Source coordinates
+            coordinates = region[3][4:-1].split(',')
+            xcenter = float(coordinates[0])
+            xmax = xcenter + float(coordinates[2])/2
+            xmin = xcenter - float(coordinates[2])/2
 
-                #Background coordinates
-                coordinates_bkg = region[4][4:-1].split(',')
-                xcenter_bkg = float(coordinates_bkg[0])
-                xmax_bkg = xcenter_bkg + float(coordinates_bkg[2])/2
-                xmin_bkg = xcenter_bkg - float(coordinates_bkg[2])/2
+            #Background coordinates
+            coordinates_bkg = region[4][4:-1].split(',')
+            xcenter_bkg = float(coordinates_bkg[0])
+            xmax_bkg = xcenter_bkg + float(coordinates_bkg[2])/2
+            xmin_bkg = xcenter_bkg - float(coordinates_bkg[2])/2
 
-                #Soft lightcurve
-                logging.info(f"Extracting Source+Background soft lightcurve (0.2 - 2 keV) for EPIC-PN...")
-                #evselect_source_cmmd = f"evselect table=PNclean.fits energycolumn=PI expression='#XMMEA_EP && (PATTERN<=4) && (RAWX in [{xmin}:{xmax}]) &&! (RAWX in [{xcenter-1}:{xcenter+1}]) && (PI in [200:2000])' withrateset=yes rateset='PN_soft_raw.lc' timebinsize=100 maketimecolumn=yes makeratecolumn=yes"
-                evselect_source_cmmd = f"evselect table=PNclean_noBore.fits energycolumn=PI expression='#XMMEA_EP && (PATTERN<=4) && (PI in [200:2000])' withrateset=yes rateset='PN_soft_raw.lc' timebinsize=100 maketimecolumn=yes makeratecolumn=yes"
-                evselect_source_status = run_command(evselect_source_cmmd)
+            #Soft lightcurve
+            logging.info(f"Extracting Source+Background soft lightcurve (0.2 - 2 keV) for EPIC-PN...")
+            
+            if pileup:
+                evselect_source_cmmd = f"evselect table=PNclean.fits energycolumn=PI expression='#XMMEA_EP && (PATTERN<=4) && (RAWX in [{xmin}:{xmax}]) &&! (RAWX in [{xcenter-1}:{xcenter+1}]) && (PI in [200:2000])' withrateset=yes rateset='PN_soft_raw.lc' timebinsize={self.epic_timebinsize} maketimecolumn=yes makeratecolumn=yes"
+            else:
+                evselect_source_cmmd = f"evselect table=PNclean.fits energycolumn=PI expression='#XMMEA_EP && (PATTERN<=4) && (RAWX in [{xmin}:{xmax}]) && (PI in [200:2000])' withrateset=yes rateset='PN_soft_raw.lc' timebinsize={self.epic_timebinsize} maketimecolumn=yes makeratecolumn=yes"
+               
+            evselect_source_status = run_command(evselect_source_cmmd)
 
-                evselect_bkg_cmmd = f"evselect table=PNclean.fits energycolumn=PI expression='#XMMEA_EP && (PATTERN<=4) && (RAWX>={xmin_bkg}) && (RAWX<={xmax_bkg}) && (PI in [200:2000])' withrateset=yes rateset='PN_bkg_soft_raw.lc' timebinsize=100 maketimecolumn=yes makeratecolumn=yes"
-                evselect_bkg_status = run_command(evselect_bkg_cmmd)
+            evselect_bkg_cmmd = f"evselect table=PNclean.fits energycolumn=PI expression='#XMMEA_EP && (PATTERN<=4) && (RAWX>={xmin_bkg}) && (RAWX<={xmax_bkg}) && (PI in [200:2000])' withrateset=yes rateset='PN_bkg_soft_raw.lc' timebinsize={self.epic_timebinsize} maketimecolumn=yes makeratecolumn=yes"
+            evselect_bkg_status = run_command(evselect_bkg_cmmd)
 
-                logging.info(f'Running epiclccorr for soft lightcurve of EPIC-PN...')
-                epiclccorr_soft_cmmd = f"epiclccorr srctslist=PN_soft_raw.lc eventlist=PNclean.fits outset=PN_soft.lc bkgtslist=PN_bkg_soft_raw.lc withbkgset=yes applyabsolutecorrections=yes"
-                epiclccorr_soft_status = run_command(epiclccorr_soft_cmmd)
+            logging.info(f'Running epiclccorr for soft lightcurve of EPIC-PN...')
+            epiclccorr_soft_cmmd = f"epiclccorr srctslist=PN_soft_raw.lc eventlist=PNclean.fits outset=PN_soft.lc bkgtslist=PN_bkg_soft_raw.lc withbkgset=yes applyabsolutecorrections=yes"
+            epiclccorr_soft_status = run_command(epiclccorr_soft_cmmd)
 
-                #Hard lightcurve
-                logging.info(f"Extracting Source+Background hard lightcurve (2-10 keV) for EPIC-PN...")
-                #evselect_source_cmmd = f"evselect table=PNclean.fits energycolumn=PI expression='#XMMEA_EP && (PATTERN<=4) && (RAWX in [{xmin}:{xmax}]) &&! (RAWX in [{xcenter-1}:{xcenter+1}]) && (PI in [2000:10000])' withrateset=yes rateset='PN_hard_raw.lc' timebinsize=100 maketimecolumn=yes makeratecolumn=yes"
-                evselect_source_cmmd = f"evselect table=PNclean_noBore.fits energycolumn=PI expression='#XMMEA_EP && (PATTERN<=4) && (PI in [2000:10000])' withrateset=yes rateset='PN_hard_raw.lc' timebinsize=100 maketimecolumn=yes makeratecolumn=yes"
-                evselect_source_status = run_command(evselect_source_cmmd)
+            #Hard lightcurve
+            logging.info(f"Extracting Source+Background hard lightcurve (2-10 keV) for EPIC-PN...")
+            
+            if pileup:
+                evselect_source_cmmd = f"evselect table=PNclean.fits energycolumn=PI expression='#XMMEA_EP && (PATTERN<=4) && (RAWX in [{xmin}:{xmax}]) &&! (RAWX in [{xcenter-1}:{xcenter+1}]) && (PI in [2000:10000])' withrateset=yes rateset='PN_hard_raw.lc' timebinsize={self.epic_timebinsize} maketimecolumn=yes makeratecolumn=yes"
+            else:
+                evselect_source_cmmd = f"evselect table=PNclean.fits energycolumn=PI expression='#XMMEA_EP && (PATTERN<=4) && (RAWX in [{xmin}:{xmax}]) && (PI in [2000:10000])' withrateset=yes rateset='PN_hard_raw.lc' timebinsize={self.epic_timebinsize} maketimecolumn=yes makeratecolumn=yes"
+ 
+            evselect_source_status = run_command(evselect_source_cmmd)
 
-                evselect_bkg_cmmd = f"evselect table=PNclean.fits energycolumn=PI expression='#XMMEA_EP && (PATTERN<=4) && (RAWX>={xmin_bkg}) && (RAWX<={xmax_bkg}) && (PI in [2000:10000])' withrateset=yes rateset='PN_bkg_hard_raw.lc' timebinsize=100 maketimecolumn=yes makeratecolumn=yes"
-                evselect_bkg_status = run_command(evselect_bkg_cmmd)
+            evselect_bkg_cmmd = f"evselect table=PNclean.fits energycolumn=PI expression='#XMMEA_EP && (PATTERN<=4) && (RAWX>={xmin_bkg}) && (RAWX<={xmax_bkg}) && (PI in [2000:10000])' withrateset=yes rateset='PN_bkg_hard_raw.lc' timebinsize={self.epic_timebinsize} maketimecolumn=yes makeratecolumn=yes"
+            evselect_bkg_status = run_command(evselect_bkg_cmmd)
 
-                logging.info(f'Running epiclccorr for hard lightcurve of EPIC-PN...')
-                epiclccorr_hard_cmmd = f"epiclccorr srctslist=PN_hard_raw.lc eventlist=PNclean.fits outset=PN_hard.lc bkgtslist=PN_bkg_hard_raw.lc withbkgset=yes applyabsolutecorrections=yes"
-                epiclccorr_hard_status = run_command(epiclccorr_hard_cmmd)
+            logging.info(f'Running epiclccorr for hard lightcurve of EPIC-PN...')
+            epiclccorr_hard_cmmd = f"epiclccorr srctslist=PN_hard_raw.lc eventlist=PNclean.fits outset=PN_hard.lc bkgtslist=PN_bkg_hard_raw.lc withbkgset=yes applyabsolutecorrections=yes"
+            epiclccorr_hard_status = run_command(epiclccorr_hard_cmmd)
 
-                logging.info('Done running epiclccor for EPIC-PN!')
+            logging.info('Done running epiclccor for EPIC-PN!')
         else:
             logging.info('Already extracted PN lightcurve.')
 
@@ -478,51 +483,84 @@ class Observation:
         """
 
         os.chdir(self.epdir)
+        logging.info(f'Making soft and hard light curves for obs {self.obsid} with matplotlib.')
 
-        for filename in ['PN_soft.lc', 'PN_hard.lc']:
-            output_name = filename
+        #Extract data from the lightcurve fits file produced with epiclccorr and drop NaN values by making a numpy mask
+        x_soft, y_soft, yerr_soft, fracexp_soft, y_bg_soft, yerr_bg_soft = mask_fracexp15('PN_soft.lc')
+        x_hard, y_hard, yerr_hard, fracexp_hard, y_bg_hard, yerr_bg_hard = mask_fracexp15('PN_hard.lc')
+        #print(y_soft, x_hard)
+        #print(type(x_soft))
+        hr = (np.array(y_hard) - np.array(y_soft)) / (np.array(y_hard) + np.array(y_soft))
+        hr_err = hr*(np.array(yerr_hard) + np.array(yerr_soft))* (1/(np.array(y_hard)-np.array(y_soft)) +1/(np.array(y_hard)+np.array(y_soft)))
 
-            #Extract data from the lightcurve fits file produced with epiclccorr and drop NaN values by making a numpy mask
-            x, y, yerr, fracexp, y_bg, yerr_bg = mask_fracexp15(output_name)
+        #Store average rate into Observation attribute
+        self.epicrate.append(np.mean(y_soft))
+        self.epicrate.append(np.mean(y_hard))
+        avg_rate_soft = np.mean(y_soft)
+        avg_rate_hard = np.mean(y_hard)
+        erate_soft = np.sqrt(1/(np.sum(1/np.square(yerr_soft))))  #weighted error of mean
+        erate_hard = np.sqrt(1/(np.sum(1/np.square(yerr_hard))))
+        self.epic_erate.append(erate_soft)
+        self.epic_erate.append(erate_hard)
+
+        #Plot data: one panel for source lc, the other panel for background lc
+        fig, axs = plt.subplots(2, 2, figsize=(12,8), sharex=True, gridspec_kw={'hspace':0.1, 'wspace':0.3})
+        fig.suptitle(f'Soft and hard Light curves for Obs {self.obsid}')
+        axs[0,0].errorbar(x_soft, y_soft, yerr=yerr_soft, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='', ecolor='gray')
+        axs[0,0].grid(True)
+        axs[0,0].set_ylabel('Soft LC Rate [ct/s]', fontsize=13)
+        #axs[0,0].hlines(avg_rate_soft, plt.xlim()[0], plt.xlim()[1], colors='b', label=f'Average rate: {avg_rate_soft: .2f} +- {erate_soft:.2f} [ct/s]')
+        axs[0,0].tick_params(axis='both', which='major', labelsize=13)
         
-            #Store average rate into Observation attribute
-            self.epicrate.append(np.mean(y))
-            avg_rate = np.mean(y)
-            erate = np.sqrt(1/(np.sum(1/np.square(yerr))))  #weighted error of mean
-            self.epic_erate.append(erate)
+        axs[1,0].errorbar(x_soft, y_bg_soft, yerr=yerr_bg_soft, color='red',fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='', ecolor='rosybrown')
+        axs[1,0].set_xlabel('Time [s]', fontsize=13)
+        axs[1,0].set_ylabel('Background Soft LC Rate [ct/s]', fontsize=13)
+        axs[1,0].grid(True)
+        axs[1,0].tick_params(axis='both', which='major', labelsize=13)
 
-            #Plot data: one panel for source lc, the other panel for background lc
-            fig, axs = plt.subplots(2, 1, figsize=(15,10), sharex=True, gridspec_kw={'hspace':0})
-            axs[0].errorbar(x, y, yerr=yerr, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='-', ecolor='gray', label=f'EPIC {output_name} ObsId {self.obsid}, exposure {self.epic_expid}')
-            axs[0].grid(True)
-            axs[0].set_ylabel('Rate [ct/s]', fontsize=13)
-            axs[0].hlines(avg_rate, plt.xlim()[0], plt.xlim()[1], colors='b', label=f'Average rate: {avg_rate: .2f} +- {erate:.2f} [ct/s]')
-            axs[0].tick_params(axis='both', which='major', labelsize=13)
+        axs[0,1].errorbar(x_hard, y_hard, yerr=yerr_hard, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='', ecolor='gray')
+        axs[0,1].grid(True)
+        axs[0,1].set_ylabel('Hard LC Rate [ct/s]', fontsize=13)
+        #axs[0,1].hlines(avg_rate_hard, plt.xlim()[0], plt.xlim()[1], colors='b', label=f'Average rate: {avg_rate_hard: .2f} +- {erate_hard:.2f} [ct/s]')
+        axs[0,1].tick_params(axis='both', which='major', labelsize=13)
 
-            axs[1].errorbar(x, y_bg, yerr=yerr_bg, color='red',fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='-', ecolor='rosybrown', label=f'Background')
-            axs[1].set_xlabel('Time [s]', fontsize=13)
-            axs[1].set_ylabel('Background Rate [ct/s]', fontsize=13)
-            axs[1].grid(True)
-            axs[1].tick_params(axis='both', which='major', labelsize=13)
+        axs[1,1].errorbar(x_hard, y_bg_hard, yerr=yerr_bg_hard, color='red',fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='', ecolor='rosybrown')
+        axs[1,1].set_xlabel('Time [s]', fontsize=13)
+        axs[1,1].set_ylabel('Hard LC Background Rate [ct/s]', fontsize=13)
+        axs[1,1].grid(True)
+        axs[1,1].tick_params(axis='both', which='major', labelsize=13)
 
-            #Magic trick for the legend
-            lines_labels = [ax.get_legend_handles_labels() for ax in fig.axes]
-            lines, labels = [sum(lol, []) for lol in zip(*lines_labels)]
-            fig.legend(lines, labels, loc='upper center', bbox_to_anchor=(0.5, 1.00), fontsize='x-large', fancybox=True, shadow=True)
+        #Magic trick for the legend
+        #lines_labels = [ax.get_legend_handles_labels() for ax in fig.axes]
+        #lines, labels = [sum(lol, []) for lol in zip(*lines_labels)]
+        #fig.legend(lines, labels, loc='upper center', bbox_to_anchor=(0.5, 1.00), fontsize='x-large', fancybox=True, shadow=True)
 
-            #Save figure in epic/pn directory of the current Observation
-            plt.savefig(f'{output_name}.png')
+        #Save figure in epic/pn directory of the current Observation
+        plt.savefig(f'{self.obsid}_epicpn_lc.png')
+        if not os.path.isdir(f'{self.target_dir}/Products/EPIC_Lightcurves'):
+            os.makedirs(f'{self.target_dir}/Products/EPIC_Lightcurves')
 
-            if not os.path.isdir(f'{self.target_dir}/Products/EPIC_Lightcurves'):
-                os.makedirs(f'{self.target_dir}/Products/EPIC_Lightcurves')
+        plt.savefig(os.path.join(self.target_dir, "Products", "EPIC_Lightcurves", f"{self.obsid}_epicpn_lc.png"))
+        plt.close()
 
-            plt.savefig(os.path.join(self.target_dir, "Products", "EPIC_Lightcurves", f"{output_name}.png"))
-            plt.close()
+        #Plot lightcurves with HR
+        fig2, axs2 = plt.subplots(3, 1, figsize=(7,6), sharex=True, gridspec_kw={'hspace':0.0})
+        axs2[0].errorbar(x_soft, y_soft, yerr=yerr_soft, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='', ecolor='gray', label=f'EPIC-pn ObsId {self.obsid}, exposure {self.epic_expid} Soft LC')
+        axs2[1].errorbar(x_hard, y_hard, yerr=yerr_hard, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='', ecolor='gray', label=f'EPIC-pn ObsId {self.obsid}, exposure {self.epic_expid} Hard LC')
+        axs2[2].errorbar(x_soft, hr, yerr=hr_err, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='', ecolor='gray', label=f'EPIC-pn ObsId {self.obsid}, exposure {self.epic_expid} Hardness Ratio')
+        axs2[2].set_xlabel('Time [s]')
+        axs2[2].set_ylabel('HR: (H-S)/(H+S)')
+        axs2[1].set_ylabel('Hard Light Curve')
+        axs2[0].set_ylabel('Soft Light Curve')
+        axs2[0].grid()
+        axs2[1].grid()
+        axs2[2].grid()
 
-            logging.info(f'The lightcurve is saved as {output_name}.png')
 
-        #Calculate Hardness Ratio
-        self.hardness_ratio = (self.epicrate[1]- self.epicrate[0])/(self.epicrate[1]+ self.epicrate[0])
+        plt.savefig(os.path.join(self.target_dir, "Products", "EPIC_Lightcurves", f"{self.obsid}_epicpn_HR.png"))
+        plt.close()
+
+        logging.info(f'The lightcurve is saved as {self.obsid}_epicpn_lc.png')
 
 
     def bkg_lightcurve(self):
@@ -676,42 +714,50 @@ class Observation:
         """
         Filter an EPIC PN event list for periods of high background flaring activity.
         """
-        epic_timebinsize = 100 #s from 100 to 500
+        self.epic_timebinsize = 200 #s from 100 to 500
         
         #PN data
         logging.info('Starting filtering from background flaring activity for EPIC-PN..')
         os.chdir(self.epdir)
         
-        for epic_pn_event in glob.glob(os.path.join(self.epdir, "*TimingEvts.ds")):
-            
-            if not glob.glob(f"PNclean.fits"):  #58:77
-                evselct_rate_pn = f"evselect table={epic_pn_event} withrateset=Y rateset=PNrate.fits maketimecolumn=Y timebinsize={epic_timebinsize} makeratecolumn=Y expression=' #XMMEA_EP && (PI>10000&&PI<12000) && (PATTERN==0)'"
-                status_evselect_rate_pn = run_command(evselct_rate_pn)
+        epic_pn_event = glob.glob(os.path.join(self.epdir, "*TimingEvts.ds"))[0]
+        print(glob.glob(os.path.join(self.epdir, 'PNclean.fits')))
+        if not glob.glob(os.path.join(self.epdir, "PNclean.fits")):  #58:77
+            evselct_rate_pn = f"evselect table={epic_pn_event} withrateset=Y rateset=PNrate.fits maketimecolumn=Y timebinsize={self.epic_timebinsize} makeratecolumn=Y expression=' #XMMEA_EP && (PI>10000&&PI<12000) && (PATTERN==0)'"
+            status_evselect_rate_pn = run_command(evselct_rate_pn)
 
-                tabgtigen_pn = f"tabgtigen table=PNrate.fits expression='RATE<=0.4' gtiset=PNgti.fits"
-                status_tabgtigen_pn = run_command(tabgtigen_pn)
+            tabgtigen_pn = f"tabgtigen table=PNrate.fits expression='RATE<=0.4' gtiset=PNgti.fits"
+            status_tabgtigen_pn = run_command(tabgtigen_pn)
 
-                evselect_clean_pn = f"evselect table={epic_pn_event} withfilteredset=Y filteredset=PNclean.fits destruct=Y keepfilteroutput=T expression='#XMMEA_EP && gti(PNgti.fits,TIME) && (PI>150)'"
-                status_evselect_clean_pn = run_command(evselect_clean_pn)
+            evselect_clean_pn = f"evselect table={epic_pn_event} withfilteredset=Y filteredset=PNclean.fits destruct=Y keepfilteroutput=T expression='#XMMEA_EP && gti(PNgti.fits,TIME) && (PI>150)'"
+            status_evselect_clean_pn = run_command(evselect_clean_pn)
 
-                if pileup:
+        else:
+            logging.info(f"Already filtered EPIC-PN. The clean product is PNclean.fits.")
+        
+        if pileup:
+            if not glob.glob('PNclean_noBore.fits'):
+                try:
                     with open("ds9.reg") as f:
                         region = f.read()
-                
-                    region = region.split('\n') #divide text file into lines
+                except FileNotFoundError as e:
+                    print(e)
+                    sys.exit(0)
+            
+                region = region.split('\n') #divide text file into lines
 
-                    #Source coordinates
-                    coordinates = region[3][4:-1].split(',')
-                    xcenter = float(coordinates[0])
-                    xmax = xcenter + float(coordinates[2])/2
-                    xmin = xcenter - float(coordinates[2])/2
+                #Source coordinates
+                coordinates = region[3][4:-1].split(',')
+                xcenter = float(coordinates[0])
+                xmax = xcenter + float(coordinates[2])/2
+                xmin = xcenter - float(coordinates[2])/2
 
-                    logging.info("Correcting for pile-up...")
-                    evselect_pileup = f"evselect table=PNclean.fits withfilteredset=yes filteredset=PNclean_noBore.fits keepfilteroutput=yes expression='(RAWX in [{xmin}:{xmax}]) &&! (RAWX in [{xcenter-1}:{xcenter+1}]) && gti(PNgti.fits,TIME)'"
-                    status_evselect_pileup = run_command(evselect_pileup)    
+                logging.info("Correcting for pile-up...")
+                evselect_pileup = f"evselect table=PNclean.fits withfilteredset=yes filteredset=PNclean_noBore.fits keepfilteroutput=yes expression='(RAWX in [{xmin}:{xmax}]) &&! (RAWX in [{xcenter-1}:{xcenter+1}]) && gti(PNgti.fits,TIME)'"
+                status_evselect_pileup = run_command(evselect_pileup)  
             else:
-                logging.info(f"Already filtered EPIC-PN. The clean product is PNclean.fits.")
-        
+                logging.info('Already corrected for pile-up.')
+    
         logging.info('Done filtering EPIC-PN!')
 
 
@@ -734,6 +780,86 @@ class Observation:
             i = 0 
             for filename in glob.glob('*_RGS_rates.ds'):
                 timeseries = filename
+                
+                try:
+                    #Get dataset(s) and table.
+                    with fits.open(timeseries) as hdul:
+                        header = hdul['RATE'].header
+                        astro_table = Table(hdul['RATE'].data)
+                        dataset = astro_table.to_pandas()
+                        dataset = dataset.sort_values(by=['TIME'])
+
+                    #Check important keyword consistency 
+                    if 'TIMEDEL' in header:
+                        if header['TIMEDEL']<=0:
+                            raise ValueError('\033[91m Null or negative Bin Width in Input File. This should be a positive value. \033[0m')
+                    else:
+                        raise IOError('\033[91m The TIMEDEL keyword is missing in the timeseries FITS file, which is necessary to determine the binning factor of the data. \033[0m')
+
+                    if 'TSTART' not in header:
+                        raise IOError('\033[91m Keyword TSTART missing in Input. There could be a problem with the input timeseries. \033[0m')
+                    
+                    if 'HDUCLASS' in header:
+                        if not header['HDUCLASS']=='OGIP':
+                            raise ValueError('\033[91m HDUCLASS is not equal to OGIP. \033[0m')
+                    else:
+                        raise IOError('\033[91m Keyword HDUCLASS missing in Input File. There could be a problem with the input FITS timeseries. \033[0m')
+
+                    if 'HDUCLAS1' in header:
+                        if not header['HDUCLAS1']=='LIGHTCURVE':
+                            raise ValueError('\033[91m HDUCLAS1 is not equal to LIGHTCURVE. \033[0m')
+                    else:
+                        raise IOError('\033[91m Keyword HDUCLAS1 missing in Input File. There could be a problem with the input FITS timeseries. \033[0m')
+                    
+                except Exception as e:
+                    logging.error(e)
+
+                try:
+                    #Delete gaps in data 
+                    dataset_cleaned = dataset.dropna()
+
+                    #Net source rates and errors and background rates and errors are recorded in arrays
+                    numnonnull = len(dataset_cleaned)
+                    rates = np.array(dataset_cleaned['RATE'])
+                    errrates = np.array(dataset_cleaned['ERROR'])
+                    backv = np.array(dataset_cleaned['BACKV'])
+                    backe = np.array(dataset_cleaned['BACKE'])
+                    time = np.array(dataset_cleaned['TIME'])
+
+                    #Sanity checks
+                    if numnonnull<2:
+                        raise NoDataException('\033[91m Less than two good values in the timeseries FITS file.\033[0m')
+                    if not len(rates)==len(errrates) and len(rates)==len(backv) and len(rates)==len(backe):
+                        raise RangeException('\033[91m Different number of rows in columns between RATE, ERROR, BACKV and BACKE. \033[0m')
+                    if not (rates>0).all() and (backv>0).all():
+                        raise ValueError('\033[91m Negative count rates in Input File. \033[0m')
+
+                except NoDataException as e:
+                    logging.error(e)   
+                except RangeException as e:
+                    logging.error(e)
+                except ValueError as e:
+                    logging.error(e)
+
+                #Calculate Variability parameters and respective errors
+                xs, err_xs = excess_variance(rates, errrates, normalized=False)
+                nxs, err_nxs = excess_variance(rates, errrates, normalized=True)
+                f_var, err_fvar = fractional_variability(rates, errrates, backv, backe, netlightcurve=netlightcurve)
+                va = (max(rates) - min(rates))/ (min(rates))
+                err_va = va* ( (errrates[rates.argmax()] + errrates[rates.argmin()])/(max(rates) - min(rates)) +  (errrates[rates.argmin()] / min(rates) ))
+
+                logging.info(f'Do you want to carry out the fractional varability amplitude test on the net lightcurve? {netlightcurve}.')
+                self.fracvardict.append({"Excess variance": xs, "Excess variance error": err_xs, "Normalized excess variance": nxs,
+                                    "Normalized excess variance error": err_nxs, "Fractional Variability": f_var, 
+                                    "Fractional Variability Error": err_fvar,
+                                    "Variability Amplitude": va, "Variability amplitude error": err_va,
+                                    "Number of non null data points": numnonnull})
+                
+                #Write variability test results into header and/or to screen.
+                if screen:
+                    for key, value in self.fracvardict[i].items():
+                        print(key, ' : ', value)
+                i+=1
 
         elif instrument=='epic':
             os.chdir(self.epdir)
@@ -824,7 +950,7 @@ class Observation:
                 i+=1
 
 
-    def pn_spectrum(self):
+    def pn_spectrum(self, pileup=False):
         """
         Follows https://www.cosmos.esa.int/web/xmm-newton/sas-thread-pn-spectrum-timing
         """
@@ -837,59 +963,64 @@ class Observation:
 
                 with open("ds9.reg") as f:
                     region = f.read()
-                
-                region = region.split('\n') #divide text file into lines
 
-                #Source coordinates
-                coordinates = region[3][4:-1].split(',')
-                xcenter = float(coordinates[0])
-                xmax = xcenter + float(coordinates[2])/2
-                xmin = xcenter - float(coordinates[2])/2
-
-                #Background coordinates
-                coordinates_bkg = region[4][4:-1].split(',')
-                xcenter_bkg = float(coordinates_bkg[0])
-                xmax_bkg = xcenter_bkg + float(coordinates_bkg[2])/2
-                xmin_bkg = xcenter_bkg - float(coordinates_bkg[2])/2
-
-                #Extract a source spectrum
-                logging.info("Extracting source spectrum...")
-                evselect_src_cmmd = f"evselect table=PNclean_noBore.fits withspectrumset=yes spectrumset=PNsource_spectrum.fits energycolumn=PI spectralbinsize=5 withspecranges=yes specchannelmin=0 specchannelmax=20479 expression='(FLAG==0) && (PATTERN<=4)'"
-                status_evselect_src = run_command(evselect_src_cmmd)
-
-                #Extract a background spectrum
-                logging.info("Extracting background spectrum...")
-                evselect_bkg_cmmd = f"evselect table=PNclean.fits withspectrumset=yes spectrumset=PNbackground_spectrum.fits \
-                                    energycolumn=PI spectralbinsize=5 withspecranges=yes specchannelmin=0 specchannelmax=20479 \
-                                    expression='(FLAG==0) && (PATTERN<=4) && (RAWX>={xmin_bkg}) && (RAWX<={xmax_bkg})'"
-                status_evselect_bkg = run_command(evselect_bkg_cmmd)
-
-                #Calculate the area of source and background region used to make the spectral files
-                logging.info('Calculating the area of source and background region used to make the spectral files...')
-                backscale_cmmd = "backscale spectrumset=PNsource_spectrum.fits badpixlocation=PNclean.fits"
-                status_backscale_cmmd = run_command(backscale_cmmd)
-        
-                backscale_bkg_cmmd = "backscale spectrumset=PNbackground_spectrum.fits badpixlocation=PNclean.fits"
-                status_backscale_bkg_cmmd = run_command(backscale_bkg_cmmd)
-
-                #Generate a redistribution matrix
-                logging.info('Generating a redistribution matrix...')
-                rmf_cmmd = "rmfgen spectrumset=PNsource_spectrum.fits rmfset=PN.rmf"
-                status_rmf = run_command(rmf_cmmd)
-
-                #Generate an ancillary file 
-                logging.info('Generating an ancillary file...')
-                arf_cmmd = "arfgen spectrumset=PNsource_spectrum.fits arfset=PN.arf withrmfset=yes rmfset=PN.rmf badpixlocation=PNclean.fits detmaptype=psf"
-                status_arf = run_command(arf_cmmd)
-
-                #Rebin the spectrum
-                logging.info('Rebinning the spectrum...')
-                spec_grp_cmmd = "specgroup spectrumset=PNsource_spectrum.fits mincounts=25 oversample=3 rmfset=PN.rmf arfset=PN.arf backgndset=PNbackground_spectrum.fits groupedset=PN_spectrum_grp.fits"
-                status_grp = run_command(spec_grp_cmmd)
-            
-            except Exception as e:
+            except FileNotFoundError as e:
                 print(e)
+                sys.exit(0)
+                
+            region = region.split('\n') #divide text file into lines
 
+            #Source coordinates
+            coordinates = region[3][4:-1].split(',')
+            xcenter = float(coordinates[0])
+            xmax = xcenter + float(coordinates[2])/2
+            xmin = xcenter - float(coordinates[2])/2
+
+            #Background coordinates
+            coordinates_bkg = region[4][4:-1].split(',')
+            xcenter_bkg = float(coordinates_bkg[0])
+            xmax_bkg = xcenter_bkg + float(coordinates_bkg[2])/2
+            xmin_bkg = xcenter_bkg - float(coordinates_bkg[2])/2
+
+            #Extract a source spectrum
+            logging.info("Extracting source spectrum...")
+            if pileup:
+                evselect_src_cmmd = f"evselect table=PNclean.fits withspectrumset=yes spectrumset=PNsource_spectrum.fits energycolumn=PI spectralbinsize=5 withspecranges=yes specchannelmin=0 specchannelmax=20479 expression='(FLAG==0) && (PATTERN<=4) && (RAWX>={xmin}) && (RAWX<={xmax}) &&! (RAWX in [{xcenter-1}:{xcenter+1}])'"
+            else:
+                evselect_src_cmmd = f"evselect table=PNclean.fits withspectrumset=yes spectrumset=PNsource_spectrum.fits energycolumn=PI spectralbinsize=5 withspecranges=yes specchannelmin=0 specchannelmax=20479 expression='(FLAG==0) && (PATTERN<=4) && (RAWX>={xmin}) && (RAWX<={xmax})'"
+
+            status_evselect_src = run_command(evselect_src_cmmd)
+
+            #Extract a background spectrum
+            logging.info("Extracting background spectrum...")
+            evselect_bkg_cmmd = f"evselect table=PNclean.fits withspectrumset=yes spectrumset=PNbackground_spectrum.fits \
+                                energycolumn=PI spectralbinsize=5 withspecranges=yes specchannelmin=0 specchannelmax=20479 \
+                                expression='(FLAG==0) && (PATTERN<=4) && (RAWX>={xmin_bkg}) && (RAWX<={xmax_bkg})'"
+            status_evselect_bkg = run_command(evselect_bkg_cmmd)
+
+            #Calculate the area of source and background region used to make the spectral files
+            logging.info('Calculating the area of source and background region used to make the spectral files...')
+            backscale_cmmd = "backscale spectrumset=PNsource_spectrum.fits badpixlocation=PNclean.fits"
+            status_backscale_cmmd = run_command(backscale_cmmd)
+    
+            backscale_bkg_cmmd = "backscale spectrumset=PNbackground_spectrum.fits badpixlocation=PNclean.fits"
+            status_backscale_bkg_cmmd = run_command(backscale_bkg_cmmd)
+
+            #Generate a redistribution matrix
+            logging.info('Generating a redistribution matrix...')
+            rmf_cmmd = "rmfgen spectrumset=PNsource_spectrum.fits rmfset=PN.rmf"
+            status_rmf = run_command(rmf_cmmd)
+
+            #Generate an ancillary file 
+            logging.info('Generating an ancillary file...')
+            arf_cmmd = "arfgen spectrumset=PNsource_spectrum.fits arfset=PN.arf withrmfset=yes rmfset=PN.rmf badpixlocation=PNclean.fits detmaptype=psf"
+            status_arf = run_command(arf_cmmd)
+
+            #Rebin the spectrum
+            logging.info('Rebinning the spectrum...')
+            spec_grp_cmmd = "specgroup spectrumset=PNsource_spectrum.fits mincounts=25 oversample=3 rmfset=PN.rmf arfset=PN.arf backgndset=PNbackground_spectrum.fits groupedset=PN_spectrum_grp.fits"
+            status_grp = run_command(spec_grp_cmmd)
+        
         else:
             logging.info('PN spectrum already extracted!')
 
@@ -897,6 +1028,7 @@ class Observation:
     def pn_xspec(self, target_REDSHIFT):
         """
         """
+
         # Make sure output directory exists
         if not os.path.isdir(f'{self.target_dir}/Products/EPIC_Spectra'):
             os.mkdir(f'{self.target_dir}/Products/EPIC_Spectra')
@@ -1756,7 +1888,7 @@ class Observation:
                 mean_time_uplim = list(compress(mean_time, np.invert(mask_negative)))
                 
                 axs[2].errorbar(mean_time_nonneg, xs_pos_arr, xs_pos_err_arr, color='black', marker='.', linestyle='', ecolor='gray' )
-                axs[2].errorbar(mean_time_uplim, xs_uplim, np.array(xs_uplim) - np.array(xs_neg_arr),  ecolor='black', capthick=1, elinewidth=1, linestyle='', uplims=True)
+                axs[2].errorbar(mean_time_uplim, xs_uplim, capthick=1, elinewidth=1, color='black', linestyle='', marker=r'$\downarrow$', uplims=True)
                 axs[2].grid()
                 axs[2].set_ylabel('$\sigma_{XS}^2$', fontsize=10)
 
