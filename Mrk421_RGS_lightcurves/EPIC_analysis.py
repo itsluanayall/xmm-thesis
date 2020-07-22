@@ -59,8 +59,8 @@ if __name__ == "__main__":
         obs.epiclccorr(pileup=epic_observations_pileup[i])
         obs.epic_lightcurve()
         obs.fracvartest(instrument='epic')
-        #obs.pn_spectrum(pileup=epic_observations_pileup[i])
-        #obs.pn_xspec(target_REDSHIFT)
+        obs.pn_spectrum(pileup=epic_observations_pileup[i])
+        obs.pn_xspec(target_REDSHIFT)
         
         #Save attributes of observation into the EPIC_table (to edit)
         EPIC_obs_table.add_row((str(obs.obsid), str(obs.revolution),  f"{obs.epic_expid}" , str(obs.starttime), 

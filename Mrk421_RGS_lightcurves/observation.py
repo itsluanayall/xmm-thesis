@@ -714,15 +714,15 @@ class Observation:
         """
         Filter an EPIC PN event list for periods of high background flaring activity.
         """
-        self.epic_timebinsize = 200 #s from 100 to 500
+        self.epic_timebinsize = 300 #s from 100 to 500
         
         #PN data
         logging.info('Starting filtering from background flaring activity for EPIC-PN..')
         os.chdir(self.epdir)
         
         epic_pn_event = glob.glob(os.path.join(self.epdir, "*TimingEvts.ds"))[0]
-        print(glob.glob(os.path.join(self.epdir, 'PNclean.fits')))
-        if not glob.glob(os.path.join(self.epdir, "PNclean.fits")):  #58:77
+  
+        if not glob.glob(os.path.join(self.epdir, 'PNclean.fits')):  #58:77
             evselct_rate_pn = f"evselect table={epic_pn_event} withrateset=Y rateset=PNrate.fits maketimecolumn=Y timebinsize={self.epic_timebinsize} makeratecolumn=Y expression=' #XMMEA_EP && (PI>10000&&PI<12000) && (PATTERN==0)'"
             status_evselect_rate_pn = run_command(evselct_rate_pn)
 
