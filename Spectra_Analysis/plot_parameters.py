@@ -543,6 +543,13 @@ if __name__ == "__main__":
                                             "nH": data_spec_zlogp['nH'].values, "nH_up": data_spec_zlogp['nH_up'].values, "nH_low": data_spec_zlogp['nH_low'].values,
                                             "nH_top": data_spec_zlogp['nH_up'].values - data_spec_zlogp['nH'].values,
                                             "nH_bot": data_spec_zlogp['nH'].values - data_spec_zlogp['nH_low'].values,
+                                            "phoindex_top68": data_spec_zlogp['phoindex_up68'].values - data_spec_zlogp['phoindex'].values,
+                                            "phoindex_bot68": data_spec_zlogp['phoindex'].values - data_spec_zlogp['phoindex_low68'].values, 
+                                            "beta_top68": data_spec_zlogp['beta_up68'].values - data_spec_zlogp['beta'].values,
+                                            "beta_bot68": data_spec_zlogp['beta'].values - data_spec_zlogp['beta_low68'].values,
+                                            "nH_up68": data_spec_zlogp['nH_up68'].values, "nH_low68": data_spec_zlogp['nH_low68'].values,
+                                            "nH_top68": data_spec_zlogp['nH_up68'].values - data_spec_zlogp['nH'].values,
+                                            "nH_bot68": data_spec_zlogp['nH'].values - data_spec_zlogp['nH_low68'].values,
                                             "obsid": data_spec_zlogp['obsid'].values})
             #Order dataframe and reset index
             df_plot_zlogp = df_plot_zlogp.sort_values(by=['tbinstart'])
@@ -556,15 +563,35 @@ if __name__ == "__main__":
 
             #Plot panel            
             fig_logp, axs_logp = plt.subplots(4, 1, figsize=(16,13), sharex=True, gridspec_kw={'hspace':0, 'wspace':0})
-    
+
+
+                # Total lightcurve
             axs_logp[0].errorbar('index', 'RATE', 'ERROR', data=data_lc, ecolor='black', linestyle='', color='black')
+              
+                #alpha vs time  
+                    #98% confidence intervals
             axs_logp[1].errorbar('index', 'phoindex', yerr=(df_plot_zlogp['phoindex_bot'].values, df_plot_zlogp['phoindex_top'].values),
+                                data=df_plot_zlogp, ecolor='lightgray', linestyle='', color='black', capthick=1, elinewidth=1)
+                    #68% confidence intervals 
+            axs_logp[1].errorbar('index', 'phoindex', yerr=(df_plot_zlogp['phoindex_bot68'].values, df_plot_zlogp['phoindex_top68'].values),
                                 data=df_plot_zlogp, ecolor='black', linestyle='', color='black', capthick=1, elinewidth=1)
+                #beta vs time
+                    #90 confidence intervals   
             axs_logp[2].errorbar('index', 'beta', yerr=(df_plot_zlogp['beta_bot'].values, df_plot_zlogp['beta_top'].values),
+                                data=df_plot_zlogp, ecolor='lightgray', linestyle='', color='black', capthick=1, elinewidth=1)
+                    #68% confidence intervals
+            axs_logp[2].errorbar('index', 'beta', yerr=(df_plot_zlogp['beta_bot68'].values, df_plot_zlogp['beta_top68'].values),
                                 data=df_plot_zlogp, ecolor='black', linestyle='', color='black', capthick=1, elinewidth=1)
+                #nH vs time
+                    #%90
             axs_logp[3].errorbar('index', 'nH', yerr=(df_plot_zlogp['nH_bot'].values, df_plot_zlogp['nH_top'].values), data=df_plot_zlogp,
+                                 ecolor='lightgray', linestyle='', color='black', capthick=1, elinewidth=1)
+                    #68%
+            axs_logp[3].errorbar('index', 'nH', yerr=(df_plot_zlogp['nH_bot68'].values, df_plot_zlogp['nH_top68'].values), data=df_plot_zlogp,
                                  ecolor='black', linestyle='', color='black', capthick=1, elinewidth=1)
+                    #upper limits 90% confidence
             axs_logp[3].errorbar('index', 'nH_up', yerr='nH_top', data=df_plot_nH_pegged, uplims=True, linestyle='', capthick=1, elinewidth=1, ecolor='black')
+
 
             #Locate vaughan panel observations
             obs_vaughuan = [136541001, 158971201, 810860201, 411080301, 560980101, 791781401, 810860701, 791782001]
@@ -630,16 +657,16 @@ if __name__ == "__main__":
                 #90% confidence intervals
             axs_pw[0].errorbar('index', 'RATE', 'ERROR', data=data_lc, ecolor='black', linestyle='', color='black')
             axs_pw[1].errorbar('index', 'phoindex', yerr=(df_plot_powerlaw['phoindex_bot'].values, df_plot_powerlaw['phoindex_top'].values),
-                                data=df_plot_powerlaw, ecolor='gray', linestyle='', color='black', capthick=1, elinewidth=1)
+                                data=df_plot_powerlaw, ecolor='lightgray', linestyle='', color='black', capthick=1, elinewidth=1)
                 #68% confidence intervals
             axs_pw[1].errorbar('index', 'phoindex', yerr=(df_plot_powerlaw['phoindex_bot68'].values, df_plot_powerlaw['phoindex_top68'].values),
                                 data=df_plot_powerlaw, ecolor='black', linestyle='', color='black', capthick=1, elinewidth=1)
             
             axs_pw[2].errorbar('index', 'nH', yerr=(df_plot_powerlaw['nH_bot'].values, df_plot_powerlaw['nH_top'].values), data=df_plot_powerlaw,
-                                 ecolor='gray', linestyle='', color='black', capthick=1, elinewidth=1)
+                                 ecolor='lightgray', linestyle='', color='black', capthick=1, elinewidth=1)
             axs_pw[2].errorbar('index', 'nH', yerr=(df_plot_powerlaw['nH_bot68'].values, df_plot_powerlaw['nH_top68'].values), data=df_plot_powerlaw,
                                  ecolor='black', linestyle='', color='black', capthick=1, elinewidth=1)
-                #upper limits on nH
+                #upper limits on nH 90% confidence
             axs_pw[2].errorbar('index', 'nH_up', yerr='nH_top', data=df_plot_nH_pegged, uplims=True, linestyle='', capthick=1, elinewidth=1, ecolor='black')
 
             #Add vertical lines separating years
