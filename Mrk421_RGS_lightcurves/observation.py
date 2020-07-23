@@ -480,6 +480,10 @@ class Observation:
 
     def epic_lightcurve(self):
         """
+        Makes the lightcurve plots with matplotlib. The first plot will consist of 4 panels containing:
+        the soft lightcurve (0.2 - 2 keV), the hard lightcurve (2 - 10 keV) and the respective background lightcurves.
+        The second plot consists of 3 panels: the soft and hard lightcurves and the hardness ratio calculated as
+        HR := (H-S)/(H+S) where H and S are the datapoints for the hard and soft lightcurves.
         """
 
         os.chdir(self.epdir)
@@ -488,8 +492,6 @@ class Observation:
         #Extract data from the lightcurve fits file produced with epiclccorr and drop NaN values by making a numpy mask
         x_soft, y_soft, yerr_soft, fracexp_soft, y_bg_soft, yerr_bg_soft = mask_fracexp15('PN_soft.lc')
         x_hard, y_hard, yerr_hard, fracexp_hard, y_bg_hard, yerr_bg_hard = mask_fracexp15('PN_hard.lc')
-        #print(y_soft, x_hard)
-        #print(type(x_soft))
         hr = (np.array(y_hard) - np.array(y_soft)) / (np.array(y_hard) + np.array(y_soft))
         hr_err = hr*(np.array(yerr_hard) + np.array(yerr_soft))* (1/(np.array(y_hard)-np.array(y_soft)) +1/(np.array(y_hard)+np.array(y_soft)))
 
@@ -544,7 +546,7 @@ class Observation:
         plt.close()
 
         #Plot lightcurves with HR
-        fig2, axs2 = plt.subplots(3, 1, figsize=(7,6), sharex=True, gridspec_kw={'hspace':0.0})
+        fig2, axs2 = plt.subplots(3, 1, figsize=(7,6), sharex=False, gridspec_kw={'hspace':0.0})
         axs2[0].errorbar(x_soft, y_soft, yerr=yerr_soft, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='', ecolor='gray', label=f'EPIC-pn ObsId {self.obsid}, exposure {self.epic_expid} Soft LC')
         axs2[1].errorbar(x_hard, y_hard, yerr=yerr_hard, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='', ecolor='gray', label=f'EPIC-pn ObsId {self.obsid}, exposure {self.epic_expid} Hard LC')
         axs2[2].errorbar(x_soft, hr, yerr=hr_err, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='', ecolor='gray', label=f'EPIC-pn ObsId {self.obsid}, exposure {self.epic_expid} Hardness Ratio')
@@ -555,10 +557,15 @@ class Observation:
         axs2[0].grid()
         axs2[1].grid()
         axs2[2].grid()
-
+        #axs2[3].errorbar(y_soft+y_hard, hr, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='', ecolor='gray' )
 
         plt.savefig(os.path.join(self.target_dir, "Products", "EPIC_Lightcurves", f"{self.obsid}_epicpn_HR.png"))
         plt.close()
+        self.mean_hr = np.mean(hr)
+        #obs_array = np.ndarray(len(y_soft))
+        #obs_array.fill(str(self.obsid))
+        table_hr_rate = Table({'rate': y_soft+y_hard, 'erate': yerr_soft+yerr_hard, 'hr': hr, 'hr_err': hr_err}, dtype=('d', 'd', 'd', 'd'))
+        ascii.write(table=table_hr_rate, output=f'{self.target_dir}/Products/EPIC_Lightcurves/{self.obsid}_hr_rate.csv', format='csv', overwrite=True)
 
         logging.info(f'The lightcurve is saved as {self.obsid}_epicpn_lc.png')
 
@@ -714,7 +721,7 @@ class Observation:
         """
         Filter an EPIC PN event list for periods of high background flaring activity.
         """
-        self.epic_timebinsize = 300 #s from 100 to 500
+        self.epic_timebinsize = 200 #s from 100 to 500
         
         #PN data
         logging.info('Starting filtering from background flaring activity for EPIC-PN..')

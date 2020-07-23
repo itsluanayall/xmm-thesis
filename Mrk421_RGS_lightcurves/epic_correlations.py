@@ -3,21 +3,19 @@ import os
 from config import CONFIG
 from astropy.io import fits
 from tools import *
-from scipy import signal
+
 
 def cross_correlation(rates1, rates2, times1, times2, x, str1, str2):
     
-    cc_simple = np.correlate(rates1, rates2, mode='same')
-    cc_simple = cc_simple / (len(rates1) * rates1.std() * rates2.std())
+    cc_simple = np.correlate(rates1-np.mean(rates1), rates2-np.mean(rates2), mode='same')
+    cc_simple = cc_simple / (len(rates1) * rates1.std() * rates2.std()) #normalization
     fig, axs = plt.subplots(2, 1, figsize=(10,8), gridspec_kw={'hspace':0.3})
-    #plt.figure(figsize=(8,8))
-    print(len(x), len(rates1))
-    axs[0].plot(times1, rates1, color='b', marker='o', markersize=2, linestyle='', label='soft lightcurve')
-    axs[0].plot(times2, rates2, color='red', marker='o', markersize=2, linestyle='', label='hard lightcurve')
+    axs[0].plot(times1, rates1/max(rates1), color='b', marker='o', markersize=2, linestyle='', label='soft lightcurve')
+    axs[0].plot(times2, rates2/max(rates2), color='red', marker='o', markersize=2, linestyle='', label='hard lightcurve')
     axs[1].plot(x, cc_simple, marker='o', markersize=4)
     plt.grid(alpha=0.5)
     axs[0].set_xlabel('Time[s]')
-    axs[0].set_ylabel('Mean-subtracted rates [ct/s]')
+    axs[0].set_ylabel('Normalized to max rate lightcurves [ct/s]')
     axs[0].legend()
     axs[1].set_xlabel('Lag of soft lc relative to hard lc [s]')
     axs[1].set_ylabel('Cross-correlation')
@@ -75,6 +73,8 @@ if __name__ == "__main__":
         new_times = np.linspace(0, duration, len(rates_soft))
         lags = np.arange(-npts + 1, npts)
         lags = np.arange(-(npts/2), (npts/2))
+
         #Plot the cross correlation function (note that we are subtracting the RMS. See https://stackoverflow.com/questions/49742593/numpy-correlate-is-not-providing-an-offset for an explanation)
-        cc = cross_correlation(rates_soft-rms_soft, rates_hard-rms_hard, times_soft, times_hard, lags, 'soft range (0.2 - 2 keV) ', ' hard range (2 - 10 keV)') 
+        cc = cross_correlation(rates_soft, rates_hard, times_soft, times_hard, lags, 'soft range (0.2 - 2 keV) ', ' hard range (2 - 10 keV)') 
         plt.savefig(os.path.join(target_dir, "Products", "EPIC_Lightcurves", f"{obs}_crosscorrelation.png"))
+    
