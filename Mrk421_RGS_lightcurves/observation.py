@@ -852,6 +852,7 @@ class Observation:
                 xs, err_xs = excess_variance(rates, errrates, normalized=False)
                 nxs, err_nxs = excess_variance(rates, errrates, normalized=True)
                 f_var, err_fvar = fractional_variability(rates, errrates, backv, backe, netlightcurve=netlightcurve)
+                
                 va = (max(rates) - min(rates))/ (min(rates))
                 err_va = va* ( (errrates[rates.argmax()] + errrates[rates.argmin()])/(max(rates) - min(rates)) +  (errrates[rates.argmin()] / min(rates) ))
 
@@ -1056,7 +1057,7 @@ class Observation:
                                         'phoindex', 'phoindex_low', 'phoindex_up', 'phoindex_low68', 'phoindex_up68',
                                         'beta', 'beta_low', 'beta_up', 'beta_low68', 'beta_up68', 
                                         'norm', 'norm_low', 'norm_up', 'norm_low68', 'norm_up68',
-                                        'cstat', 'chi2', 'dof', 
+                                        'chi2', 'pchi2', 'dof', 
                                         'src_cts', 'esrc_cts', 'bkg_cts', 'ebkg_cts',
                                         'rate', 'erate', 
                                         'flux', 'flux_up', 'flux_low',

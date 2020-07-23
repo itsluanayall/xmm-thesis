@@ -298,20 +298,22 @@ def epic_spectrum_plot_xspec(observation, expid, model, target_dir):
     chans1_err = xspec.Plot.xErr(1)
     rates1 = xspec.Plot.y(1)
     rates1_err = xspec.Plot.yErr(1)
+    folded = xspec.Plot.model(1)
 
     fig, axs = plt.subplots(3, 1, sharex=True, gridspec_kw={'hspace':0.1}, figsize=(11,9))
     fig.suptitle(f"Average spectra {observation}, expo {expid}, {model} ", fontsize=15, y=0.92)
 
     # First panel: Source Spectrum
-    axs[0].errorbar(chans1, rates1, yerr=rates1_err, xerr=chans1_err, linestyle='', color='black', label='EPIC-pn')
-    
+    axs[0].errorbar(chans1, rates1, yerr=rates1_err, xerr=chans1_err, linestyle='', marker='.', markersize=2,color='black', label='EPIC-pn')
+    axs[0].plot(chans1, folded, 'blue', linewidth=0.5, label='Folded model')
+
     # First panel: Background Spectrum
     xspec.Plot('back')
     axs[0].errorbar(chans1, xspec.Plot.y(1), xerr=chans1_err, yerr=xspec.Plot.yErr(1), color='salmon', linestyle='', marker='.', markersize=0.2, label='Background')
     
     axs[0].set_yscale('log')
     axs[0].set_xscale('log')
-    #axs[0].set_ylim(1e-7)
+    
     axs[0].set_xlim(0.4, 12)
     axs[0].set_ylabel('Normalized counts [s-1 keV-1]', fontsize=10)
     axs[0].legend(loc='upper right', fontsize='x-large')
