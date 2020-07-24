@@ -8,6 +8,8 @@ import numpy as np
 import sys
 import matplotlib.pyplot as plt
 
+EPIC_ftest = True
+
 if __name__ == "__main__":
 
     target_dir = CONFIG['target_dir'] 
@@ -16,13 +18,19 @@ if __name__ == "__main__":
         os.makedirs(os.path.join(target_dir, "Products", "Plots_spectra"))
 
     #Read spectral data 
-    hdul_spec = Table.read(os.path.join(products_dir, "RGS_Spectra", "spectra_table.fits"), hdu=1)
-    data_spec = hdul_spec.to_pandas()
-    data_spec = data_spec[data_spec['tbinid'] == 0]   #Use only average spectra
+    if EPIC_ftest:
+        hdul_spec = Table.read(os.path.join(products_dir, "EPIC_Spectra", "EPIC_spectra_table.fits"), hdu=1)
+        data_spec = hdul_spec.to_pandas()
+
+    else:
+        hdul_spec = Table.read(os.path.join(products_dir, "RGS_Spectra", "spectra_table.fits"), hdu=1)
+        data_spec = hdul_spec.to_pandas()
+        data_spec = data_spec[data_spec['tbinid'] == 0]   #Use only average spectra
 
     #Make ftest array
     ftest_array = []
     ftest_dict = {'logpar': 0, 'powerlaw': 0}
+
     i = 0
     while i<len(data_spec):
         if data_spec['model'].values[i]=='constant*TBabs*zlogp':
@@ -37,7 +45,7 @@ if __name__ == "__main__":
             dof_pw = data_spec['dof'].values[i]
 
         print(f"Observation {data_spec['obsid'].values[i]}, exposures {data_spec['exposures_id'].values[i]}, logparabola vs powerlaw fstatistic" )
-        print('chi2 lp:', chi2_lpm )
+        print('chi2 lp:', chi2_lp )
         print('chi2 pw:', chi2_pw)
 
         if chi2_lp<chi2_pw:
