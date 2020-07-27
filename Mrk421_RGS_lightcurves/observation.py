@@ -301,16 +301,16 @@ class Observation:
             xmin_bkg = xcenter_bkg - float(coordinates_bkg[2])/2
 
             #Soft lightcurve
-            logging.info(f"Extracting Source+Background soft lightcurve (0.2 - 2 keV) for EPIC-PN...")
+            logging.info(f"Extracting Source+Background soft lightcurve (0.6 - 2 keV) for EPIC-PN...")
             
             if pileup:
-                evselect_source_cmmd = f"evselect table=PNclean.fits energycolumn=PI expression='#XMMEA_EP && (PATTERN<=4) && (RAWX in [{xmin}:{xmax}]) &&! (RAWX in [{xcenter-1}:{xcenter+1}]) && (PI in [200:2000])' withrateset=yes rateset='PN_soft_raw.lc' timebinsize={self.epic_timebinsize} maketimecolumn=yes makeratecolumn=yes"
+                evselect_source_cmmd = f"evselect table=PNclean.fits energycolumn=PI expression='#XMMEA_EP && (PATTERN<=4) && (RAWX in [{xmin}:{xmax}]) &&! (RAWX in [{xcenter-1}:{xcenter+1}]) && (PI in [600:2000])' withrateset=yes rateset='PN_soft_raw.lc' timebinsize={self.epic_timebinsize} maketimecolumn=yes makeratecolumn=yes"
             else:
                 evselect_source_cmmd = f"evselect table=PNclean.fits energycolumn=PI expression='#XMMEA_EP && (PATTERN<=4) && (RAWX in [{xmin}:{xmax}]) && (PI in [200:2000])' withrateset=yes rateset='PN_soft_raw.lc' timebinsize={self.epic_timebinsize} maketimecolumn=yes makeratecolumn=yes"
                
             evselect_source_status = run_command(evselect_source_cmmd)
 
-            evselect_bkg_cmmd = f"evselect table=PNclean.fits energycolumn=PI expression='#XMMEA_EP && (PATTERN<=4) && (RAWX>={xmin_bkg}) && (RAWX<={xmax_bkg}) && (PI in [200:2000])' withrateset=yes rateset='PN_bkg_soft_raw.lc' timebinsize={self.epic_timebinsize} maketimecolumn=yes makeratecolumn=yes"
+            evselect_bkg_cmmd = f"evselect table=PNclean.fits energycolumn=PI expression='#XMMEA_EP && (PATTERN<=4) && (RAWX>={xmin_bkg}) && (RAWX<={xmax_bkg}) && (PI in [600:2000])' withrateset=yes rateset='PN_bkg_soft_raw.lc' timebinsize={self.epic_timebinsize} maketimecolumn=yes makeratecolumn=yes"
             evselect_bkg_status = run_command(evselect_bkg_cmmd)
 
             logging.info(f'Running epiclccorr for soft lightcurve of EPIC-PN...')
@@ -1085,7 +1085,7 @@ class Observation:
 
             # Ignore bad channels
             xspec.AllData.ignore("bad")
-            #xspec.AllData.ignore('**-0.331 2.001-**')
+            xspec.AllData.ignore('**-0.6')
 
             for model in model_list:
                 m1 = xspec.Model(model)
