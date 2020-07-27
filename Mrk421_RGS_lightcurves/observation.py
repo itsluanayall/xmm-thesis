@@ -1077,7 +1077,7 @@ class Observation:
 
             
             # Xspec models we want to use for fitting
-            model_list = ['const*tbabs*zlogpar', 'const*tbabs*zpowerlw']  
+            model_list = ['tbabs*zlogpar', 'tbabs*zpowerlw']  
 
             #Load epic pn data                
             xspec.AllData(f"PN_spectrum_grp.fits")
@@ -1090,10 +1090,10 @@ class Observation:
             for model in model_list:
                 m1 = xspec.Model(model)
 
-                if m1.expression=='constant*TBabs*zlogpar':
-                    m1.setPars("1.0 -1", {6:0.0308})
-                if m1.expression=='constant*TBabs*zpowerlw':
-                    m1.setPars("1.0 -1", {4:0.0308})
+                if m1.expression=='TBabs*zlogpar':
+                    m1.setPars({5:0.0308})
+                if m1.expression=='TBabs*zpowerlw':
+                    m1.setPars({3:0.0308})
 
                 xspec.AllModels.show()
 
@@ -1104,18 +1104,18 @@ class Observation:
                 xspec.Fit.perform() 
 
                 #Error calculation (confidence intervals 3 sigma, 90% confidence)
-                if m1.expression=='constant*TBabs*zlogpar':
-                    xspec.Fit.error("stopat 1000,, maximum 1000.0 2.706 2,3,4,7")   
+                if m1.expression=='TBabs*zlogpar':
+                    xspec.Fit.error("stopat 1000,, maximum 1000.0 2.706 1,2,3,6")   
 
-                if m1.expression=='constant*TBabs*zpowerlw':
-                    xspec.Fit.error("stopat 1000,, maximum 1000.0 2.706 2,3,5")
+                if m1.expression=='TBabs*zpowerlw':
+                    xspec.Fit.error("stopat 1000,, maximum 1000.0 2.706 1,2,4")
 
                 #Plot
                 epic_spectrum_plot_xspec(self.obsid, self.epic_expid, model, self.target_dir)
 
                 #Calculate Flux and Luminosity and store their values 
-                xspec.AllModels.calcFlux('0.2 10 err 100 90') #add limits!
-                xspec.AllModels.calcLumin(f'0.2 10 {target_REDSHIFT} err') 
+                xspec.AllModels.calcFlux('0.6 10 err 100 90') #add limits!
+                xspec.AllModels.calcLumin(f'0.6 10 {target_REDSHIFT} err') 
                 flux = spectrum.flux[0] #erg/cm2/s
                 lumin = spectrum.lumin[0] #e+44 erg/s
                 flux_up = spectrum.flux[2]
@@ -1124,57 +1124,57 @@ class Observation:
                 lumin_low = spectrum.lumin[1]
 
                 #Store parameter results of fit
-                if m1.expression=='constant*TBabs*zpowerlw':
-                    nH = m1(2).values[0]
-                    phoindex = m1(3).values[0]
-                    norm = m1(5).values[0]
+                if m1.expression=='TBabs*zpowerlw':
+                    nH = m1(1).values[0]
+                    phoindex = m1(2).values[0]
+                    norm = m1(4).values[0]
 
                     #Confidence intervals 90%
-                    nH_low = m1(2).error[0]
-                    nH_up = m1(2).error[1]
-                    phoindex_low = m1(3).error[0]
-                    phoindex_up = m1(3).error[1]
-                    norm_low = m1(5).error[0]
-                    norm_up = m1(5).error[1]
+                    nH_low = m1(1).error[0]
+                    nH_up = m1(1).error[1]
+                    phoindex_low = m1(2).error[0]
+                    phoindex_up = m1(2).error[1]
+                    norm_low = m1(4).error[0]
+                    norm_up = m1(4).error[1]
                     beta, beta_up, beta_low = (np.nan, np.nan, np.nan)
 
                     #Confidence intervals 68%
-                    xspec.Fit.error("stopat 1000,, maximum 1000.0 1.0 2,3,5")
-                    nH_low68 = m1(2).error[0]
-                    nH_up68 = m1(2).error[1]
-                    phoindex_low68 = m1(3).error[0]
-                    phoindex_up68 = m1(3).error[1]
-                    norm_low68 = m1(5).error[0]
-                    norm_up68 = m1(5).error[1]
+                    xspec.Fit.error("stopat 1000,, maximum 1000.0 1.0 1,2,4")
+                    nH_low68 = m1(1).error[0]
+                    nH_up68 = m1(1).error[1]
+                    phoindex_low68 = m1(2).error[0]
+                    phoindex_up68 = m1(2).error[1]
+                    norm_low68 = m1(4).error[0]
+                    norm_up68 = m1(4).error[1]
                     beta, beta_up68, beta_low68 = (np.nan, np.nan, np.nan)
 
 
-                if m1.expression=='constant*TBabs*zlogpar':
-                    nH = m1(2).values[0]
-                    phoindex = m1(3).values[0]
-                    beta = m1(4).values[0]
-                    norm = m1(7).values[0]
+                if m1.expression=='TBabs*zlogpar':
+                    nH = m1(1).values[0]
+                    phoindex = m1(2).values[0]
+                    beta = m1(3).values[0]
+                    norm = m1(6).values[0]
 
                     #Confidence intervals 90%
-                    nH_low = m1(2).error[0]
-                    nH_up = m1(2).error[1]
-                    phoindex_low = m1(3).error[0]
-                    phoindex_up = m1(3).error[1]
-                    beta_low = m1(4).error[0]
-                    beta_up = m1(4).error[1]
-                    norm_low = m1(7).error[0]
-                    norm_up = m1(7).error[1]
+                    nH_low = m1(1).error[0]
+                    nH_up = m1(1).error[1]
+                    phoindex_low = m1(2).error[0]
+                    phoindex_up = m1(2).error[1]
+                    beta_low = m1(3).error[0]
+                    beta_up = m1(3).error[1]
+                    norm_low = m1(6).error[0]
+                    norm_up = m1(6).error[1]
 
                     #Confidence intervals 68%
-                    xspec.Fit.error("stopat 1000,, maximum 1000.0 1.0 2,3,4,7") 
-                    nH_low68 = m1(2).error[0]
-                    nH_up68 = m1(2).error[1]
-                    phoindex_low68 = m1(3).error[0]
-                    phoindex_up68 = m1(3).error[1]
-                    beta_low68 = m1(4).error[0]
-                    beta_up68 = m1(4).error[1]
-                    norm_low68 = m1(7).error[0]
-                    norm_up68 = m1(7).error[1]
+                    xspec.Fit.error("stopat 1000,, maximum 1000.0 1.0 1,2,3,6") 
+                    nH_low68 = m1(1).error[0]
+                    nH_up68 = m1(1).error[1]
+                    phoindex_low68 = m1(2).error[0]
+                    phoindex_up68 = m1(2).error[1]
+                    beta_low68 = m1(3).error[0]
+                    beta_up68 = m1(3).error[1]
+                    norm_low68 = m1(6).error[0]
+                    norm_up68 = m1(6).error[1]
 
                 fit_statistic = xspec.Fit.statistic
                 test_statistic = xspec.Fit.testStatistic
