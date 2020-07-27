@@ -6,6 +6,8 @@ from astropy.table import Table
 from tools import *
 import pandas as pd
 import glob
+import random
+from scipy.stats import linregress
 from scipy.optimize import curve_fit
 
 
@@ -47,9 +49,11 @@ if __name__ == "__main__":
     df_total = pd.DataFrame()
     for filename in glob.glob('*.{}'.format("csv")):
         
+        observation = filename[0:10]
+        rgb = '#%06X' % random.randint(0, 0xFFFFFF)  #create random color
         df = pd.read_csv(filename) #read csv file of single observation
         df_total = df_total.append(df)
-        plt.errorbar(data=df, x='rate', y='hr', yerr='hr_err', xerr='erate',linestyle='', marker='.', markersize=2,  ecolor='gray', color='black')
+        plt.errorbar(data=df, x='rate', y='hr', yerr='hr_err', xerr='erate',linestyle='',  ecolor=rgb, color=rgb, label=observation)
 
     #linear function between x and y
     def fitfunc (x,a,b):
@@ -71,11 +75,18 @@ if __name__ == "__main__":
     ndof = len(df_total['rate'].values) - 1
     print('Chisquare/ndof = %f/%d' % (chisq, ndof))
 
+    #Correlation coefficient
+    slope, intercept, r, p, stderr = linregress(df_total['rate'].values, df_total['hr'].values)
+    line = f'Regression line, r={r:.2f}'
+
+
     func_grid = np.linspace(200, 650, 100)
-    plt.plot(func_grid, fitfunc(func_grid, a0, b0), color = 'red')
-    plt.xlabel('Rate (soft+hard) [ct/s]')
+    #plt.plot(func_grid, fitfunc(func_grid, a0, b0), color = 'blue')
+    plt.plot(df_total['rate'].values, intercept + slope * df_total['rate'].values, label=line, color='red')
+    plt.xlabel('Total Rate [ct/s]')
     plt.grid()
     plt.ylabel('HR: (H-S)/(H+S)')
+    plt.legend()
     plt.savefig(f'{target_dir}/Products/EPIC_Lightcurves/hr_vs_rate.png')
     plt.close()
    
