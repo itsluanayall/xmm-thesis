@@ -1902,7 +1902,7 @@ class Observation:
                 axs[2].set_ylabel('$\sigma_{XS}^2$', fontsize=10)
 
                 #----------Subplot mean excess variance----------#
-                df_mean_xs = pd.DataFrame({'time': mean_time, 'xs': xs_arr})
+                df_mean_xs = pd.DataFrame({'time': mean_time_nonneg, 'xs': xs_pos_arr})
                 meanx2_times, mean_xs, meanx2_times_err, mean_xs_err = binning(M, N*timebinsize, df_mean_xs, 'time', 'xs')
                 
                 # Fit constant  
@@ -1953,15 +1953,6 @@ class Observation:
                 while(t + segment < t_fin):
                     
                     segment_df = data[(data['TIME']<t+segment) & (data['TIME']>t)]
-                    
-                    '''
-                    segment_table = Table.from_pandas(segment_df)
-                    segment_table.write(output=f'{self.rgsdir}/segment_table_temp.fits', format='fits', overwrite=True)
-                    with fits.open('segment_table_temp.fits') as hdul:
-                        hdul[1].name = 'RATE'
-                        hdul[1].header
-                        hdul.writeto('segment_table.fits', overwrite=True)
-                    '''
                     n_in_segment = len(segment_df)
                     
                     if n_in_segment <=2:
@@ -1969,15 +1960,9 @@ class Observation:
                         continue
 
                     else:
-                        fvar, fvar_err = fractional_variability(segment_df['RATE'].values, segment_df['ERROR'].values, segment_df['BACKV'].values, segment_df['BACKE'].values, netlightcurve=True)
+                        fvar, fvar_err = fractional_variability(segment_df['RATE'].values, segment_df['ERROR'].values, segment_df['BACKV'].values, segment_df['BACKE'].values, netlightcurve=True, consider_upper_lims=False)
                         fvar_arr.append(fvar)
                         fvar_err_arr.append(fvar_err)
-
-                        '''
-                        #Check with ekstest
-                        ekstest_cmmd = f"ekstest set=segment_table.fits screen=yes fracvartest=yes netlightcurve=yes"
-                        status_ekstest = run_command(ekstest_cmmd)
-                        '''
                         t += segment
 
                 mask_fvar= []
@@ -1989,7 +1974,7 @@ class Observation:
                 fvar_arr = list(compress(fvar_arr, mask_fvar))
                 fvar_err_arr = list(compress(fvar_err_arr, mask_fvar))
                 
-                df_fvar = pd.DataFrame({'time': mean_time, 'fvar':fvar_arr, 'fvar_err':fvar_err_arr})
+                df_fvar = pd.DataFrame({'time': mean_time_nonneg, 'fvar':fvar_arr, 'fvar_err':fvar_err_arr})
                 df_fvar = df_fvar.dropna()
                 axs[4].errorbar(data=df_fvar, x='time', y='fvar', yerr='fvar_err', linestyle='', color='black', marker='.', ecolor='gray')
                 axs[4].grid()

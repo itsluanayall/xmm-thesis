@@ -155,7 +155,7 @@ def excess_variance(rates, errrates, normalized=True):
         return xs, err_xs
 
 
-def fractional_variability(rates, errrates, backv, backe, netlightcurve=True):
+def fractional_variability(rates, errrates, backv, backe, netlightcurve=True, consider_upper_lims=False):
     """
     Returns the fractional variability and its error given the rates and error rates as arguments.
     The fractional variability is the root square of excess variance, so if the excess variance is negative,
@@ -172,12 +172,13 @@ def fractional_variability(rates, errrates, backv, backe, netlightcurve=True):
         
         #A value of -1 indicates that the noise of the data is much greater than the scatter of the data.
         if nxs<0:
-            nxs = nxs + err_nxs*1.64
-            
-            f_var = np.sqrt(nxs)
-            err_fvar = 1/(2*f_var) * err_nxs
-            #f_var = -1.
-            #err_fvar = -1.
+            if consider_upper_lims:
+                nxs = nxs + err_nxs*1.64
+                f_var = np.sqrt(nxs)
+                err_fvar = 1/(2*f_var) * err_nxs
+            else:
+                f_var = -1.
+                err_fvar = -1.
         else:
             f_var = np.sqrt(nxs)
             err_fvar = 1/(2*f_var) * err_nxs
