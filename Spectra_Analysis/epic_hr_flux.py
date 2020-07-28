@@ -82,7 +82,7 @@ if __name__ == "__main__":
     plt.xlabel('Total Rate [ct/s]')
     plt.grid()
     plt.ylabel('HR: (H-S)/(H+S)')
-    plt.legend()
+    plt.legend(ncol=2)
     plt.savefig(os.path.join(target_dir, 'Products', 'EPIC_Lightcurves', 'hr_vs_rate.png'))
     plt.close()
    

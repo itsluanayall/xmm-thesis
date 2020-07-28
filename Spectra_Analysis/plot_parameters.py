@@ -220,8 +220,9 @@ if __name__ == "__main__":
     
 
     if args.hysteresis:
-
-        data_spec_zlogp = data_spec_zlogp[data_spec_zlogp['phoindex_up']!=0.]
+        
+        # Make the dataframe for the plot of logpar
+        data_spec_zlogp = data_spec_zlogp[data_spec_zlogp['phoindex_up']!=0.]   #we want to study details of light curve
         df_plot_zlogp = pd.DataFrame({"time":data_spec_zlogp['tbinstart'].values, "rate": data_spec_zlogp['rate'].values, "erate": data_spec_zlogp['erate'].values, 'alpha': data_spec_zlogp['phoindex'].values, 
                                         'alpha_top': data_spec_zlogp['phoindex_up'].values - data_spec_zlogp['phoindex'].values,
                                         'alpha_bot': data_spec_zlogp['phoindex'].values - data_spec_zlogp['phoindex_low'].values,
@@ -231,6 +232,7 @@ if __name__ == "__main__":
         df_plot_zlogp = df_plot_zlogp[df_plot_zlogp['obsid']==args.hysteresis]
 
 
+        #Same for powerlaw
         data_spec_zpowe = data_spec_zpowe[data_spec_zpowe['phoindex_up']!=0.]
         df_plot_zpowe = pd.DataFrame({"time": data_spec_zpowe['tbinstart'].values,"rate": data_spec_zpowe['rate'].values, "erate": data_spec_zpowe['erate'].values,
                                         "phoindex": data_spec_zpowe['phoindex'].values,
@@ -243,48 +245,78 @@ if __name__ == "__main__":
         #Make figure
         figure, axs = plt.subplots(3,1, figsize=(8,8), gridspec_kw={'hspace':0.3})
         
-        #Separate data into 3 parts 
-        segment = (df_plot_zlogp['time'].values[-1] - df_plot_zlogp['time'].values[0])/3
-        df_plot_zlogp1 = df_plot_zlogp[df_plot_zlogp['time']<=(df_plot_zlogp['time'].values[0]+segment)]
-        df_plot_zlogp2 = df_plot_zlogp[(df_plot_zlogp['time']>(df_plot_zlogp['time'].values[0]+segment)) & (df_plot_zlogp['time']<=(df_plot_zlogp['time'].values[0]+2*segment))]
-        df_plot_zlogp3 = df_plot_zlogp[(df_plot_zlogp['time']>(df_plot_zlogp['time'].values[0]+2*segment)) & (df_plot_zlogp['time']<=(df_plot_zlogp['time'].values[-1]))]
+        #Separate data into 3 parts: stable, ascending, descending
 
-        df_plot_zpowe1 = df_plot_zpowe[df_plot_zpowe['time']<=(df_plot_zpowe['time'].values[0]+segment)]
-        df_plot_zpowe2 = df_plot_zpowe[(df_plot_zpowe['time']>(df_plot_zpowe['time'].values[0]+segment)) & (df_plot_zpowe['time']<=(df_plot_zpowe['time'].values[0]+2*segment))]
-        df_plot_zpowe3 = df_plot_zpowe[(df_plot_zpowe['time']>(df_plot_zpowe['time'].values[0]+2*segment)) & (df_plot_zpowe['time']<=(df_plot_zpowe['time'].values[-1]))]
+        if args.hysteresis==791781401:
+            print('ciao')
+            df_plot_zlogp = df_plot_zlogp[df_plot_zlogp['rate']>20]
+            df_plot_zpowe = df_plot_zpowe[df_plot_zpowe['rate']>20]
 
+        ascending = []
+        descending = []
+        stable = []
+        
+        i = 0
+        while i<len(df_plot_zpowe['rate']):
 
+            if i==0:
+                if df_plot_zpowe['rate'].values[i]<=df_plot_zpowe['rate'].values[i+1]:
+                    ascending.append(df_plot_zpowe['rate'].values[i])
+                    i+=1
+                elif  df_plot_zpowe['rate'].values[i]>df_plot_zpowe['rate'].values[i+1]:
+                    descending.append(df_plot_zpowe['rate'].values[i])
+                    i+=1
+                continue
 
+            if df_plot_zpowe['rate'].values[i]<df_plot_zpowe['rate'].values[i-1]:
+                descending.append(df_plot_zpowe['rate'].values[i])
+                i+=1
+            elif df_plot_zpowe['rate'].values[i]>df_plot_zpowe['rate'].values[i-1] :
+                ascending.append(df_plot_zpowe['rate'].values[i])
+                i+=1          
+            else:
+                stable.append(df_plot_zpowe['rate'].values[i])
+                i+=1
+        
+        df_plot_zpowe1 = df_plot_zpowe[df_plot_zpowe['rate'].isin(ascending)]
+        df_plot_zpowe2 = df_plot_zpowe[df_plot_zpowe['rate'].isin(stable)]
+        df_plot_zpowe3 = df_plot_zpowe[df_plot_zpowe['rate'].isin(descending)]
+
+        df_plot_zlogp1 = df_plot_zlogp[df_plot_zlogp['rate'].isin(ascending)]
+        df_plot_zlogp2 = df_plot_zlogp[df_plot_zlogp['rate'].isin(stable)]
+        df_plot_zlogp3 = df_plot_zlogp[df_plot_zlogp['rate'].isin(descending)]
+        
+        
         #Subplot 1: lightcurve
         #axs[0].errorbar(y=df_plot_zpowe['rate'].values, x=df_plot_zpowe['time'].values, yerr=df_plot_zpowe['erate'].values,
         #                fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1)
         axs[0].errorbar(y=df_plot_zpowe1['rate'].values, x=df_plot_zpowe1['time'].values, yerr=df_plot_zpowe1['erate'].values,
-                        fmt='.',color='red', ecolor='lightcoral', markersize=5, elinewidth=1, capsize=2, capthick=1)
+                        fmt='.',color='red', ecolor='lightcoral', markersize=1.5, elinewidth=1, capsize=2, capthick=1)
         axs[0].errorbar(y=df_plot_zpowe2['rate'].values, x=df_plot_zpowe2['time'].values, yerr=df_plot_zpowe2['erate'].values,
-                        fmt='.',color='g', ecolor='yellowgreen', markersize=5, elinewidth=1, capsize=2, capthick=1)
+                        fmt='.',color='g', ecolor='yellowgreen', markersize=1.5, elinewidth=1, capsize=2, capthick=1)
         axs[0].errorbar(y=df_plot_zpowe3['rate'].values, x=df_plot_zpowe3['time'].values, yerr=df_plot_zpowe3['erate'].values,
-                        fmt='.',color='b', ecolor='cornflowerblue', markersize=5, elinewidth=1, capsize=2, capthick=1)
+                        fmt='.',color='b', ecolor='cornflowerblue', markersize=1.5, elinewidth=1, capsize=2, capthick=1)
         
         #Subplot 2 photon index vs rate (powerlaw)
         #axs[1].errorbar(y=df_plot_zpowe['phoindex'].values, x=df_plot_zpowe['rate'].values, xerr=df_plot_zpowe['erate'].values,
         #            yerr = (df_plot_zpowe['phoindex_bot'].values, df_plot_zpowe['phoindex_top'].values), fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='zpowerlaw')
         axs[1].errorbar(y=df_plot_zpowe1['phoindex'].values, x=df_plot_zpowe1['rate'].values, xerr=df_plot_zpowe1['erate'].values,
-                    yerr = (df_plot_zpowe1['phoindex_bot'].values, df_plot_zpowe1['phoindex_top'].values), fmt='.',color='red', markersize=10, elinewidth=1, capsize=2, capthick=1, ecolor='lightcoral', label='zpowerlaw')
+                    yerr = (df_plot_zpowe1['phoindex_bot'].values, df_plot_zpowe1['phoindex_top'].values), fmt='.',color='red', markersize=7, elinewidth=1, capsize=2, capthick=1, ecolor='lightcoral', label='zpowerlaw')
         axs[1].errorbar(y=df_plot_zpowe2['phoindex'].values, x=df_plot_zpowe2['rate'].values, xerr=df_plot_zpowe2['erate'].values,
-                    yerr = (df_plot_zpowe2['phoindex_bot'].values, df_plot_zpowe2['phoindex_top'].values), fmt='.',color='g', markersize=10, elinewidth=1, capsize=2, capthick=1, ecolor='yellowgreen', label='zpowerlaw')
+                    yerr = (df_plot_zpowe2['phoindex_bot'].values, df_plot_zpowe2['phoindex_top'].values), fmt='.',color='g', markersize=7, elinewidth=1, capsize=2, capthick=1, ecolor='yellowgreen', label='zpowerlaw')
         axs[1].errorbar(y=df_plot_zpowe3['phoindex'].values, x=df_plot_zpowe3['rate'].values, xerr=df_plot_zpowe3['erate'].values,
-                    yerr = (df_plot_zpowe3['phoindex_bot'].values, df_plot_zpowe3['phoindex_top'].values), fmt='.',color='b', markersize=10, elinewidth=1, capsize=2, capthick=1, ecolor='cornflowerblue', label='zpowerlaw')
-
+                    yerr = (df_plot_zpowe3['phoindex_bot'].values, df_plot_zpowe3['phoindex_top'].values), fmt='.',color='b', markersize=7, elinewidth=1, capsize=2, capthick=1, ecolor='cornflowerblue', label='zpowerlaw')
+        
         #Subplot 3: alpha vs rate (logpar)      
         #axs[2].errorbar(y=df_plot_zlogp['alpha'].values, x=df_plot_zlogp['rate'].values, xerr=df_plot_zlogp['erate'].values,
         #            yerr = (df_plot_zlogp['alpha_bot'].values, df_plot_zlogp['alpha_top'].values), fmt='.', linestyle='',markersize=5, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color='black', label='zlogpar')
         axs[2].errorbar(y=df_plot_zlogp1['alpha'].values, x=df_plot_zlogp1['rate'].values, xerr=df_plot_zlogp1['erate'].values,
-                    yerr = (df_plot_zlogp1['alpha_bot'].values, df_plot_zlogp1['alpha_top'].values), fmt='.', linestyle='',markersize=10, ecolor='lightcoral', elinewidth=1, capsize=2, capthick=1, color='red', label='zlogpar')
+                    yerr = (df_plot_zlogp1['alpha_bot'].values, df_plot_zlogp1['alpha_top'].values), fmt='.', linestyle='',markersize=7, ecolor='lightcoral', elinewidth=1, capsize=2, capthick=1, color='red', label='zlogpar')
         axs[2].errorbar(y=df_plot_zlogp2['alpha'].values, x=df_plot_zlogp2['rate'].values, xerr=df_plot_zlogp2['erate'].values,
-                    yerr = (df_plot_zlogp2['alpha_bot'].values, df_plot_zlogp2['alpha_top'].values), fmt='.', linestyle='',markersize=10, ecolor='yellowgreen', elinewidth=1, capsize=2, capthick=1, color='green', label='zlogpar')
+                    yerr = (df_plot_zlogp2['alpha_bot'].values, df_plot_zlogp2['alpha_top'].values), fmt='.', linestyle='',markersize=7, ecolor='yellowgreen', elinewidth=1, capsize=2, capthick=1, color='green', label='zlogpar')
         axs[2].errorbar(y=df_plot_zlogp3['alpha'].values, x=df_plot_zlogp3['rate'].values, xerr=df_plot_zlogp3['erate'].values,
-                    yerr = (df_plot_zlogp3['alpha_bot'].values, df_plot_zlogp3['alpha_top'].values), fmt='.', linestyle='',markersize=10, ecolor='cornflowerblue', elinewidth=1, capsize=2, capthick=1, color='b', label='zlogpar')
-                
+                    yerr = (df_plot_zlogp3['alpha_bot'].values, df_plot_zlogp3['alpha_top'].values), fmt='.', linestyle='',markersize=7, ecolor='cornflowerblue', elinewidth=1, capsize=2, capthick=1, color='b', label='zlogpar')
+        
         #Linestyle arrow 
         axs[1].quiver(df_plot_zpowe['rate'].values[:-1], df_plot_zpowe['phoindex'].values[:-1], df_plot_zpowe['rate'].values[1:]-df_plot_zpowe['rate'].values[:-1], df_plot_zpowe['phoindex'].values[1:]-df_plot_zpowe['phoindex'].values[:-1], scale_units='xy', angles='xy', scale=1, width=0.003, headwidth=8)
         axs[2].quiver(df_plot_zlogp['rate'].values[:-1], df_plot_zlogp['alpha'].values[:-1], df_plot_zlogp['rate'].values[1:]-df_plot_zlogp['rate'].values[:-1], df_plot_zlogp['alpha'].values[1:]-df_plot_zlogp['alpha'].values[:-1], scale_units='xy', angles='xy', scale=1, width=0.003, headwidth=8)
