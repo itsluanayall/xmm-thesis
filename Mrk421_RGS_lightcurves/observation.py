@@ -1812,7 +1812,8 @@ class Observation:
         """
         os.chdir(self.rgsdir)
         for i in range(self.npairs):
-            if self.duration_lc_ks[i] >= timescale:
+            print(self.obsid)
+            if (self.duration_lc_ks[i] >= timescale) or (self.obsid =='0791780201'):
                 logging.info('Observation long enough to make variability panel.')
                 expos0 = Exposure(self.pairs_events[i][0], self.pairs_srcli[i][0])
                 expos1 = Exposure(self.pairs_events[i][1], self.pairs_srcli[i][1])
@@ -1952,6 +1953,15 @@ class Observation:
                 while(t + segment < t_fin):
                     
                     segment_df = data[(data['TIME']<t+segment) & (data['TIME']>t)]
+                    
+                    '''
+                    segment_table = Table.from_pandas(segment_df)
+                    segment_table.write(output=f'{self.rgsdir}/segment_table_temp.fits', format='fits', overwrite=True)
+                    with fits.open('segment_table_temp.fits') as hdul:
+                        hdul[1].name = 'RATE'
+                        hdul[1].header
+                        hdul.writeto('segment_table.fits', overwrite=True)
+                    '''
                     n_in_segment = len(segment_df)
                     
                     if n_in_segment <=2:
@@ -1962,6 +1972,12 @@ class Observation:
                         fvar, fvar_err = fractional_variability(segment_df['RATE'].values, segment_df['ERROR'].values, segment_df['BACKV'].values, segment_df['BACKE'].values, netlightcurve=True)
                         fvar_arr.append(fvar)
                         fvar_err_arr.append(fvar_err)
+
+                        '''
+                        #Check with ekstest
+                        ekstest_cmmd = f"ekstest set=segment_table.fits screen=yes fracvartest=yes netlightcurve=yes"
+                        status_ekstest = run_command(ekstest_cmmd)
+                        '''
                         t += segment
 
                 mask_fvar= []
@@ -2025,7 +2041,7 @@ class Observation:
                 plt.close()
             
                 ###------------------PLOT XS RATE CORRELATION--------------------###
-                '''
+                
                 #Consider only positive values of xs
                 i = 0
                 segment = M*timebinsize
@@ -2069,7 +2085,7 @@ class Observation:
                 xs_sorted = pd.DataFrame({'rate': mean_data, 'xs': xs_arr, 'xs_err': xs_err_arr, 'fvar': fvar_arr, 'fvar_err': fvar_err_arr})
                 xs_sorted = xs_sorted.dropna()
                 xs_sorted = xs_sorted.sort_values(by=['rate'])
-                
+                '''
 
                 #Binning
                 meanx2_rate, meanx2_xs, meanx2_rate_err, meanx2_xs_err = binning(N, 1/N, xs_sorted, 'rate', 'xs')

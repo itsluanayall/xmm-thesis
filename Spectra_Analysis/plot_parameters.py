@@ -82,7 +82,8 @@ if __name__ == "__main__":
     data_spec = hdul_spec.to_pandas()
 
     if args.average:
-        data_spec = data_spec[data_spec['tbinid'] == 0]   #Use only average spectra
+        hdul_spec = Table.read(os.path.join(products_dir, "RGS_Spectra", "spectra_table_average.fits"), hdu=1)
+        data_spec = hdul_spec.to_pandas()  #Use only average spectra
     elif args.bins:
         data_spec = data_spec[data_spec['tbinid'] != 0]   #Use divided bins
 
@@ -97,72 +98,75 @@ if __name__ == "__main__":
     if args.fvar:
 
         if args.phoindex: #user wants phoindex vs fvar
+            
             df_plot_zlogp = pd.DataFrame({"fvar": data_lc['F_var'].values, "fvar_err": data_lc['F_var_sigma'].values, 'alpha': data_spec_zlogp['phoindex'].values, 
+                                          "xs": data_lc['Excess_Variance'].values,
                                           'alpha_top': data_spec_zlogp['phoindex_up'].values - data_spec_zlogp['phoindex'].values,
                                           'alpha_bot': data_spec_zlogp['phoindex'].values - data_spec_zlogp['phoindex_low'].values,
-                                          "obsid": data_lc['ObsId'].values})
-            df_plot_zlogp = df_plot_zlogp[df_plot_zlogp['fvar'] != -1.]
+                                          "ftest": data_spec_zlogp['ftest'].values, "obsid": data_lc['ObsId'].values})
+            df_plot_zlogp = df_plot_zlogp[df_plot_zlogp['xs'] >=0]
             
             
             df_plot_zpowe = pd.DataFrame({"fvar": data_lc['F_var'].values, "fvar_err": data_lc['F_var_sigma'].values,
                                          "obsid": data_lc['ObsId'].values, "phoindex": data_spec_zpowe['phoindex'].values,
                                          "phoindex_top": data_spec_zpowe['phoindex_up'].values - data_spec_zpowe['phoindex'].values,
-                                         "phoindex_bot": data_spec_zpowe['phoindex'].values - data_spec_zpowe['phoindex_low'].values})
+                                         "phoindex_bot": data_spec_zpowe['phoindex'].values - data_spec_zpowe['phoindex_low'].values,
+                                         "ftest": data_spec_zpowe['ftest'].values})
             df_plot_zpowe = df_plot_zpowe[df_plot_zpowe['fvar'] != -1.]
 
             if args.vaughan:
                 vaughan_obs = ['0136541001', '0158971201', '0810860201', '0411080301', '0560980101', '0791781401', '0810860701', '0791782001']
                 df_plot_zpowe = df_plot_zpowe[df_plot_zpowe.obsid.isin(vaughan_obs)] #filter on obsid
                 df_plot_zlogp = df_plot_zlogp[df_plot_zlogp.obsid.isin(vaughan_obs)] #filter on obsid
-
-            # Distinguish between fvar high (+) and fvar low (x)
-            df_plot_zlogp_high = df_plot_zlogp[df_plot_zlogp['fvar']>3*df_plot_zlogp['fvar_err']]
-            df_plot_zlogp_low =  df_plot_zlogp[df_plot_zlogp['fvar']<=3*df_plot_zlogp['fvar_err']]
-
-            df_plot_zpowe_high = df_plot_zpowe[df_plot_zpowe['fvar']>3*df_plot_zpowe['fvar_err']]
-            df_plot_zpowe_low =  df_plot_zpowe[df_plot_zpowe['fvar']<=3*df_plot_zpowe['fvar_err']]
             
+            #Distinguish model favoring based on Ftest column
+            df_plot_zlogp_better = df_plot_zlogp[(df_plot_zlogp['ftest']<0.1) & (df_plot_zlogp['ftest']!=-999.)]
+            df_plot_zpowe_better = df_plot_zpowe[(df_plot_zpowe['ftest']>=0.1) | (df_plot_zpowe['ftest']==-999.)]
+
             # Plot
             fig, axs =plt.subplots(1, 2, figsize=(7,5), sharey=True, gridspec_kw={'wspace':0.1})
-            axs[0].errorbar(df_plot_zlogp_high['alpha'].values, df_plot_zlogp_high['fvar'].values, yerr=df_plot_zlogp_high['fvar_err'].values,
-                        xerr = (df_plot_zlogp_high['alpha_bot'].values, df_plot_zlogp_high['alpha_top'].values), color='orange', fmt='.', markersize=5, ecolor='peachpuff', elinewidth=1, capsize=2, capthick=1, label='High F$_{var}$')
-            axs[0].errorbar(df_plot_zlogp_low['alpha'].values, df_plot_zlogp_low['fvar'].values, yerr=df_plot_zlogp_low['fvar_err'].values,
-                        xerr = (df_plot_zlogp_low['alpha_bot'].values, df_plot_zlogp_low['alpha_top'].values), color='g', fmt='.', markersize=5, ecolor='mediumseagreen', elinewidth=1, capsize=2, capthick=1, label='Low F$_{var}$')
+            #axs[0].errorbar(df_plot_zlogp['alpha'].values, df_plot_zlogp['fvar'].values, yerr=df_plot_zlogp['fvar_err'].values,
+            #            xerr = (df_plot_zlogp['alpha_bot'].values, df_plot_zlogp['alpha_top'].values), color='orange', fmt='.', markersize=5, ecolor='peachpuff', elinewidth=1, capsize=2, capthick=1, label='powerlaw best model')
+            axs[0].errorbar(df_plot_zlogp_better['alpha'].values, df_plot_zlogp_better['fvar'].values, yerr=df_plot_zlogp_better['fvar_err'].values,
+                        xerr = (df_plot_zlogp_better['alpha_bot'].values, df_plot_zlogp_better['alpha_top'].values), color='g', fmt='.', markersize=5, ecolor='mediumseagreen', elinewidth=1, capsize=2, capthick=1, label='logpar best model')
             
             
-            axs[1].errorbar(df_plot_zpowe_high['phoindex'].values, df_plot_zpowe_high['fvar'].values, yerr=df_plot_zpowe_high['fvar_err'].values,
-                        xerr = (df_plot_zpowe_high['phoindex_bot'].values, df_plot_zpowe_high['phoindex_top'].values), color='orange', fmt='.', markersize=5, ecolor='peachpuff', elinewidth=1, capsize=2, capthick=1, label='High F$_{var}$')
-            axs[1].errorbar(df_plot_zpowe_low['phoindex'].values, df_plot_zpowe_low['fvar'].values, yerr=df_plot_zpowe_low['fvar_err'].values,
-                        xerr = (df_plot_zpowe_low['phoindex_bot'].values, df_plot_zpowe_low['phoindex_top'].values), color='g', fmt='.', markersize=5, ecolor='mediumseagreen', elinewidth=1, capsize=2, capthick=1, label='Low F$_{var}$')
+            #axs[1].errorbar(df_plot_zpowe['phoindex'].values, df_plot_zpowe['fvar'].values, yerr=df_plot_zpowe['fvar_err'].values,
+            #            xerr = (df_plot_zpowe['phoindex_bot'].values, df_plot_zpowe['phoindex_top'].values), color='orange', fmt='.', markersize=5, ecolor='peachpuff', elinewidth=1, capsize=2, capthick=1, label='logpar best model')
+            axs[1].errorbar(df_plot_zpowe_better['phoindex'].values, df_plot_zpowe_better['fvar'].values, yerr=df_plot_zpowe_better['fvar_err'].values,
+                        xerr = (df_plot_zpowe_better['phoindex_bot'].values, df_plot_zpowe_better['phoindex_top'].values), color='orange', fmt='.', markersize=5, ecolor='peachpuff', elinewidth=1, capsize=2, capthick=1, label='powerlaw best model')
 
             axs[0].grid(True)
             axs[1].grid(True)
             axs[0].set_title('Logparabola')
             axs[1].set_title('Powerlaw')
             axs[0].set_ylabel('$F_{var}$', fontsize=15)
+            axs[0].set_xlabel('alpha', fontsize=15)
             axs[1].set_xlabel('phoindex', fontsize=15)
             axs[0].legend(loc='upper left')
+            axs[1].legend(loc='upper left')
 
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "fvar_phoindex_correlations.png"))
 
         if args.beta: #user wants beta vs fvar
             
-            df_plot_zlogp = pd.DataFrame({"fvar": data_lc['F_var'].values, "fvar_err": data_lc['F_var_sigma'].values, 'beta': data_spec_zlogp['beta'].values, 
+            df_plot_zlogp = pd.DataFrame({"fvar": data_lc['F_var'].values, "fvar_err": data_lc['F_var_sigma'].values,
+                                          "xs": data_lc['Excess_Variance'].values,
+                                          'beta': data_spec_zlogp['beta'].values, 
                                           'beta_top': data_spec_zlogp['beta_up'].values - data_spec_zlogp['beta'].values,
                                           'beta_bot': data_spec_zlogp['beta'].values - data_spec_zlogp['beta_low'].values,
-                                          "obsid": data_lc['ObsId'].values})
-            df_plot_zlogp = df_plot_zlogp[df_plot_zlogp['fvar'] != -1.]
+                                          "ftest": data_spec_zlogp['ftest'].values, "obsid": data_lc['ObsId'].values})
+            df_plot_zlogp = df_plot_zlogp[df_plot_zlogp['xs']>=0]
 
             # Distinguish between fvar high (+) and fvar low (x)
-            df_plot_zlogp_high = df_plot_zlogp[df_plot_zlogp['fvar']>3*df_plot_zlogp['fvar_err']]
-            df_plot_zlogp_low =  df_plot_zlogp[df_plot_zlogp['fvar']<=3*df_plot_zlogp['fvar_err']]
+            df_plot_zlogp_better = df_plot_zlogp[(df_plot_zlogp['ftest']<0.1) & (df_plot_zlogp['ftest']!=-999.)]
 
             #Plot
             figure = plt.figure(figsize=(6,5))
-            plt.errorbar(df_plot_zlogp_high['beta'].values, df_plot_zlogp_high['fvar'].values, yerr=df_plot_zlogp_high['fvar_err'].values,
-                        xerr = (df_plot_zlogp_high['beta_bot'].values, df_plot_zlogp_high['beta_top'].values), color='orange', linestyle='', marker='.', markersize=5, ecolor='peachpuff', elinewidth=1, capsize=2, capthick=1, label='High F$_{var}$')
-            plt.errorbar(df_plot_zlogp_low['beta'].values, df_plot_zlogp_low['fvar'].values, yerr=df_plot_zlogp_low['fvar_err'].values,
-                        xerr = (df_plot_zlogp_low['beta_bot'].values, df_plot_zlogp_low['beta_top'].values), color='g', linestyle='', marker='.', markersize=5, ecolor='mediumseagreen', elinewidth=1, capsize=2, capthick=1, label='Low F$_{var}$')
+            plt.errorbar(df_plot_zlogp['beta'].values, df_plot_zlogp['fvar'].values, yerr=df_plot_zlogp['fvar_err'].values,
+                        xerr = (df_plot_zlogp['beta_bot'].values, df_plot_zlogp['beta_top'].values), color='orange', linestyle='', marker='.', markersize=5, ecolor='peachpuff', elinewidth=1, capsize=2, capthick=1, label='powerlaw best model')
+            plt.errorbar(df_plot_zlogp_better['beta'].values, df_plot_zlogp_better['fvar'].values, yerr=df_plot_zlogp_better['fvar_err'].values,
+                        xerr = (df_plot_zlogp_better['beta_bot'].values, df_plot_zlogp_better['beta_top'].values), color='g', linestyle='', marker='.', markersize=5, ecolor='mediumseagreen', elinewidth=1, capsize=2, capthick=1, label='logpar best model')
             
             plt.grid()
             plt.xlabel('beta', fontsize=15)
@@ -296,6 +300,7 @@ if __name__ == "__main__":
         axs[2].set_xlabel('Rate [ct/s]')
         axs[2].set_ylabel('alpha (zlogpar)')
         plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", f"hysteresis_{args.hysteresis}.png"))
+
 
     if args.flux:
 
@@ -566,31 +571,31 @@ if __name__ == "__main__":
 
 
                 # Total lightcurve
-            axs_logp[0].errorbar('index', 'RATE', 'ERROR', data=data_lc, ecolor='black', linestyle='', color='black')
+            axs_logp[0].errorbar('index', 'RATE', 'ERROR', data=data_lc, ecolor='blue', linestyle='', color='b')
               
                 #alpha vs time  
                     #98% confidence intervals
             axs_logp[1].errorbar('index', 'phoindex', yerr=(df_plot_zlogp['phoindex_bot'].values, df_plot_zlogp['phoindex_top'].values),
-                                data=df_plot_zlogp, ecolor='lightgray', linestyle='', color='black', capthick=1, elinewidth=1)
+                                data=df_plot_zlogp, ecolor='lightgray', linestyle='', marker='.', markersize=3, color='b', capthick=1, elinewidth=1)
                     #68% confidence intervals 
             axs_logp[1].errorbar('index', 'phoindex', yerr=(df_plot_zlogp['phoindex_bot68'].values, df_plot_zlogp['phoindex_top68'].values),
-                                data=df_plot_zlogp, ecolor='black', linestyle='', color='black', capthick=1, elinewidth=1)
+                                data=df_plot_zlogp, ecolor='lightsteelblue', linestyle='', color='b', capthick=1, elinewidth=1)
                 #beta vs time
                     #90 confidence intervals   
             axs_logp[2].errorbar('index', 'beta', yerr=(df_plot_zlogp['beta_bot'].values, df_plot_zlogp['beta_top'].values),
-                                data=df_plot_zlogp, ecolor='lightgray', linestyle='', color='black', capthick=1, elinewidth=1)
+                                data=df_plot_zlogp, ecolor='lightgray', linestyle='', marker='.', markersize=3, color='b', capthick=1, elinewidth=1)
                     #68% confidence intervals
             axs_logp[2].errorbar('index', 'beta', yerr=(df_plot_zlogp['beta_bot68'].values, df_plot_zlogp['beta_top68'].values),
-                                data=df_plot_zlogp, ecolor='black', linestyle='', color='black', capthick=1, elinewidth=1)
+                                data=df_plot_zlogp, ecolor='lightsteelblue', linestyle='', color='b', capthick=1, elinewidth=1)
                 #nH vs time
                     #%90
             axs_logp[3].errorbar('index', 'nH', yerr=(df_plot_zlogp['nH_bot'].values, df_plot_zlogp['nH_top'].values), data=df_plot_zlogp,
-                                 ecolor='lightgray', linestyle='', color='black', capthick=1, elinewidth=1)
+                                 ecolor='lightgray', linestyle='', marker='.', markersize=3, color='b', capthick=1, elinewidth=1)
                     #68%
             axs_logp[3].errorbar('index', 'nH', yerr=(df_plot_zlogp['nH_bot68'].values, df_plot_zlogp['nH_top68'].values), data=df_plot_zlogp,
-                                 ecolor='black', linestyle='', color='black', capthick=1, elinewidth=1)
+                                 ecolor='lightsteelblue', linestyle='', color='b', capthick=1, elinewidth=1)
                     #upper limits 90% confidence
-            axs_logp[3].errorbar('index', 'nH_up', yerr='nH_top', data=df_plot_nH_pegged, uplims=True, linestyle='', capthick=1, elinewidth=1, ecolor='black')
+            axs_logp[3].errorbar('index', 'nH_up', data=df_plot_nH_pegged, uplims=True, linestyle='', marker='v', markersize=3, capthick=1, elinewidth=1, color='b', markeredgewidth=0.3, markeredgecolor='white')
 
 
             #Locate vaughan panel observations
@@ -655,19 +660,19 @@ if __name__ == "__main__":
             #Plot panel            
             fig_pw, axs_pw = plt.subplots(3, 1, figsize=(17,10), sharex=True, gridspec_kw={'hspace':0, 'wspace':0})
                 #90% confidence intervals
-            axs_pw[0].errorbar('index', 'RATE', 'ERROR', data=data_lc, ecolor='black', linestyle='', color='black')
+            axs_pw[0].errorbar('index', 'RATE', 'ERROR', data=data_lc, ecolor='b', linestyle='', color='b')
             axs_pw[1].errorbar('index', 'phoindex', yerr=(df_plot_powerlaw['phoindex_bot'].values, df_plot_powerlaw['phoindex_top'].values),
-                                data=df_plot_powerlaw, ecolor='lightgray', linestyle='', color='black', capthick=1, elinewidth=1)
+                                data=df_plot_powerlaw, ecolor='lightgray', linestyle='', marker='.', markersize=3, color='b', capthick=1, elinewidth=1)
                 #68% confidence intervals
             axs_pw[1].errorbar('index', 'phoindex', yerr=(df_plot_powerlaw['phoindex_bot68'].values, df_plot_powerlaw['phoindex_top68'].values),
-                                data=df_plot_powerlaw, ecolor='black', linestyle='', color='black', capthick=1, elinewidth=1)
+                                data=df_plot_powerlaw, ecolor='lightsteelblue', linestyle='', color='b', capthick=1, elinewidth=1)
             
             axs_pw[2].errorbar('index', 'nH', yerr=(df_plot_powerlaw['nH_bot'].values, df_plot_powerlaw['nH_top'].values), data=df_plot_powerlaw,
-                                 ecolor='lightgray', linestyle='', color='black', capthick=1, elinewidth=1)
+                                 ecolor='lightgray', linestyle='', marker='.', markersize=3, color='b', capthick=1, elinewidth=1)
             axs_pw[2].errorbar('index', 'nH', yerr=(df_plot_powerlaw['nH_bot68'].values, df_plot_powerlaw['nH_top68'].values), data=df_plot_powerlaw,
-                                 ecolor='black', linestyle='', color='black', capthick=1, elinewidth=1)
+                                ecolor='lightsteelblue', linestyle='', color='b', capthick=1, elinewidth=1)
                 #upper limits on nH 90% confidence
-            axs_pw[2].errorbar('index', 'nH_up', yerr='nH_top', data=df_plot_nH_pegged, uplims=True, linestyle='', capthick=1, elinewidth=1, ecolor='black')
+            axs_pw[2].errorbar('index', 'nH_up', data=df_plot_nH_pegged, uplims=True, linestyle='', marker='v', markersize=3, capthick=0.5, elinewidth=1, color='blue', markeredgewidth=0.3, markeredgecolor='white')
 
             #Add vertical lines separating years
             axs_pw[0].vlines(year_endpoints, 0, 60, colors='r', linestyles='solid')

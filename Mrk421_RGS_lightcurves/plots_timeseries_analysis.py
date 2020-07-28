@@ -349,7 +349,7 @@ if __name__ == "__main__":
         data = data.dropna()
         #data = data[data['ObsId'] != 150498701]
         data = data[data['F_var']!=-1.000]
-        data['F_var'] = data['F_var'].apply(lambda x: x*100)
+        data['F_var'] = data['F_var'].apply(lambda x: x*100)  #for % units
         data['F_var_sigma'] = data['F_var_sigma'].apply(lambda x: x*100)
         data = data.sort_values(by=['RGS_Rate'])
         title = f'Fractional Variability vs Rate'
@@ -360,16 +360,6 @@ if __name__ == "__main__":
         title = 'Fractional Variability vs time'
         plot(data['MJD_avg_time'].values, data['F_var'].values, dy=data['F_var_sigma'].values, title=title, output_folder=f"{target_dir}/Products/Plots_timeseries", xlabel='MJD [d]', ylabel='Fractional Variability [%]')
         
-            #Distribution of Fvarlow and Fvarhigh
-        df_fvar_high = data[data['F_var']>3*data['F_var_sigma']]
-        df_fvar_low = data[data['F_var']<=3*data['F_var_sigma']]
-        height_fvar = [len(df_fvar_high), len(df_fvar_low)]
-        x_fvar = np.arange(2)
-        plt.bar(x_fvar, height_fvar, color='c', linewidth=2, edgecolor='k')
-        plt.xticks(x_fvar, ("F_var high", "F_var low"))
-        plt.ylabel("# datapoints")
-        plt.savefig(f"{target_dir}/Products/Plots_timeseries/fvar_highlow.png")
-        plt.show()
 
     
     if MAKE_EXCESS_VARIANCE:

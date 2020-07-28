@@ -16,8 +16,6 @@ if __name__ == "__main__":
     target_dir = CONFIG['target_dir']
 
     #Open epic_obs_table.fits to get the hardness ratio values
-    
-
     hdul_time = Table.read(os.path.join(target_dir, 'Products', "EPIC_Lightcurves", "EPIC_obs_table.fits"), hdu=1)
     data_time = hdul_time.to_pandas()
     data_time = data_time.sort_values(by='ObsId')
@@ -27,33 +25,31 @@ if __name__ == "__main__":
 
     hdul_spec = Table.read(os.path.join(target_dir, 'Products', "EPIC_Spectra", "EPIC_spectra_table.fits"), hdu=1)
     data_spec = hdul_spec.to_pandas()
-    data_spec_logpar = data_spec[data_spec['model']=='constant*TBabs*zlogp']
+    data_spec_logpar = data_spec[data_spec['model']=='TBabs*zlogpar']
     data_spec_logpar = data_spec_logpar.sort_values(by='obsid')
 
-
-    #Plot HR vs flux
+    #-------------------------------Plot HR vs flux-----------------------------------
     figure = plt.figure(figsize=(6,5))
     plt.errorbar(x=data_spec_logpar['flux'].values, xerr=(data_spec_logpar['flux'].values-data_spec_logpar['flux_low'].values, data_spec_logpar['flux_up'].values-data_spec_logpar['flux'].values),
                  y=data_time['hr'].values,  color='black', linestyle='', marker='.', markersize=5, ecolor='gray', elinewidth=1, capsize=2, capthick=1)
     
-
     plt.xlabel('Flux (0.2 - 10  keV )[erg/cm2/s]')
     plt.ylabel('HR')
     plt.savefig(os.path.join(target_dir, 'Products', 'EPIC_Spectra', 'HR_vs_flux.png'))
+    plt.close()
 
-
-
-    #HR vs rate (soft + hard)
+    #---------------------------------HR vs rate (soft + hard)--------------------------
     os.chdir(os.path.join(target_dir, 'Products', 'EPIC_Lightcurves'))
-    plt.figure(figsize=(6,6))
+    figure2 = plt.figure(figsize=(6,6))
     df_total = pd.DataFrame()
+    
     for filename in glob.glob('*.{}'.format("csv")):
         
         observation = filename[0:10]
         rgb = '#%06X' % random.randint(0, 0xFFFFFF)  #create random color
         df = pd.read_csv(filename) #read csv file of single observation
         df_total = df_total.append(df)
-        plt.errorbar(data=df, x='rate', y='hr', yerr='hr_err', xerr='erate',linestyle='',  ecolor=rgb, color=rgb, label=observation)
+        plt.errorbar(data=df, x='rate', y='hr', yerr='hr_err', xerr='erate', linestyle='', ecolor=rgb, color=rgb, label=observation)
 
     #linear function between x and y
     def fitfunc (x,a,b):
@@ -87,6 +83,6 @@ if __name__ == "__main__":
     plt.grid()
     plt.ylabel('HR: (H-S)/(H+S)')
     plt.legend()
-    plt.savefig(f'{target_dir}/Products/EPIC_Lightcurves/hr_vs_rate.png')
+    plt.savefig(os.path.join(target_dir, 'Products', 'EPIC_Lightcurves', 'hr_vs_rate.png'))
     plt.close()
    

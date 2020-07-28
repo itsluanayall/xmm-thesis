@@ -11,6 +11,7 @@ import seaborn as sns
 import glob
 import numpy as np
 import random
+import sys
 logging.basicConfig(level=logging.INFO)
 
 if __name__ == "__main__":
@@ -28,7 +29,7 @@ if __name__ == "__main__":
     logging.info(f'Timescale chosen for fractional variability: {timescale_fvar} ks')
 
     epic_observations = ['0670920301', '0670920401', '0670920501', '0302180101', '0150498701', '0502030101']
-    epic_observations_pileup = [True, True, True, False, True, True]
+
 
     #Make final table
     EPIC_obs_table = Table(names=('ObsId', 'RevolutionId', 'ExposureID', 'Start', 
@@ -55,11 +56,11 @@ if __name__ == "__main__":
         obs.cifbuild()
         obs.odfingest()
         obs.epproc()
-        obs.filter_epic(pileup=epic_observations_pileup[i])
-        obs.epiclccorr(pileup=epic_observations_pileup[i])
+        obs.filter_epic(pileup=True)
+        obs.epiclccorr(pileup=True) #always correct for pile-up
         obs.epic_lightcurve()
         obs.fracvartest(instrument='epic')
-        obs.pn_spectrum(pileup=epic_observations_pileup[i])
+        obs.pn_spectrum(pileup=True)
         obs.pn_xspec(target_REDSHIFT)
         
         #Save attributes of observation into the EPIC_table (to edit)
