@@ -22,6 +22,8 @@ from tools import *
 import random
 
 parser = ArgumentParser(description=__doc__)
+parser.add_argument('--epic', action='store_true',
+                    help='use EPIC results')
 parser.add_argument("--phoindex", action="store_true", 
                     help="make phoindex  plot")
 parser.add_argument('--beta', action='store_true',
@@ -61,10 +63,6 @@ missing_xsa_obs = [658802001]
 if __name__ == "__main__":
 
 
-    if not args.bins and not args.average:
-        print('Please specify if you want to use average plots or all the bins.')
-        sys.exit()
-
     # Go to Plots_spectra directory
     target_dir = CONFIG['target_dir'] 
     MJDREF = 50814.0
@@ -73,29 +71,41 @@ if __name__ == "__main__":
         os.makedirs(os.path.join(target_dir, "Products", "Plots_spectra"))
 
     #Read Fvar table and rates
-    hdul_lc = Table.read(os.path.join(products_dir, "RGS_Lightcurves", "obs_table.fits"), hdu=1)   
-    data_lc = hdul_lc.to_pandas()
-    data_lc = data_lc.dropna(subset=['RGS_Rate'])   #do not consider NaN Rates
+    if args.epic:
+        hdul_lc = Table.read(os.path.join(products_dir, "EPIC_Lightcurves", "EPIC_obs_table.fits"), hdu=1)   
+        data_lc = hdul_lc.to_pandas()
+    else:
+        hdul_lc = Table.read(os.path.join(products_dir, "RGS_Lightcurves", "obs_table.fits"), hdu=1)   
+        data_lc = hdul_lc.to_pandas()
+        data_lc = data_lc.dropna(subset=['RGS_Rate'])   #do not consider NaN Rates
 
     #Read spectra table for logpar and powerlaw parameters
-    hdul_spec = Table.read(os.path.join(products_dir, "RGS_Spectra", "spectra_table.fits"), hdu=1)
-    data_spec = hdul_spec.to_pandas()
+    if args.epic:
+        hdul_spec = Table.read(os.path.join(products_dir, "EPIC_Spectra", "EPIC_spectra_table.fits"), hdu=1)
+        data_spec = hdul_spec.to_pandas()
+    else:
+        hdul_spec = Table.read(os.path.join(products_dir, "RGS_Spectra", "spectra_table.fits"), hdu=1)
+        data_spec = hdul_spec.to_pandas()
 
-    if args.average:
-        hdul_spec = Table.read(os.path.join(products_dir, "RGS_Spectra", "spectra_table_average.fits"), hdu=1)
-        data_spec = hdul_spec.to_pandas()  #Use only average spectra
-    elif args.bins:
-        data_spec = data_spec[data_spec['tbinid'] != 0]   #Use divided bins
+        if args.average:
+            hdul_spec = Table.read(os.path.join(products_dir, "RGS_Spectra", "spectra_table_average.fits"), hdu=1)
+            data_spec = hdul_spec.to_pandas()  #Use only average spectra
+        elif args.bins:
+            data_spec = data_spec[data_spec['tbinid'] != 0]   #Use divided bins
 
     #Clean data
     data_spec_clean = data_spec[data_spec['obsid'] != 658802001]
 
     # Make dataframe for the two different models
-    data_spec_zlogp = data_spec_clean[data_spec_clean['model']=='constant*TBabs*zlogp']
-    data_spec_zpowe = data_spec_clean[data_spec_clean['model']=='constant*TBabs*zpowe']
+    if args.epic:
+        data_spec_zlogp = data_spec_clean[data_spec_clean['model']=='TBabs*zlogpar']
+        data_spec_zpowe = data_spec_clean[data_spec_clean['model']=='TBabs*zpowerlw']
+    else:
+        data_spec_zlogp = data_spec_clean[data_spec_clean['model']=='constant*TBabs*zlogp']
+        data_spec_zpowe = data_spec_clean[data_spec_clean['model']=='constant*TBabs*zpowe']
 
 
-    if args.fvar:
+    if args.fvar and not args.epic:
 
         if args.phoindex: #user wants phoindex vs fvar
             
@@ -108,11 +118,12 @@ if __name__ == "__main__":
             
             
             df_plot_zpowe = pd.DataFrame({"fvar": data_lc['F_var'].values, "fvar_err": data_lc['F_var_sigma'].values,
+                                         "xs": data_lc['Excess_Variance'].values,
                                          "obsid": data_lc['ObsId'].values, "phoindex": data_spec_zpowe['phoindex'].values,
                                          "phoindex_top": data_spec_zpowe['phoindex_up'].values - data_spec_zpowe['phoindex'].values,
                                          "phoindex_bot": data_spec_zpowe['phoindex'].values - data_spec_zpowe['phoindex_low'].values,
                                          "ftest": data_spec_zpowe['ftest'].values})
-            df_plot_zpowe = df_plot_zpowe[df_plot_zpowe['fvar'] != -1.]
+            df_plot_zpowe = df_plot_zpowe[df_plot_zpowe['xs'] >=0]
 
             if args.vaughan:
                 vaughan_obs = ['0136541001', '0158971201', '0810860201', '0411080301', '0560980101', '0791781401', '0810860701', '0791782001']
@@ -173,6 +184,58 @@ if __name__ == "__main__":
             plt.ylabel('$F_{var}$', fontsize=15)
             plt.legend(loc='upper left')
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "fvar_beta_correlations.png"))
+
+
+    if args.fvar and args.epic:
+
+        
+        df_plot_zlogp = pd.DataFrame({"fvar_soft": data_lc['fvar_soft'].values, "efvar_soft": data_lc['efvar_soft'].values, 
+                                        "fvar_hard": data_lc['fvar_hard'].values, "efvar_hard": data_lc['efvar_hard'].values,
+                                        'alpha': data_spec_zlogp['phoindex'].values, 
+                                        'alpha_top': data_spec_zlogp['phoindex_up'].values - data_spec_zlogp['phoindex'].values,
+                                        'alpha_bot': data_spec_zlogp['phoindex'].values - data_spec_zlogp['phoindex_low'].values,
+                                        'beta': data_spec_zlogp['beta'].values, 
+                                        'beta_top': data_spec_zlogp['beta_up'].values - data_spec_zlogp['beta'].values,
+                                        'beta_bot': data_spec_zlogp['beta'].values - data_spec_zlogp['beta_low'].values,
+                                        "obsid": data_lc['ObsId'].values})
+        
+        
+        df_plot_zpowe = pd.DataFrame({"fvar_soft": data_lc['fvar_soft'].values, "efvar_soft": data_lc['efvar_soft'].values, 
+                                        "fvar_hard": data_lc['fvar_hard'].values, "efvar_hard": data_lc['efvar_hard'].values,
+                                        "obsid": data_lc['ObsId'].values, "phoindex": data_spec_zpowe['phoindex'].values,
+                                        "phoindex_top": data_spec_zpowe['phoindex_up'].values - data_spec_zpowe['phoindex'].values,
+                                        "phoindex_bot": data_spec_zpowe['phoindex'].values - data_spec_zpowe['phoindex_low'].values})
+
+        # Plot
+        fig, axs =plt.subplots(1, 3, figsize=(7,6), sharey=True, gridspec_kw={'wspace':0.2})
+        axs[0].errorbar(df_plot_zlogp['alpha'].values, df_plot_zlogp['fvar_soft'].values, yerr=df_plot_zlogp['efvar_soft'].values,
+                    xerr = (df_plot_zlogp['alpha_bot'].values, df_plot_zlogp['alpha_top'].values), color='orange', fmt='.', markersize=5, ecolor='peachpuff', elinewidth=1, capsize=2, capthick=1, label='soft LC')
+        axs[0].errorbar(df_plot_zlogp['alpha'].values, df_plot_zlogp['fvar_hard'].values, yerr=df_plot_zlogp['efvar_hard'].values,
+                    xerr = (df_plot_zlogp['alpha_bot'].values, df_plot_zlogp['alpha_top'].values), color='g', fmt='.', markersize=5, ecolor='yellowgreen', elinewidth=1, capsize=2, capthick=1, label='hard LC')
+    
+        axs[1].errorbar(df_plot_zpowe['phoindex'].values, df_plot_zpowe['fvar_soft'].values, yerr=df_plot_zpowe['efvar_soft'].values,
+                    xerr = (df_plot_zpowe['phoindex_bot'].values, df_plot_zpowe['phoindex_top'].values), color='orange', fmt='.', markersize=5, ecolor='peachpuff', elinewidth=1, capsize=2, capthick=1, label='soft LC')
+        axs[1].errorbar(df_plot_zpowe['phoindex'].values, df_plot_zpowe['fvar_hard'].values, yerr=df_plot_zpowe['efvar_hard'].values,
+                    xerr = (df_plot_zpowe['phoindex_bot'].values, df_plot_zpowe['phoindex_top'].values), color='g', fmt='.', markersize=5, ecolor='yellowgreen', elinewidth=1, capsize=2, capthick=1, label='hard LC')
+            
+        axs[2].errorbar(df_plot_zlogp['beta'].values, df_plot_zlogp['fvar_soft'].values, yerr=df_plot_zlogp['efvar_soft'].values,
+                    xerr = (df_plot_zlogp['beta_bot'].values, df_plot_zlogp['beta_top'].values), color='orange', fmt='.', markersize=5, ecolor='peachpuff', elinewidth=1, capsize=2, capthick=1, label='soft LC')
+        axs[2].errorbar(df_plot_zlogp['beta'].values, df_plot_zlogp['fvar_hard'].values, yerr=df_plot_zlogp['efvar_hard'].values,
+                    xerr = (df_plot_zlogp['beta_bot'].values, df_plot_zlogp['beta_top'].values), color='g', fmt='.', markersize=5, ecolor='yellowgreen', elinewidth=1, capsize=2, capthick=1, label='hard LC')
+        
+
+        axs[0].grid(True)
+        axs[1].grid(True)
+        axs[2].grid(True)
+        axs[0].set_title('Logparabola')
+        axs[1].set_title('Powerlaw')
+        axs[2].set_title('Logparabola')
+        axs[0].set_ylabel('$F_{var}$', fontsize=10)
+        axs[0].set_xlabel('alpha', fontsize=10)
+        axs[1].set_xlabel('phoindex', fontsize=10)
+        axs[2].set_xlabel('beta', fontsize=10)
+        axs[2].legend(loc='upper left')
+        plt.savefig(os.path.join(target_dir, "Products", "EPIC_Spectra", "fvar_param_correlations.png"))
 
 
     if args.rate:

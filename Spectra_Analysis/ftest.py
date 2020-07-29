@@ -84,5 +84,4 @@ if __name__ == "__main__":
     
     plt.bar(x=x, height=height)
     plt.xticks(x, ('LogParabola', 'Powerlaw'))
-    plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "ftest_barchart.png")
-)
+    plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "ftest_barchart.png"))
