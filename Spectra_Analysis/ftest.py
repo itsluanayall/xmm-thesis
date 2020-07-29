@@ -8,7 +8,7 @@ import numpy as np
 import sys
 import matplotlib.pyplot as plt
 
-EPIC_ftest = False
+EPIC_ftest = True
 
 if __name__ == "__main__":
 
@@ -34,12 +34,12 @@ if __name__ == "__main__":
     ftest_powerlaw_obs = []
     i = 0
     while i<len(data_spec):
-        if data_spec['model'].values[i].endswith('TBabs*zlogp'):
+        if 'TBabs*zlogp' in data_spec['model'].values[i]:
             chi2_lp = data_spec['chi2'].values[i]
             chi2_pw = data_spec['chi2'].values[i+1]
             dof_lp = data_spec['dof'].values[i]
             dof_pw = data_spec['dof'].values[i+1]
-        elif data_spec['model'].values[i].endswith('TBabs*zpowe'):
+        elif 'TBabs*zpowe' in data_spec['model'].values[i]:
             chi2_lp = data_spec['chi2'].values[i+1]
             chi2_pw = data_spec['chi2'].values[i]
             dof_lp = data_spec['dof'].values[i+1]
