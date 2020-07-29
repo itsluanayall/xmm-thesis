@@ -20,6 +20,7 @@ import matplotlib.lines as mlines
 from matplotlib.patches import Patch
 from tools import *
 import random
+from matplotlib.offsetbox import AnchoredText
 
 parser = ArgumentParser(description=__doc__)
 parser.add_argument('--epic', action='store_true',
@@ -800,15 +801,50 @@ if __name__ == "__main__":
             data_spec_zlogp_low = data_spec_zlogp[data_spec_zlogp['rate']<20]
 
             # Plot distribution for alpha and beta 
-            fig, axs = plt.subplots(2, 2, figsize=(5,7), sharex=True, gridspec_kw={'hspace':0.1})
-            axs[0,0].hist(data_spec_zlogp_high['phoindex'].values, bins=15, color='red')
-            axs[1,0].hist(data_spec_zlogp_low['phoindex'].values, bins=15, color='blue')
-            axs[0,1].hist(data_spec_zlogp_high['beta'].values, bins=15, color='red')
-            axs[1,1].hist(data_spec_zlogp_low['beta'].values, bins=15, color='blue')
+            fig, axs = plt.subplots(2, 2, figsize=(7,7), sharex=True, gridspec_kw={'hspace':0.1})
+            
+            #Alpha, high rate
+            y_high_alpha, x_high_alpha, _ = axs[0,0].hist(data_spec_zlogp_high['phoindex'].values, bins=15, color='red')
+            binsize = (x_high_alpha[1]-x_high_alpha[0])/2
+            axs[0,0].vlines(x=x_high_alpha[np.argmax(y_high_alpha)]+binsize, ymin=0, ymax=y_high_alpha.max(), color='black')
+            free_text = f"max alpha: {round(x_high_alpha[np.argmax(y_high_alpha)]+binsize, 2)}"
+            text_box = AnchoredText(free_text, frameon=False, loc='lower left', pad=0.5)
+            plt.setp(text_box.patch, facecolor='white', alpha=0.5)
+            axs[0,0].add_artist(text_box)
+
+            #Alpha, low rate
+            y_low_alpha, x_low_alpha, _ = axs[1,0].hist(data_spec_zlogp_low['phoindex'].values, bins=15, color='blue')
+            binsize = (x_low_alpha[1]-x_low_alpha[0])/2            
+            axs[1,0].vlines(x=x_low_alpha[np.argmax(y_low_alpha)]+binsize, ymin=0, ymax=y_low_alpha.max(), color='black')
+            free_text = f"max alpha: {round(x_low_alpha[np.argmax(y_low_alpha)]+binsize, 2)}"
+            text_box = AnchoredText(free_text, frameon=False, loc='lower left', pad=0.5)
+            plt.setp(text_box.patch, facecolor='white', alpha=0.5)
+            axs[1,0].add_artist(text_box)   
+
+            #Beta, high rate
+            y_high_beta, x_high_beta, _ = axs[0,1].hist(data_spec_zlogp_high['beta'].values, bins=15, color='red')
+            binsize = (x_high_beta[1]-x_high_beta[0])/2
+            axs[0,1].vlines(x=x_high_beta[np.argmax(y_high_beta)]+binsize, ymin=0, ymax=y_high_beta.max(), color='black')
+            free_text = f"max beta: {round(x_high_beta[np.argmax(y_high_beta)]+binsize, 2)}"
+            text_box = AnchoredText(free_text, frameon=False, loc='lower right', pad=0.5)
+            plt.setp(text_box.patch, facecolor='white', alpha=0.5)
+            axs[0,1].add_artist(text_box)
+
+            #Beta, low rate
+            y_low_beta, x_low_beta, _ = axs[1,1].hist(data_spec_zlogp_low['beta'].values, bins=15, color='blue')
+            binsize = (x_low_beta[1]-x_low_beta[0])/2
+            axs[1,1].vlines(x=x_low_beta[np.argmax(y_low_beta)]+binsize, ymin=0, ymax=y_low_beta.max(), color='black')
+            free_text = f"max beta: {round(x_low_beta[np.argmax(y_low_beta)]+binsize, 2)}"
+            text_box = AnchoredText(free_text, frameon=False, loc='lower right', pad=0.5)
+            plt.setp(text_box.patch, facecolor='white', alpha=0.5)
+            axs[1,1].add_artist(text_box)
+
             red_patch =  Patch(facecolor='red', edgecolor='black', label='high state')
             blue_patch =  Patch(facecolor='b', edgecolor='black', label='low state')
             axs[0,1].legend(handles=[red_patch, blue_patch], loc='upper right',  fancybox=True, shadow=True)
             axs[1,0].set_xlabel('phoindex logparabola')
+            axs[1,0].set_ylabel('counts')
+            axs[1,0].set_ylabel('counts')
             axs[1,1].set_xlabel('beta logparabola')
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "distribution_logpar.png"))
 
@@ -821,10 +857,27 @@ if __name__ == "__main__":
 
             #Plot distribution only for photon index
             fig, axs = plt.subplots(2, 1, figsize=(5,7), sharex=True, gridspec_kw={'hspace':0.1})
+            
+            #High rate
             y_high, x_high, _ = axs[0].hist(data_spec_zpowe_high['phoindex'].values, bins=15, color='red')
+            binsize = (x_high[1]-x_high[0])/2
+            axs[0].vlines(x=x_high[np.argmax(y_high)]+binsize, ymin=0, ymax=y_high.max(), color='black')
+            free_text = f"max phoindex: {round(x_high[np.argmax(y_high)]+binsize, 2)}"
+            text_box = AnchoredText(free_text, frameon=False, loc='upper right', pad=0.5)
+            plt.setp(text_box.patch, facecolor='white', alpha=0.5)
+            axs[0].add_artist(text_box)
+
+            #Low rate
             y_low, x_low, _ = axs[1].hist(data_spec_zpowe_low['phoindex'].values, bins=15, color='blue')
+            binsize = (x_low[1]-x_low[0])/2
+            axs[1].vlines(x=x_low[np.argmax(y_low)]+binsize, ymin=0, ymax=y_low.max(), color='black')
+            free_text = f"max phoindex: {round(x_low[np.argmax(y_low)]+binsize, 2)}"
+            text_box = AnchoredText(free_text, frameon=False, loc='upper right', pad=0.5)
+            plt.setp(text_box.patch, facecolor='white', alpha=0.5)
+            axs[1].add_artist(text_box)
+            
             red_patch =  Patch(facecolor='red', edgecolor='black', label='high state')
             blue_patch =  Patch(facecolor='b', edgecolor='black', label='low state')
-            axs[0].legend(handles=[red_patch, blue_patch])
-            axs[0].set_xlabel('phoindex powerlaw')
+            axs[0].legend(handles=[red_patch, blue_patch], loc='upper left')
+            axs[1].set_xlabel('phoindex powerlaw')
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "distribution_powerlaw.png"))
