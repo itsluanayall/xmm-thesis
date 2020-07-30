@@ -123,19 +123,19 @@ if __name__ == "__main__":
             else:
     
                 obs_table.add_row((str(obs.obsid), str(obs.revolution),  f"{obs.expoid[0][0]}+{obs.expoid[0][1]}" , str(obs.starttime), str(obs.endtime), str(int(obs.duration)),
-                                    obs.rgsrate[0], obs.stdev[0], obs.longterm_lc_times[0], obs.fracvardict[0].get('Fractional Variability'), obs.fracvardict[0].get('Fractional Variability Error'),
-                                    obs.fracvardict[0].get('Excess variance'),obs.fracvardict[0].get('Excess variance error'),
-                                    obs.fracvardict[0].get('Normalized excess variance'), obs.fracvardict[0].get('Normalized excess variance error'),
-                                    obs.fracvardict[0].get('Variability Amplitude'), obs.fracvardict[0].get('Variability amplitude error')))
+                                    "{:.3f}".format(obs.rgsrate[0]), "{:.3f}".format(obs.stdev[0]), "{:.3f}".format(obs.longterm_lc_times[0]), "{:.3f}".format(obs.fracvardict[0].get('Fractional Variability')), "{:.3f}".format(obs.fracvardict[0].get('Fractional Variability Error')),
+                                    "{:.3f}".format(obs.fracvardict[0].get('Excess variance')), "{:.3f}".format(obs.fracvardict[0].get('Excess variance error')),
+                                    "{:.3f}".format(obs.fracvardict[0].get('Normalized excess variance')), "{:.3f}".format(obs.fracvardict[0].get('Normalized excess variance error')),
+                                    "{:.3f}".format(obs.fracvardict[0].get('Variability Amplitude')), "{:.3f}".format(obs.fracvardict[0].get('Variability amplitude error'))))
                 duration_lc_ks.append(obs.duration_lc_ks[0])
 
                 if len(obs.rgsrate)>1:
                     for i in range(1, len(obs.rgsrate)):
                         obs_table.add_row((str(obs.obsid), str(obs.revolution),  f"{obs.expoid[i][0]}+{obs.expoid[i][1]}" , str(obs.starttime), str(obs.endtime), str(int(obs.duration)),
-                                            obs.rgsrate[i], obs.stdev[i], obs.longterm_lc_times[i], obs.fracvardict[i].get('Fractional Variability'), obs.fracvardict[i].get('Fractional Variability Error'),
-                                            obs.fracvardict[i].get('Excess variance'),obs.fracvardict[i].get('Excess variance error'),
-                                            obs.fracvardict[i].get('Normalized excess variance'), obs.fracvardict[i].get('Normalized excess variance error'),
-                                            obs.fracvardict[i].get('Variability Amplitude'), obs.fracvardict[i].get('Variability amplitude error')))
+                                            "{:.3f}".format(obs.rgsrate[i]), "{:.3f}".format(obs.stdev[i]), "{:.3f}".format(obs.longterm_lc_times[i]), "{:.3f}".format(obs.fracvardict[i].get('Fractional Variability')), "{:.3f}".format(obs.fracvardict[i].get('Fractional Variability Error')),
+                                            "{:.3f}".format(obs.fracvardict[i].get('Excess variance')), "{:.3f}".format(obs.fracvardict[i].get('Excess variance error')),
+                                            "{:.3f}".format(obs.fracvardict[i].get('Normalized excess variance')), "{:.3f}".format(obs.fracvardict[i].get('Normalized excess variance error')),
+                                            "{:.3f}".format(obs.fracvardict[i].get('Variability Amplitude')), "{:.3f}".format(obs.fracvardict[i].get('Variability amplitude error'))))
                         duration_lc_ks.append(obs.duration_lc_ks[i])
 
             #Keep track of number of observations that have been processed so far
