@@ -87,12 +87,16 @@ if __name__ == "__main__":
     else:
         hdul_spec = Table.read(os.path.join(products_dir, "RGS_Spectra", "spectra_table.fits"), hdu=1)
         data_spec = hdul_spec.to_pandas()
+        hdul_spec_avg = Table.read(os.path.join(products_dir, "RGS_Spectra", "spectra_table_average.fits"), hdu=1)
+        data_spec_avg = hdul_spec_avg.to_pandas()
 
         if args.average:
             hdul_spec = Table.read(os.path.join(products_dir, "RGS_Spectra", "spectra_table_average.fits"), hdu=1)
             data_spec = hdul_spec.to_pandas()  #Use only average spectra
         elif args.bins:
             data_spec = data_spec[data_spec['tbinid'] != 0]   #Use divided bins
+        
+
 
     #Clean data
     data_spec_clean = data_spec[data_spec['obsid'] != 658802001]
@@ -799,12 +803,19 @@ if __name__ == "__main__":
             data_spec_zlogp = data_spec_zlogp[data_spec_zlogp['phoindex_up']!=0]
             data_spec_zlogp_high = data_spec_zlogp[data_spec_zlogp['rate']>=20]
             data_spec_zlogp_low = data_spec_zlogp[data_spec_zlogp['rate']<20]
+                        
+            #Distinguish model favoring based on Ftest column
+            data_spec_avg_logp = data_spec_avg[data_spec_avg['model']=='constant*TBabs*zlogp']
+            logpar_better = data_spec_avg_logp[(data_spec_avg_logp['ftest']<0.1) & (data_spec_avg_logp['ftest']!=-999.)]
+            logpar_better_high = logpar_better[logpar_better['rate']>=20] 
+            logpar_better_low = logpar_better[logpar_better['rate']<20] 
 
             # Plot distribution for alpha and beta 
             fig, axs = plt.subplots(2, 2, figsize=(7,7), sharex=True, gridspec_kw={'hspace':0.1})
             
             #Alpha, high rate
             y_high_alpha, x_high_alpha, _ = axs[0,0].hist(data_spec_zlogp_high['phoindex'].values, bins=15, color='red')
+            axs[0,0].hist(logpar_better_high['phoindex'].values, bins=5, color='orange')
             binsize = (x_high_alpha[1]-x_high_alpha[0])/2
             axs[0,0].vlines(x=x_high_alpha[np.argmax(y_high_alpha)]+binsize, ymin=0, ymax=y_high_alpha.max(), color='black')
             free_text = f"max alpha: {round(x_high_alpha[np.argmax(y_high_alpha)]+binsize, 2)}"
@@ -814,6 +825,7 @@ if __name__ == "__main__":
 
             #Alpha, low rate
             y_low_alpha, x_low_alpha, _ = axs[1,0].hist(data_spec_zlogp_low['phoindex'].values, bins=15, color='blue')
+            axs[1,0].hist(logpar_better_low['phoindex'].values, bins=5, color='c')
             binsize = (x_low_alpha[1]-x_low_alpha[0])/2            
             axs[1,0].vlines(x=x_low_alpha[np.argmax(y_low_alpha)]+binsize, ymin=0, ymax=y_low_alpha.max(), color='black')
             free_text = f"max alpha: {round(x_low_alpha[np.argmax(y_low_alpha)]+binsize, 2)}"
@@ -823,6 +835,7 @@ if __name__ == "__main__":
 
             #Beta, high rate
             y_high_beta, x_high_beta, _ = axs[0,1].hist(data_spec_zlogp_high['beta'].values, bins=15, color='red')
+            axs[0,1].hist(logpar_better_high['beta'].values, bins=5, color='orange')
             binsize = (x_high_beta[1]-x_high_beta[0])/2
             axs[0,1].vlines(x=x_high_beta[np.argmax(y_high_beta)]+binsize, ymin=0, ymax=y_high_beta.max(), color='black')
             free_text = f"max beta: {round(x_high_beta[np.argmax(y_high_beta)]+binsize, 2)}"
@@ -832,6 +845,7 @@ if __name__ == "__main__":
 
             #Beta, low rate
             y_low_beta, x_low_beta, _ = axs[1,1].hist(data_spec_zlogp_low['beta'].values, bins=15, color='blue')
+            axs[1,1].hist(logpar_better_low['beta'].values, bins=5, color='c')
             binsize = (x_low_beta[1]-x_low_beta[0])/2
             axs[1,1].vlines(x=x_low_beta[np.argmax(y_low_beta)]+binsize, ymin=0, ymax=y_low_beta.max(), color='black')
             free_text = f"max beta: {round(x_low_beta[np.argmax(y_low_beta)]+binsize, 2)}"
@@ -844,7 +858,7 @@ if __name__ == "__main__":
             axs[0,1].legend(handles=[red_patch, blue_patch], loc='upper right',  fancybox=True, shadow=True)
             axs[1,0].set_xlabel('phoindex logparabola')
             axs[1,0].set_ylabel('counts')
-            axs[1,0].set_ylabel('counts')
+            axs[0,0].set_ylabel('counts')
             axs[1,1].set_xlabel('beta logparabola')
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "distribution_logpar.png"))
 
@@ -880,4 +894,6 @@ if __name__ == "__main__":
             blue_patch =  Patch(facecolor='b', edgecolor='black', label='low state')
             axs[0].legend(handles=[red_patch, blue_patch], loc='upper left')
             axs[1].set_xlabel('phoindex powerlaw')
+            axs[0].set_ylabel('counts')
+            axs[1].set_ylabel('counts')
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "distribution_powerlaw.png"))

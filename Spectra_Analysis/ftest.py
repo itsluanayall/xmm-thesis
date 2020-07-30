@@ -8,7 +8,7 @@ import numpy as np
 import sys
 import matplotlib.pyplot as plt
 
-EPIC_ftest = True
+EPIC_ftest = False
 
 if __name__ == "__main__":
 
@@ -68,7 +68,10 @@ if __name__ == "__main__":
 
     data_spec['ftest'] = np.array(ftest_array)
     final_table = Table.from_pandas(data_spec)
-    final_table.write(output=os.path.join(target_dir, 'Products', 'RGS_Spectra', 'spectra_table_average.fits'), format='fits', overwrite=True)
+    if EPIC_ftest:
+        final_table.write(output=os.path.join(target_dir, 'Products', 'EPIC_Spectra', 'spectra_table_average.fits'), format='fits', overwrite=True)
+    else:
+        final_table.write(output=os.path.join(target_dir, 'Products', 'RGS_Spectra', 'spectra_table_average.fits'), format='fits', overwrite=True)
 
     #histogram
     data_spec_clean = data_spec.dropna()

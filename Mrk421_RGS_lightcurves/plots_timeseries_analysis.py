@@ -9,6 +9,8 @@ from array import array
 from brokenaxes import brokenaxes
 from config import CONFIG
 from tools import *
+from scipy.stats import linregress
+
 
 
 import pandas as pd
@@ -16,16 +18,17 @@ from matplotlib.patches import Rectangle
 target_dir = "/media/xmmsas/thesis/Markarian421"
 timescale_fvar = CONFIG['timescale_fvar']
 MJDREF = 50814.0
-MAKE_FVAR_PLOTS = True
-MAKE_MEAN_LC = True
-MAKE_LC = False
-MAKE_EXCESS_VARIANCE = True 
+MAKE_FVAR_PLOTS = False
+MAKE_MEAN_LC = False
+MAKE_LC = True
+MAKE_EXCESS_VARIANCE = False 
+FVAR_CORRELATON = False
 M = 15
 
 def plot(x, y, title, xlabel, ylabel, output_folder, dy, dx=[]):
     """
     """
-    fig = plt.figure(figsize=(15,5))
+    fig = plt.figure(figsize=(10,5))
     ax = fig.add_subplot(1, 1, 1)
 
     #Drop NaN values by making a numpy mask
@@ -36,12 +39,12 @@ def plot(x, y, title, xlabel, ylabel, output_folder, dy, dx=[]):
 
     if len(dx)==0:
         
-        plt.errorbar(x,y, yerr=dy, color='black', ecolor='gray', linestyle='', fmt='.', markersize=5, elinewidth=1, capsize=2, capthick=1)
+        plt.errorbar(x,y, yerr=dy, color='black', ecolor='gray', linestyle='', fmt='.', markersize=1, elinewidth=1, capsize=2, capthick=1)
     
     else:
 
         #dx = dx[mask_nan]
-        plt.errorbar(x,y, yerr=dy, xerr=dx, color='black', ecolor='gray', fmt='.', linestyle='', markersize=5, elinewidth=1, capsize=2, capthick=1)
+        plt.errorbar(x,y, yerr=dy, xerr=dx, color='black', ecolor='gray', fmt='.', linestyle='', markersize=1, elinewidth=1, capsize=2, capthick=1)
     
     plt.grid(True)
     plt.title(title, fontsize=20)
@@ -50,10 +53,16 @@ def plot(x, y, title, xlabel, ylabel, output_folder, dy, dx=[]):
     plt.xticks(fontsize=10)
     plt.yticks(fontsize=10)
     
+    if MAKE_FVAR_PLOTS and FVAR_CORRELATON:
+
+        #Correlation coefficient
+        slope, intercept, r, p, stderr = linregress(x,y)
+        line = f'Correlation: {r:.2f}'
+        plt.plot(x, intercept + slope * x, label=line, color='red')
+        plt.legend()
 
     #Save figure 
-    plt.savefig(f'{output_folder}/{title}.png')
-    plt.show()
+    #plt.savefig(f'{output_folder}/{title}.png')
 
 def plot_total_lc(x, y, title, xlabel, ylabel, output_folder, dy, dx=[]):
     """
@@ -337,9 +346,11 @@ if __name__ == "__main__":
         data = hdul.to_pandas()
         data.dropna()
         data = data.sort_values(by=['MJD_avg_time'])
-
+        time_err = data['Duration_Obs'].values/86400
+        print(time_err)
+       
         title = 'Long-term X-ray Variability Lightcurve'
-        plot(data['MJD_avg_time'].values ,data['RGS_Rate'].values, dy=data['RGS_erate'].values, title=title, xlabel='MJD', ylabel='Mean Rate [ct/s]', output_folder=f"{target_dir}/Products/Plots_timeseries" )
+        plot(x=data['MJD_avg_time'].values, y=data['RGS_Rate'].values, dx=time_err, dy=data['RGS_erate'].values, title=title, xlabel='MJD', ylabel='Mean Rate [ct/s]', output_folder=f"{target_dir}/Products/Plots_timeseries" )
 
 
     if MAKE_FVAR_PLOTS:
@@ -371,8 +382,40 @@ if __name__ == "__main__":
         data = data.sort_values(by=['MJD_avg_time'])
         title = 'Excess variance vs time'
         print("# datapoints excess variance =", len(data))
-        plot(data['MJD_avg_time'].values, data['Excess_Variance'].values, dy=data['xs_sigma'].values, title=title, output_folder=f"{target_dir}/Products/Plots_timeseries", xlabel='MJD', ylabel='$\sigma_{XS}^2$')
+        
+        data_short = data[data['Duration_Obs']<20000]
+        data_medium = data[(data['Duration_Obs']>=20000) & (data['Duration_Obs']<40000)]
+        data_long1 = data[(data['Duration_Obs']>=40000) & (data['Duration_Obs']<60000)]
+        data_long2 = data[data['Duration_Obs']>=60000]
+        xs_linear = np.sqrt(data['Excess_Variance'].values)
+        xs_linear_err = 0.5*xs_linear * (data['xs_sigma'].values/data['Excess_Variance'].values)
+        
 
+        #plot(x=data['MJD_avg_time'].values, y=data['Excess_Variance'].values, dy=data['xs_sigma'].values, title=title, output_folder=f"{target_dir}/Products/Plots_timeseries", xlabel='MJD', ylabel='$\sigma_{XS}^2$')
+        plot(x=data['MJD_avg_time'].values, y=xs_linear, dy=xs_linear_err, title='linear xs vs time', output_folder=f"{target_dir}/Products/Plots_timeseries", xlabel='MJD', ylabel='$\sqrt{\sigma_{XS}^2}$')
+        
+        
+        plot(x=data['RGS_Rate'].values, y=xs_linear, dx=data['RGS_erate'].values, dy=xs_linear_err, title='linear xs vs rate', output_folder=f"{target_dir}/Products/Plots_timeseries", xlabel='Rate[ct/s]', ylabel='$\sqrt{\sigma_{XS}^2}$')
+        '''
+        plt.errorbar(data_short['RGS_Rate'].values, np.sqrt(data_short['Excess_Variance'].values), color='r', marker='.',markersize=5, linestyle='', label='Duration < 0.2 d')
+        plt.errorbar(data_medium['RGS_Rate'].values, np.sqrt(data_medium['Excess_Variance'].values), color='b', marker='.',markersize=5, linestyle='', label='0.2 d < Duration < 0.5 d')
+        plt.errorbar(data_long1['RGS_Rate'].values, np.sqrt(data_long1['Excess_Variance'].values), color='g', marker='.',markersize=5, linestyle='', label='0.5 d < Duration < 0.7 d ')
+        plt.errorbar(data_long2['RGS_Rate'].values, np.sqrt(data_long2['Excess_Variance'].values), color='orange', marker='.',markersize=5, linestyle='', label='Duration > 0.7 d')
+        
+        #Correlation coefficient
+        slope1, intercept1, r1, p1, stderr1 = linregress(data_short['RGS_Rate'].values, np.sqrt(data_short['Excess_Variance'].values))
+        slope2, intercept2, r2, p2, stderr2 = linregress(data_medium['RGS_Rate'].values, np.sqrt(data_medium['Excess_Variance'].values))
+        slope3, intercept3, r3, p3, stderr3 = linregress(data_long1['RGS_Rate'].values, np.sqrt(data_long1['Excess_Variance'].values))
+        slope4, intercept4, r4, p4, stderr4 = linregress(data_long2['RGS_Rate'].values, np.sqrt(data_long2['Excess_Variance'].values))
+
+        plt.plot(data_short['RGS_Rate'].values, intercept1 + slope1 * data_short['RGS_Rate'].values, label= f'Correlation: {r1:.2f}', color='r')
+        plt.plot(data_medium['RGS_Rate'].values, intercept2 + slope2 * data_medium['RGS_Rate'].values, label=f'Correlation: {r2:.2f}', color='b')
+        plt.plot(data_long1['RGS_Rate'].values, intercept3 + slope3 * data_long1['RGS_Rate'].values, label=f'Correlation: {r3:.2f}',color='g')
+        plt.plot(data_long2['RGS_Rate'].values, intercept4 + slope4 * data_long2['RGS_Rate'].values, label=f'Correlation: {r4:.2f}',color='orange')
+
+        plt.legend(ncol=2)
+        '''
+        plt.savefig(f'{target_dir}/Products/Plots_timeseries/linear_xs_vs_rate.png')
 
     if MAKE_LC:
         #TOTAL LIGHT CURVE
@@ -470,7 +513,7 @@ if __name__ == "__main__":
             (57695, 57698.5), (57705, 57706), (57876.5, 57878), (57880.5, 57881.5),
             (58076, 58077.5), (58239.5, 58241), (58247.5, 58249), (58443, 58444.5),
             (58609, 58610), (58816, 58817))
-
+        '''
         fig_brkax = plt.figure(figsize=(60,8))
         bax = brokenaxes(xlims=lims, wspace=0.2, tilt=90, diag_color='red', d=0.0015)
 
@@ -534,7 +577,7 @@ if __name__ == "__main__":
         bax.margins(0)
         plt.suptitle('Historical Lightcurve Mrk421', fontsize=25)
         plt.savefig(f"{target_dir}/Products/Plots_timeseries/lc_broken_axis.png")
-    
+
         from collections import Counter
         import seaborn as sns
         cnt = Counter(year_array)
@@ -549,16 +592,74 @@ if __name__ == "__main__":
         ax.set_ylabel('# datapoints') 
         plt.savefig(f"{target_dir}/Products/Plots_timeseries/distrib_data.png")
         plt.show()
-
+        '''
         #Plot rate distribution 
-        fig_hist_rate = plt.figure(figsize=(15,15))
-        plt.hist(data_lc['RATE'], histtype="stepfilled", facecolor='c', linewidth=2, edgecolor='k')
-        plt.xlabel("Rate [ct/s]")
-        plt.title("Rate Histogram")
-        plt.xticks()
-        plt.savefig(f"{target_dir}/Products/Plots_timeseries/rate_histogram.png")
-        plt.show()
+        fig_hist_rate = plt.figure(figsize=(6,6))
+        counts, bins, _ = plt.hist(data_lc['RATE'].values, bins=10,color='skyblue' ,edgecolor='black', linewidth=1.2, histtype='stepfilled')
+        bin_centers = 0.5 * (bins[:-1] + bins[1:])
+        
+        #Errors for bins
+        bin_prob = counts/len(data_lc['RATE'].values)
+        bin_up = (bin_prob + 1.96*np.sqrt(bin_prob*(1-bin_prob)/len(data_lc['RATE'].values)) ) * len(data_lc['RATE'].values)
+        bin_low = (bin_prob - 1.96*np.sqrt(bin_prob*(1-bin_prob)/len(data_lc['RATE'].values)) ) * len(data_lc['RATE'].values)
+        bin_top = bin_up-counts
+        bin_bot = counts - bin_low
 
+        plt.errorbar(bin_centers, counts, yerr=(bin_bot, bin_top), fmt='.', color='black')
+
+        #lognormal fit
+        from scipy.optimize import curve_fit
+        from scipy.stats import lognorm
+
+        def lognorm_func(x, mu, sigma):
+            return np.exp(-(np.log(x) - mu)**2 / (2 * sigma**2))/ (x * sigma * np.sqrt(2 * np.pi))
+
+        # restore data from histogram: counts multiplied bin centers
+        restored = [[d]*int(counts[n]) for n,d in enumerate((bins[1:]+bins[:-1])/2)]
+        
+        # flatten the result
+        restored = [item for sublist in restored for item in sublist]
+
+        print(lognorm.fit(restored, floc=0))
+
+        dist = lognorm(*lognorm.fit(restored, floc=0))
+        x = np.arange(1,60)
+        y = dist.pdf(x)
+
+        # the pdf is normalized, so we need to scale it to match the histogram
+        y = y/y.max()
+        y = y*counts.max()
+
+        #chi2 lognormal 
+        y2 = dist.pdf(bin_centers) 
+        y2 = y2/y2.max()
+        y2 = y2*counts.max()
+        chisq =(((counts-y2)/bin_top)**2).sum()
+        ndof = len(counts) - 3
+        print('Chisquare/ndof lognormal = %f/%d' % (chisq, ndof))
+
+        #gauss fit
+        def Gauss(x, a, x0, sigma):
+            return a * np.exp(-(x - x0)**2 / (2 * sigma**2))
+
+        popt,pcov = curve_fit(Gauss, bin_centers, counts, p0=[max(counts), 23, 1])
+
+        #chi2 gauss
+        chisq_gauss =(((counts-Gauss(bin_centers, popt[0], popt[1], popt[2]))/bin_top)**2).sum()
+        ndof_gauss = len(counts) - 3
+        print('Chisquare/ndof gauss = %f/%d' % (chisq_gauss, ndof_gauss))
+
+        plt.plot(x,y,'r',linewidth=2, label='Lognormal Fit $\chi^2_{red}$ = '+ f'{chisq/ndof:.2f}')
+        plt.plot(x,Gauss(x, popt[0], popt[1], popt[2]), 'g',linewidth=2, label='Gauss Fit $\chi^2_{red}$ = '+  f'{chisq_gauss/ndof_gauss:.2f}')
+        plt.xlim(0,60)
+       
+        plt.xlabel("Rate [ct/s]")
+        plt.ylabel('# datapoints')
+        plt.xticks()
+        plt.legend()
+        plt.savefig(f"{target_dir}/Products/Plots_timeseries/rate_histogram.png")
+        
+        '''
         #Plot compact lightcurve (x=index, y=rate, hue=year)
         g = sns.FacetGrid(data=data_lc, hue='YEAR', height=8, aspect=2)
         g.map(plt.errorbar, 'index', 'RATE', 'ERROR', fmt='.', ecolor='gray', elinewidth=1, capsize=2, capthick=1)
@@ -567,4 +668,4 @@ if __name__ == "__main__":
         g.add_legend()
         plt.savefig(f"{target_dir}/Products/Plots_timeseries/compact_lightcurve.png")
         plt.show()
-        
+        '''

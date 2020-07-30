@@ -84,7 +84,7 @@ if __name__ == "__main__":
     counter = 0
     mrk421_problematic_obs = ['0658802001', '0411082701']
     duration_lc_ks = []
-    '''
+    
     for obsid in os.listdir(target_dir):
         
         if obsid.startswith('0'):   #All observation folders start with 0
@@ -107,7 +107,7 @@ if __name__ == "__main__":
             obs.rgslccorr()
             obs.lightcurve(mjdref=mjdref, use_grace=use_grace)
             obs.fracvartest(screen=True, instrument='rgs')
-            obs.vaughan_panel(N=15, M=15, timescale=timescale_fvar, timebinsize=25)
+            obs.vaughan_panel(N=20, M=20, timescale=timescale_fvar, timebinsize=25)
             obs.divide_spectrum()
             obs.xspec_divided_spectra_average(target_REDSHIFT)
             obs.xspec_divided_spectra(target_REDSHIFT)
@@ -223,4 +223,4 @@ if __name__ == "__main__":
     axs[1].set_ylabel('$<F_{var}>$')
     axs[1].grid(True)
     plt.savefig(f'{target_dir}/Products/Plots_timeseries/xs_rate_combined.png')
-    
+    '''
