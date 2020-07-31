@@ -20,6 +20,8 @@ import matplotlib.lines as mlines
 from matplotlib.patches import Patch
 from tools import *
 import random
+from scipy.optimize import curve_fit
+from scipy.stats import linregress
 from matplotlib.offsetbox import AnchoredText
 
 parser = ArgumentParser(description=__doc__)
@@ -119,7 +121,7 @@ if __name__ == "__main__":
                                           'alpha_top': data_spec_zlogp['phoindex_up'].values - data_spec_zlogp['phoindex'].values,
                                           'alpha_bot': data_spec_zlogp['phoindex'].values - data_spec_zlogp['phoindex_low'].values,
                                           "ftest": data_spec_zlogp['ftest'].values, "obsid": data_lc['ObsId'].values})
-            df_plot_zlogp = df_plot_zlogp[df_plot_zlogp['xs'] >=0]
+            df_plot_zlogp = df_plot_zlogp[df_plot_zlogp['xs'] >0]
             
             
             df_plot_zpowe = pd.DataFrame({"fvar": data_lc['F_var'].values, "fvar_err": data_lc['F_var_sigma'].values,
@@ -128,7 +130,7 @@ if __name__ == "__main__":
                                          "phoindex_top": data_spec_zpowe['phoindex_up'].values - data_spec_zpowe['phoindex'].values,
                                          "phoindex_bot": data_spec_zpowe['phoindex'].values - data_spec_zpowe['phoindex_low'].values,
                                          "ftest": data_spec_zpowe['ftest'].values})
-            df_plot_zpowe = df_plot_zpowe[df_plot_zpowe['xs'] >=0]
+            df_plot_zpowe = df_plot_zpowe[df_plot_zpowe['xs'] >0]
 
             if args.vaughan:
                 vaughan_obs = ['0136541001', '0158971201', '0810860201', '0411080301', '0560980101', '0791781401', '0810860701', '0791782001']
@@ -139,28 +141,49 @@ if __name__ == "__main__":
             df_plot_zlogp_better = df_plot_zlogp[(df_plot_zlogp['ftest']<0.1) & (df_plot_zlogp['ftest']!=-999.)]
             df_plot_zpowe_better = df_plot_zpowe[(df_plot_zpowe['ftest']>=0.1) | (df_plot_zpowe['ftest']==-999.)]
 
+            '''
+            #linear function between x and y
+            def fitfunc (x,a,b):
+                return a*x + b
+            
+            # Initial values
+            initial_values =(0.8,0)
+            pars, covm = curve_fit(fitfunc, df_plot_zpowe_better['phoindex'].values, df_plot_zpowe_better['fvar'].values, initial_values, df_plot_zpowe_better['fvar_err'].values) 
+
+            a0, b0 = pars    #parameter of fit
+            da, db = np.sqrt(covm.diagonal())   #and its error (from covariance matrix)
+
+            # Print fit results
+            print('a = %f +- %f' % (a0, da))
+            print('b = %f +- %f' % (b0, db))
+
+            #chi2
+            chisq =(((df_plot_zpowe_better['fvar'].values-fitfunc(df_plot_zpowe_better['phoindex'].values, a0,b0) )/df_plot_zpowe_better['fvar_err'].values)**2).sum()
+            ndof = len(df_plot_zpowe_better['phoindex'].values) - 1
+            print('Chisquare/ndof = %f/%d' % (chisq, ndof))
+            '''
             # Plot
-            fig, axs =plt.subplots(1, 2, figsize=(7,5), sharey=True, gridspec_kw={'wspace':0.1})
-            #axs[0].errorbar(df_plot_zlogp['alpha'].values, df_plot_zlogp['fvar'].values, yerr=df_plot_zlogp['fvar_err'].values,
-            #            xerr = (df_plot_zlogp['alpha_bot'].values, df_plot_zlogp['alpha_top'].values), color='orange', fmt='.', markersize=5, ecolor='peachpuff', elinewidth=1, capsize=2, capthick=1, label='powerlaw best model')
-            axs[0].errorbar(df_plot_zlogp_better['alpha'].values, df_plot_zlogp_better['fvar'].values, yerr=df_plot_zlogp_better['fvar_err'].values,
-                        xerr = (df_plot_zlogp_better['alpha_bot'].values, df_plot_zlogp_better['alpha_top'].values), color='g', fmt='.', markersize=5, ecolor='mediumseagreen', elinewidth=1, capsize=2, capthick=1, label='logpar best model')
-            
-            
-            #axs[1].errorbar(df_plot_zpowe['phoindex'].values, df_plot_zpowe['fvar'].values, yerr=df_plot_zpowe['fvar_err'].values,
-            #            xerr = (df_plot_zpowe['phoindex_bot'].values, df_plot_zpowe['phoindex_top'].values), color='orange', fmt='.', markersize=5, ecolor='peachpuff', elinewidth=1, capsize=2, capthick=1, label='logpar best model')
-            axs[1].errorbar(df_plot_zpowe_better['phoindex'].values, df_plot_zpowe_better['fvar'].values, yerr=df_plot_zpowe_better['fvar_err'].values,
-                        xerr = (df_plot_zpowe_better['phoindex_bot'].values, df_plot_zpowe_better['phoindex_top'].values), color='orange', fmt='.', markersize=5, ecolor='peachpuff', elinewidth=1, capsize=2, capthick=1, label='powerlaw best model')
+            fig, axs =plt.subplots(1, 2, figsize=(7,5), sharey=False, gridspec_kw={'wspace':0.3})
+        
+            axs[0].errorbar(x=df_plot_zlogp_better['fvar'].values, y=df_plot_zlogp_better['alpha'].values, xerr=df_plot_zlogp_better['fvar_err'].values,
+                        yerr = (df_plot_zlogp_better['alpha_bot'].values, df_plot_zlogp_better['alpha_top'].values), color='b', fmt='.', markersize=5, ecolor='cornflowerblue', elinewidth=1, capsize=2, capthick=1, label='logpar best model')
+            '''
+            func_grid = np.linspace(1.8, 2.7, 50)
+            axs[1].plot(func_grid, fitfunc(func_grid, a0, b0), color = 'red')
+            '''
+            axs[1].errorbar(y=df_plot_zpowe_better['phoindex'].values, x=df_plot_zpowe_better['fvar'].values, xerr=df_plot_zpowe_better['fvar_err'].values,
+                        yerr = (df_plot_zpowe_better['phoindex_bot'].values, df_plot_zpowe_better['phoindex_top'].values), color='red', fmt='.', markersize=5, ecolor='lightcoral', elinewidth=1, capsize=2, capthick=1, label='powerlaw best model')
 
             axs[0].grid(True)
             axs[1].grid(True)
             axs[0].set_title('Logparabola')
             axs[1].set_title('Powerlaw')
-            axs[0].set_ylabel('$F_{var}$', fontsize=15)
-            axs[0].set_xlabel('alpha', fontsize=15)
-            axs[1].set_xlabel('phoindex', fontsize=15)
-            axs[0].legend(loc='upper left')
-            axs[1].legend(loc='upper left')
+            axs[0].set_xlabel('$F_{var}$', fontsize=10)
+            axs[0].set_ylabel(r'$ \alpha$', fontsize=10)
+            axs[1].set_ylabel('$\Gamma$', fontsize=10)
+            axs[1].set_xlabel('$F_{var}$', fontsize=10)
+            #axs[0].legend(loc='upper left')
+            #axs[1].legend(loc='upper left')
 
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "fvar_phoindex_correlations.png"))
 
@@ -172,22 +195,22 @@ if __name__ == "__main__":
                                           'beta_top': data_spec_zlogp['beta_up'].values - data_spec_zlogp['beta'].values,
                                           'beta_bot': data_spec_zlogp['beta'].values - data_spec_zlogp['beta_low'].values,
                                           "ftest": data_spec_zlogp['ftest'].values, "obsid": data_lc['ObsId'].values})
-            df_plot_zlogp = df_plot_zlogp[df_plot_zlogp['xs']>=0]
+            df_plot_zlogp = df_plot_zlogp[df_plot_zlogp['xs']>0]
 
             # Distinguish between fvar high (+) and fvar low (x)
             df_plot_zlogp_better = df_plot_zlogp[(df_plot_zlogp['ftest']<0.1) & (df_plot_zlogp['ftest']!=-999.)]
 
             #Plot
             figure = plt.figure(figsize=(6,5))
-            plt.errorbar(df_plot_zlogp['beta'].values, df_plot_zlogp['fvar'].values, yerr=df_plot_zlogp['fvar_err'].values,
-                        xerr = (df_plot_zlogp['beta_bot'].values, df_plot_zlogp['beta_top'].values), color='orange', linestyle='', marker='.', markersize=5, ecolor='peachpuff', elinewidth=1, capsize=2, capthick=1, label='powerlaw best model')
-            plt.errorbar(df_plot_zlogp_better['beta'].values, df_plot_zlogp_better['fvar'].values, yerr=df_plot_zlogp_better['fvar_err'].values,
-                        xerr = (df_plot_zlogp_better['beta_bot'].values, df_plot_zlogp_better['beta_top'].values), color='g', linestyle='', marker='.', markersize=5, ecolor='mediumseagreen', elinewidth=1, capsize=2, capthick=1, label='logpar best model')
+            plt.errorbar(y=df_plot_zlogp_better['beta'].values,x= df_plot_zlogp_better['fvar'].values, xerr=df_plot_zlogp_better['fvar_err'].values,
+                        yerr = (df_plot_zlogp_better['beta_bot'].values, df_plot_zlogp_better['beta_top'].values), color='b', linestyle='', marker='.', markersize=5, ecolor='cornflowerblue', elinewidth=1, capsize=2, capthick=1, label='logpar best model')
             
             plt.grid()
-            plt.xlabel('beta', fontsize=15)
-            plt.ylabel('$F_{var}$', fontsize=15)
-            plt.legend(loc='upper left')
+            plt.ylabel(r'$\beta$', fontsize=10)
+            plt.xlabel('$F_{var}$', fontsize=10)
+            plt.title('Logparabola', fontsize=15)
+            #plt.legend(loc='upper left')
+            plt.tight_layout()
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "fvar_beta_correlations.png"))
 
 
