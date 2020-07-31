@@ -31,17 +31,31 @@ if __name__ == "__main__":
     nH_bot_powerlaw = data_spec_zpowe['nH'].values - data_spec_zpowe['nH_low'].values
 
 
-    g = (sns.jointplot("nH_logpar", "nH_powerlaw", data=data_distrib, space=0, color="royalblue", marker='.').plot_joint(sns.kdeplot,zorder=0, n_levels=6))
+    g = (sns.jointplot("nH_logpar", "nH_powerlaw", data=data_distrib, space=0, color="royalblue", marker='.').plot_joint(sns.kdeplot,zorder=0, n_levels=5))
     plt.errorbar(data_distrib.nH_logpar, data_distrib.nH_powerlaw, linestyle='', ecolor='lightsteelblue', alpha=0.4, xerr=(nH_bot_logpar, nH_top_logpar), yerr=(nH_bot_powerlaw, nH_top_powerlaw))
-    
-    #Plot maximum (for now doesn't work)
+    plt.errorbar(x=0.0192, y=0.0192, marker='+', markersize=10)
+    plt.errorbar(x=0.0079, y=0.0142, marker='x', color='b', markersize=10)
+
+    plt.xlabel('nH_logpar [$10^{22}$ cm$^-2$]')
+    plt.ylabel('nH_power [$10^{22}$ cm$^-2$]')
+
+    fig2 = plt.figure()
+    counts_pw, bins_pw, _ = plt.hist(data_distrib['nH_powerlaw'], bins=20)
+    plt.title('nH powerlaw')
+    bin_centers_pw = 0.5 * (bins_pw[:-1] + bins_pw[1:])
+    print('most frequent nH value for powerlaw:', bin_centers_pw[np.argmax(counts_pw)])
+
+    fig3 = plt.figure()
+    counts_lp, bins_lp, _ = plt.hist(data_distrib['nH_logpar'], bins=20)
+    plt.title('nH logparabola')
+    bin_centers_lp = 0.5 * (bins_lp[:-1] + bins_lp[1:])
+    print('most frequent nH value for logparabola:', bin_centers_lp[np.argmax(counts_lp)])
+
     '''
-    x = g.lines[0].get_xdata() # Get the x data of the distribution
-    y = g.lines[0].get_ydata() # Get the y data of the distribution
     maxid = np.argmax(y) # The id of the peak (maximum of y data)
     plt.plot(x[maxid],y[maxid], 'bo', ms=10)
     '''
 
     #Save and show
-    plt.savefig(os.path.join(products_dir, "Plots_spectra", "nH_density.png"))
+    #plt.savefig(os.path.join(products_dir, "Plots_spectra", "nH_density.png"))
     plt.show()
