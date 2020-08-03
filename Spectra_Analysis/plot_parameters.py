@@ -321,7 +321,7 @@ if __name__ == "__main__":
         
         # Take only data from observation specified by command line
         df_plot_zlogp = df_plot_zlogp[df_plot_zlogp['obsid']==args.hysteresis]
-
+        df_plot_zlogp['alpha'] = df_plot_zlogp['alpha'].apply(lambda x : -x)
 
         #Same for powerlaw
         data_spec_zpowe = data_spec_zpowe[data_spec_zpowe['phoindex_up']!=0.]
@@ -332,6 +332,7 @@ if __name__ == "__main__":
                                         "obsid": data_spec_zpowe['obsid'].values})
         
         df_plot_zpowe = df_plot_zpowe[df_plot_zpowe['obsid']==args.hysteresis]
+        df_plot_zpowe['phoindex'] = df_plot_zpowe['phoindex'].apply(lambda x : -x)
 
         #Make figure
         figure, axs = plt.subplots(3,1, figsize=(8,8), gridspec_kw={'hspace':0.3})
@@ -418,10 +419,10 @@ if __name__ == "__main__":
         axs[0].set_ylabel('Rate [ct/s]')
         axs[1].grid()
         axs[1].set_xlabel('Rate [ct/s]')
-        axs[1].set_ylabel('phoindex (zpowerlaw)')
+        axs[1].set_ylabel('$\Gamma$ (powerlaw)')
         axs[2].grid()
         axs[2].set_xlabel('Rate [ct/s]')
-        axs[2].set_ylabel('alpha (zlogpar)')
+        axs[2].set_ylabel(r'$\alpha$ (logparabola)')
         plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", f"hysteresis_{args.hysteresis}.png"))
 
 
@@ -486,12 +487,12 @@ if __name__ == "__main__":
                 figure = plt.figure(figsize=(10,5))
                 df_plot_zlogp = df_plot_zlogp.sort_values(by=['rate'])
                 plt.errorbar(y=df_plot_zlogp['alpha'].values, x=df_plot_zlogp['flux'].values, xerr=(df_plot_zlogp['flux_bot'].values, df_plot_zlogp['flux_top'].values),
-                            yerr = (df_plot_zlogp['alpha_bot'].values, df_plot_zlogp['alpha_top'].values), fmt='.', linestyle='-', markersize=5, ecolor='cornflowerblue', elinewidth=1, capsize=2, capthick=1, color='b', label='zlogpar')
-                #plt.errorbar(y=df_plot_zpowe['phoindex'].values, x=df_plot_zpowe['flux'].values, xerr=(df_plot_zpowe['flux_bot'].values, df_plot_zpowe['flux_top'].values),
-                #            yerr = (df_plot_zpowe['phoindex_bot'].values, df_plot_zpowe['phoindex_top'].values), fmt='.', color='red', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='lightcoral', label='zpowerlaw')
+                            yerr = (df_plot_zlogp['alpha_bot'].values, df_plot_zlogp['alpha_top'].values), fmt='.', linestyle='', markersize=5, ecolor='cornflowerblue', elinewidth=1, capsize=2, capthick=1, color='b', label='zlogpar')
+                plt.errorbar(y=df_plot_zpowe['phoindex'].values, x=df_plot_zpowe['flux'].values, xerr=(df_plot_zpowe['flux_bot'].values, df_plot_zpowe['flux_top'].values),
+                            yerr = (df_plot_zpowe['phoindex_bot'].values, df_plot_zpowe['phoindex_top'].values), fmt='.', color='red', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='lightcoral', label='zpowerlaw')
                 plt.grid()
                 plt.xlabel('Flux [cm$^{-2}$ erg s$^{-1}$]', fontsize=15)
-                plt.ylabel('phoindex', fontsize=15)
+                plt.ylabel('photon index', fontsize=15)
                 plt.legend()
                 plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "phoindex_vs_flux.png"))
 
@@ -688,9 +689,10 @@ if __name__ == "__main__":
             #Upper limits on nH
             df_plot_nH_pegged = df_plot_zlogp[df_plot_zlogp['nH_low']<=1e-4]
             df_plot_zlogp = df_plot_zlogp[df_plot_zlogp['nH_low']>1e-4]
+            print(f"Mean and standard deviation of NH evolution: {np.mean(df_plot_zlogp['nH'].values)}, {np.std(df_plot_zlogp['nH'].values, ddof=1)}")
 
             #Plot panel            
-            fig_logp, axs_logp = plt.subplots(4, 1, figsize=(16,13), sharex=True, gridspec_kw={'hspace':0, 'wspace':0})
+            fig_logp, axs_logp = plt.subplots(4, 1, figsize=(13,11), sharex=True, gridspec_kw={'hspace':0, 'wspace':0})
 
 
                 # Total lightcurve
@@ -702,25 +704,25 @@ if __name__ == "__main__":
                                 data=df_plot_zlogp, ecolor='lightgray', linestyle='', marker='.', markersize=3, color='b', capthick=1, elinewidth=1)
                     #68% confidence intervals 
             axs_logp[1].errorbar('index', 'phoindex', yerr=(df_plot_zlogp['phoindex_bot68'].values, df_plot_zlogp['phoindex_top68'].values),
-                                data=df_plot_zlogp, ecolor='lightsteelblue', linestyle='', color='b', capthick=1, elinewidth=1)
+                                data=df_plot_zlogp, ecolor='cornflowerblue', linestyle='', color='b', capthick=1, elinewidth=1)
                 #beta vs time
                     #90 confidence intervals   
             axs_logp[2].errorbar('index', 'beta', yerr=(df_plot_zlogp['beta_bot'].values, df_plot_zlogp['beta_top'].values),
                                 data=df_plot_zlogp, ecolor='lightgray', linestyle='', marker='.', markersize=3, color='b', capthick=1, elinewidth=1)
                     #68% confidence intervals
             axs_logp[2].errorbar('index', 'beta', yerr=(df_plot_zlogp['beta_bot68'].values, df_plot_zlogp['beta_top68'].values),
-                                data=df_plot_zlogp, ecolor='lightsteelblue', linestyle='', color='b', capthick=1, elinewidth=1)
+                                data=df_plot_zlogp, ecolor='cornflowerblue', linestyle='', color='b', capthick=1, elinewidth=1)
                 #nH vs time
                     #%90
             axs_logp[3].errorbar('index', 'nH', yerr=(df_plot_zlogp['nH_bot'].values, df_plot_zlogp['nH_top'].values), data=df_plot_zlogp,
                                  ecolor='lightgray', linestyle='', marker='.', markersize=3, color='b', capthick=1, elinewidth=1)
                     #68%
             axs_logp[3].errorbar('index', 'nH', yerr=(df_plot_zlogp['nH_bot68'].values, df_plot_zlogp['nH_top68'].values), data=df_plot_zlogp,
-                                 ecolor='lightsteelblue', linestyle='', color='b', capthick=1, elinewidth=1)
+                                 ecolor='cornflowerblue', linestyle='', color='b', capthick=1, elinewidth=1)
                     #upper limits 90% confidence
             axs_logp[3].errorbar('index', 'nH_up', data=df_plot_nH_pegged, uplims=True, linestyle='', marker='v', markersize=3, capthick=1, elinewidth=1, color='b', markeredgewidth=0.3, markeredgecolor='white')
 
-
+            '''
             #Locate vaughan panel observations
             obs_vaughuan = [136541001, 158971201, 810860201, 411080301, 560980101, 791781401, 810860701, 791782001]
             for obs in obs_vaughuan:
@@ -728,7 +730,7 @@ if __name__ == "__main__":
                 df_obs = data_lc[data_lc['OBSERVATION']==obs]
                 axs_logp[0].errorbar('index', 'RATE', 'ERROR', data=df_obs, ecolor='black', marker='.', markersize='5',linestyle='', color=rgb, label=obs)
                 axs_logp[0].annotate(obs, xy=(df_obs['index'].values[30],df_obs['RATE'].values[30]), xytext=(df_obs['index'].values[0]+20,  df_obs['RATE'].values[0]-13) ,arrowprops=dict(arrowstyle='->',facecolor='black'))
-
+            '''
             #Add vertical lines separating years
             axs_logp[0].vlines(year_endpoints, 0, 60, colors='r', linestyles='solid')
             axs_logp[1].vlines(year_endpoints, 1, 3.6, colors='r', linestyles='solid')
@@ -741,17 +743,17 @@ if __name__ == "__main__":
             axs_logp[2].grid()
             axs_logp[3].grid()
             axs_logp[0].set_ylabel("Rate [ct/s]")
-            axs_logp[1].set_ylabel("phoindex")
-            axs_logp[2].set_ylabel("beta")
-            axs_logp[3].set_ylabel("nH [$10^{22}$ g/cm$^2$]")
+            axs_logp[1].set_ylabel(r"$\alpha$")
+            axs_logp[2].set_ylabel(r"$\beta$")
+            axs_logp[3].set_ylabel("$N_H$ [$10^{22}$ cm$^{-2}$]")
             axs_logp[3].set_xlabel("Year")
             axs_logp[0].margins(0)
             axs_logp[1].margins(0)
             axs_logp[2].margins(0)
             axs_logp[3].margins(0)
             plt.xticks(ticks=year_endpoints, labels=labels, rotation=60)
+            plt.tight_layout()
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "panel_logpar.png"))
-            plt.show()
             
 
         if args.powerlaw:
@@ -781,19 +783,19 @@ if __name__ == "__main__":
             df_plot_powerlaw = df_plot_powerlaw[df_plot_powerlaw['nH_low']>1e-4]
             
             #Plot panel            
-            fig_pw, axs_pw = plt.subplots(3, 1, figsize=(17,10), sharex=True, gridspec_kw={'hspace':0, 'wspace':0})
+            fig_pw, axs_pw = plt.subplots(3, 1, figsize=(13,10), sharex=True, gridspec_kw={'hspace':0, 'wspace':0})
                 #90% confidence intervals
             axs_pw[0].errorbar('index', 'RATE', 'ERROR', data=data_lc, ecolor='b', linestyle='', color='b')
             axs_pw[1].errorbar('index', 'phoindex', yerr=(df_plot_powerlaw['phoindex_bot'].values, df_plot_powerlaw['phoindex_top'].values),
                                 data=df_plot_powerlaw, ecolor='lightgray', linestyle='', marker='.', markersize=3, color='b', capthick=1, elinewidth=1)
                 #68% confidence intervals
             axs_pw[1].errorbar('index', 'phoindex', yerr=(df_plot_powerlaw['phoindex_bot68'].values, df_plot_powerlaw['phoindex_top68'].values),
-                                data=df_plot_powerlaw, ecolor='lightsteelblue', linestyle='', color='b', capthick=1, elinewidth=1)
+                                data=df_plot_powerlaw, ecolor='cornflowerblue', linestyle='', color='b', capthick=1, elinewidth=1)
             
             axs_pw[2].errorbar('index', 'nH', yerr=(df_plot_powerlaw['nH_bot'].values, df_plot_powerlaw['nH_top'].values), data=df_plot_powerlaw,
                                  ecolor='lightgray', linestyle='', marker='.', markersize=3, color='b', capthick=1, elinewidth=1)
             axs_pw[2].errorbar('index', 'nH', yerr=(df_plot_powerlaw['nH_bot68'].values, df_plot_powerlaw['nH_top68'].values), data=df_plot_powerlaw,
-                                ecolor='lightsteelblue', linestyle='', color='b', capthick=1, elinewidth=1)
+                                ecolor='cornflowerblue', linestyle='', color='b', capthick=1, elinewidth=1)
                 #upper limits on nH 90% confidence
             axs_pw[2].errorbar('index', 'nH_up', data=df_plot_nH_pegged, uplims=True, linestyle='', marker='v', markersize=3, capthick=0.5, elinewidth=1, color='blue', markeredgewidth=0.3, markeredgecolor='white')
 
@@ -802,20 +804,22 @@ if __name__ == "__main__":
             axs_pw[1].vlines(year_endpoints, 1.5, 3.7, colors='r', linestyles='solid')
             axs_pw[2].vlines(year_endpoints, -0.015, 0.145, colors='r', linestyles='solid')
             
+            print(f"Mean and standard dev of NH evolution: {np.mean(df_plot_powerlaw['nH'].values)}, {np.std(df_plot_powerlaw['nH'].values, ddof=1)}")
+
             #Bellurie
             axs_pw[0].grid()
             axs_pw[1].grid()
             axs_pw[2].grid()
             axs_pw[0].set_ylabel("Rate [ct/s]")
-            axs_pw[1].set_ylabel("phoindex")
-            axs_pw[2].set_ylabel("nH [$10^{22}$ g/cm$^2$]")
+            axs_pw[1].set_ylabel("$\Gamma$")
+            axs_pw[2].set_ylabel("$N_H$ [$10^{22}$ cm$^{-2}$]")
             axs_pw[2].set_xlabel("Year")
             axs_pw[0].margins(0)
             axs_pw[1].margins(0)
             axs_pw[2].margins(0)
             plt.xticks(ticks=year_endpoints, labels=labels, rotation=60)
+            plt.tight_layout()
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "panel_powerlaw.png"))
-            plt.show()
     
 
     if args.distribution:
