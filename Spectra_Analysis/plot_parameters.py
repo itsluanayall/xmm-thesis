@@ -117,7 +117,7 @@ if __name__ == "__main__":
         if args.phoindex: #user wants phoindex vs fvar
             
             df_plot_zlogp = pd.DataFrame({"fvar": data_lc['F_var'].values, "fvar_err": data_lc['F_var_sigma'].values, 'alpha': data_spec_zlogp['phoindex'].values, 
-                                          "xs": data_lc['Excess_Variance'].values,
+                                          "xs": data_lc['Excess_Variance'].values, "rate": data_spec_zlogp['rate'].values,
                                           'alpha_top': data_spec_zlogp['phoindex_up'].values - data_spec_zlogp['phoindex'].values,
                                           'alpha_bot': data_spec_zlogp['phoindex'].values - data_spec_zlogp['phoindex_low'].values,
                                           "ftest": data_spec_zlogp['ftest'].values, "obsid": data_lc['ObsId'].values})
@@ -125,7 +125,7 @@ if __name__ == "__main__":
             
             
             df_plot_zpowe = pd.DataFrame({"fvar": data_lc['F_var'].values, "fvar_err": data_lc['F_var_sigma'].values,
-                                         "xs": data_lc['Excess_Variance'].values,
+                                         "xs": data_lc['Excess_Variance'].values, "rate": data_spec_zpowe['rate'].values,
                                          "obsid": data_lc['ObsId'].values, "phoindex": data_spec_zpowe['phoindex'].values,
                                          "phoindex_top": data_spec_zpowe['phoindex_up'].values - data_spec_zpowe['phoindex'].values,
                                          "phoindex_bot": data_spec_zpowe['phoindex'].values - data_spec_zpowe['phoindex_low'].values,
@@ -564,9 +564,17 @@ if __name__ == "__main__":
                 plt.errorbar(y=df_plot_zlogp['alpha'].values, x=df_plot_zlogp['beta'].values, yerr=(df_plot_zlogp['alpha_bot'].values, df_plot_zlogp['alpha_top'].values),
                             xerr = (df_plot_zlogp['beta_bot'].values, df_plot_zlogp['beta_top'].values), fmt='.', markersize=5, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color='black')
             
+            
+            #Correlation coefficient
+            slope, intercept, r, p, stderr = linregress(df_plot_zlogp['beta'].values, df_plot_zlogp['alpha'].values)
+            line = f'Correlation: {r:.2f}'
+            plt.plot(df_plot_zlogp['beta'].values, intercept + slope * df_plot_zlogp['beta'].values, label=line, color='red', zorder=3)
+            
             plt.grid()
-            plt.xlabel('beta', fontsize=15)
-            plt.ylabel('alpha', fontsize=15)
+            plt.legend()
+            plt.xlabel(r'$\beta$', fontsize=15)
+            plt.ylabel(r'$\alpha$', fontsize=15)
+            plt.tight_layout()
 
             if args.state:
                 plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "alpha_vs_beta_state.png"))
@@ -842,40 +850,40 @@ if __name__ == "__main__":
             
             #Alpha, high rate
             y_high_alpha, x_high_alpha, _ = axs[0,0].hist(data_spec_zlogp_high['phoindex'].values, bins=15, color='red')
-            axs[0,0].hist(logpar_better_high['phoindex'].values, bins=5, color='orange')
+            #axs[0,0].hist(logpar_better_high['phoindex'].values, bins=5, color='orange')
             binsize = (x_high_alpha[1]-x_high_alpha[0])/2
             axs[0,0].vlines(x=x_high_alpha[np.argmax(y_high_alpha)]+binsize, ymin=0, ymax=y_high_alpha.max(), color='black')
-            free_text = f"max alpha: {round(x_high_alpha[np.argmax(y_high_alpha)]+binsize, 2)}"
+            free_text = f"max alpha: {round(x_high_alpha[np.argmax(y_high_alpha)]+binsize, 2)} $\pm$ {round(binsize, 2)}"
             text_box = AnchoredText(free_text, frameon=False, loc='lower left', pad=0.5)
             plt.setp(text_box.patch, facecolor='white', alpha=0.5)
             axs[0,0].add_artist(text_box)
 
             #Alpha, low rate
             y_low_alpha, x_low_alpha, _ = axs[1,0].hist(data_spec_zlogp_low['phoindex'].values, bins=15, color='blue')
-            axs[1,0].hist(logpar_better_low['phoindex'].values, bins=5, color='c')
+            #axs[1,0].hist(logpar_better_low['phoindex'].values, bins=5, color='c')
             binsize = (x_low_alpha[1]-x_low_alpha[0])/2            
             axs[1,0].vlines(x=x_low_alpha[np.argmax(y_low_alpha)]+binsize, ymin=0, ymax=y_low_alpha.max(), color='black')
-            free_text = f"max alpha: {round(x_low_alpha[np.argmax(y_low_alpha)]+binsize, 2)}"
+            free_text = f"max alpha: {round(x_low_alpha[np.argmax(y_low_alpha)]+binsize, 2)} $\pm$ {round(binsize, 2)}"
             text_box = AnchoredText(free_text, frameon=False, loc='lower left', pad=0.5)
             plt.setp(text_box.patch, facecolor='white', alpha=0.5)
             axs[1,0].add_artist(text_box)   
 
             #Beta, high rate
             y_high_beta, x_high_beta, _ = axs[0,1].hist(data_spec_zlogp_high['beta'].values, bins=15, color='red')
-            axs[0,1].hist(logpar_better_high['beta'].values, bins=5, color='orange')
+            #axs[0,1].hist(logpar_better_high['beta'].values, bins=5, color='orange')
             binsize = (x_high_beta[1]-x_high_beta[0])/2
             axs[0,1].vlines(x=x_high_beta[np.argmax(y_high_beta)]+binsize, ymin=0, ymax=y_high_beta.max(), color='black')
-            free_text = f"max beta: {round(x_high_beta[np.argmax(y_high_beta)]+binsize, 2)}"
+            free_text = f"max beta: {round(x_high_beta[np.argmax(y_high_beta)]+binsize, 2)} $\pm$ {round(binsize, 2)}"
             text_box = AnchoredText(free_text, frameon=False, loc='lower right', pad=0.5)
             plt.setp(text_box.patch, facecolor='white', alpha=0.5)
             axs[0,1].add_artist(text_box)
 
             #Beta, low rate
             y_low_beta, x_low_beta, _ = axs[1,1].hist(data_spec_zlogp_low['beta'].values, bins=15, color='blue')
-            axs[1,1].hist(logpar_better_low['beta'].values, bins=5, color='c')
+            #axs[1,1].hist(logpar_better_low['beta'].values, bins=5, color='c')
             binsize = (x_low_beta[1]-x_low_beta[0])/2
             axs[1,1].vlines(x=x_low_beta[np.argmax(y_low_beta)]+binsize, ymin=0, ymax=y_low_beta.max(), color='black')
-            free_text = f"max beta: {round(x_low_beta[np.argmax(y_low_beta)]+binsize, 2)}"
+            free_text = f"max beta: {round(x_low_beta[np.argmax(y_low_beta)]+binsize, 2)} $\pm$ {round(binsize, 2)}"
             text_box = AnchoredText(free_text, frameon=False, loc='lower right', pad=0.5)
             plt.setp(text_box.patch, facecolor='white', alpha=0.5)
             axs[1,1].add_artist(text_box)
@@ -883,10 +891,10 @@ if __name__ == "__main__":
             red_patch =  Patch(facecolor='red', edgecolor='black', label='high state')
             blue_patch =  Patch(facecolor='b', edgecolor='black', label='low state')
             axs[0,1].legend(handles=[red_patch, blue_patch], loc='upper right',  fancybox=True, shadow=True)
-            axs[1,0].set_xlabel('phoindex logparabola')
+            axs[1,0].set_xlabel(r'$\alpha$ (logparabola)')
             axs[1,0].set_ylabel('counts')
             axs[0,0].set_ylabel('counts')
-            axs[1,1].set_xlabel('beta logparabola')
+            axs[1,1].set_xlabel(r'$\beta$ (logparabola)')
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "distribution_logpar.png"))
 
         if args.powerlaw:
@@ -903,7 +911,7 @@ if __name__ == "__main__":
             y_high, x_high, _ = axs[0].hist(data_spec_zpowe_high['phoindex'].values, bins=15, color='red')
             binsize = (x_high[1]-x_high[0])/2
             axs[0].vlines(x=x_high[np.argmax(y_high)]+binsize, ymin=0, ymax=y_high.max(), color='black')
-            free_text = f"max phoindex: {round(x_high[np.argmax(y_high)]+binsize, 2)}"
+            free_text = f"max $\Gamma$: {round(x_high[np.argmax(y_high)]+binsize, 2)} $\pm$ {round(binsize, 2)}"
             text_box = AnchoredText(free_text, frameon=False, loc='upper right', pad=0.5)
             plt.setp(text_box.patch, facecolor='white', alpha=0.5)
             axs[0].add_artist(text_box)
@@ -912,7 +920,7 @@ if __name__ == "__main__":
             y_low, x_low, _ = axs[1].hist(data_spec_zpowe_low['phoindex'].values, bins=15, color='blue')
             binsize = (x_low[1]-x_low[0])/2
             axs[1].vlines(x=x_low[np.argmax(y_low)]+binsize, ymin=0, ymax=y_low.max(), color='black')
-            free_text = f"max phoindex: {round(x_low[np.argmax(y_low)]+binsize, 2)}"
+            free_text = f"max $\Gamma$: {round(x_low[np.argmax(y_low)]+binsize, 2)} $\pm$ {round(binsize, 2)}"
             text_box = AnchoredText(free_text, frameon=False, loc='upper right', pad=0.5)
             plt.setp(text_box.patch, facecolor='white', alpha=0.5)
             axs[1].add_artist(text_box)
@@ -920,7 +928,7 @@ if __name__ == "__main__":
             red_patch =  Patch(facecolor='red', edgecolor='black', label='high state')
             blue_patch =  Patch(facecolor='b', edgecolor='black', label='low state')
             axs[0].legend(handles=[red_patch, blue_patch], loc='upper left')
-            axs[1].set_xlabel('phoindex powerlaw')
+            axs[1].set_xlabel('$\Gamma$ (powerlaw)')
             axs[0].set_ylabel('counts')
             axs[1].set_ylabel('counts')
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "distribution_powerlaw.png"))
