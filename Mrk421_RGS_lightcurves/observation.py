@@ -447,17 +447,20 @@ class Observation:
                     #Conversion in MJD (note that 86400 are the seconds in one day)
                     avg_time_mjd = mjdref + (avg_time/86400.0)
                     self.longterm_lc_times.append(avg_time_mjd)
+                    x_mjd = mjdref + (x/86400.0)
 
                     #Plot data: 1 panel for source lc, one panel for background lc
                     fig, axs = plt.subplots(2, 1, figsize=(15,10), sharex=True, gridspec_kw={'hspace':0})
-                    axs[0].errorbar(x, y, yerr=yerr, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='-', ecolor='gray', label=f'RGS Lightcurve ObsId {self.obsid}, exposures {output_name[11:18]} ')
+                    axs[0].errorbar(x_mjd, y, yerr=yerr, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='-', ecolor='gray', label=f'RGS Lightcurve ObsId {self.obsid}, exposures {output_name[11:18]} ')
                     axs[0].grid(True)
+                    axs[0].ticklabel_format(useOffset=False)
                     axs[0].set_ylabel('Rate [ct/s]', fontsize=13)
                     axs[0].hlines(avg_rate, plt.xlim()[0], plt.xlim()[1], colors='b', label=f'Average rate: {avg_rate: .2f} +- {stdev_rate:.2f} [ct/s]')
                     axs[0].tick_params(axis='both', which='major', labelsize=13)
 
-                    axs[1].errorbar(x, y_bg, yerr=yerr_bg, color='red',fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='-', ecolor='rosybrown', label=f'Background')
-                    axs[1].set_xlabel('Time [s]', fontsize=13)
+                    axs[1].errorbar(x_mjd, y_bg, yerr=yerr_bg, color='red',fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='-', ecolor='rosybrown', label=f'Background')
+                    axs[1].set_xlabel('Time [MJD]', fontsize=13)
+                    axs[1].ticklabel_format(useOffset=False)
                     axs[1].set_ylabel('Background Rate [ct/s]', fontsize=13)
                     axs[1].grid(True)
                     axs[1].tick_params(axis='both', which='major', labelsize=13)
@@ -478,7 +481,7 @@ class Observation:
                 logging.error(e)
 
 
-    def epic_lightcurve(self):
+    def epic_lightcurve(self, mjdref):
         """
         Makes the lightcurve plots with matplotlib. The first plot will consist of 4 panels containing:
         the soft lightcurve (0.2 - 2 keV), the hard lightcurve (2 - 10 keV) and the respective background lightcurves.
@@ -505,32 +508,38 @@ class Observation:
         self.epic_erate.append(erate_soft)
         self.epic_erate.append(erate_hard)
 
+        #Conversion to MJD
+        x_soft = mjdref + (x_soft/86400.0)
+        x_hard = mjdref + (x_hard/86400.0)
+
         #Plot data: one panel for source lc, the other panel for background lc
-        fig, axs = plt.subplots(2, 2, figsize=(12,8), sharex=True, gridspec_kw={'hspace':0.1, 'wspace':0.3})
+        fig, axs = plt.subplots(2, 2, figsize=(12,9), sharex=True, gridspec_kw={'hspace':0.1, 'wspace':0.3})
         fig.suptitle(f'Soft and hard Light curves for Obs {self.obsid}')
         axs[0,0].errorbar(x_soft, y_soft, yerr=yerr_soft, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='', ecolor='gray')
         axs[0,0].grid(True)
-        axs[0,0].set_ylabel('Soft LC Rate [ct/s]', fontsize=13)
+        axs[0,0].set_ylabel('Rate (0.6-2 keV)[ct/s]', fontsize=13)
         #axs[0,0].hlines(avg_rate_soft, plt.xlim()[0], plt.xlim()[1], colors='b', label=f'Average rate: {avg_rate_soft: .2f} +- {erate_soft:.2f} [ct/s]')
         axs[0,0].tick_params(axis='both', which='major', labelsize=13)
         
         axs[1,0].errorbar(x_soft, y_bg_soft, yerr=yerr_bg_soft, color='red',fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='', ecolor='rosybrown')
-        axs[1,0].set_xlabel('Time [s]', fontsize=13)
-        axs[1,0].set_ylabel('Background Soft LC Rate [ct/s]', fontsize=13)
+        axs[1,0].set_xlabel('Time [MJD]', fontsize=13)
+        axs[1,0].set_ylabel('Background Rate (0.6-2 keV) [ct/s]', fontsize=13)
         axs[1,0].grid(True)
-        axs[1,0].tick_params(axis='both', which='major', labelsize=13)
+        axs[1,0].ticklabel_format(useOffset=False)
+        axs[1,0].tick_params(axis='both', which='major', labelsize=13, rotation=60)
 
         axs[0,1].errorbar(x_hard, y_hard, yerr=yerr_hard, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='', ecolor='gray')
         axs[0,1].grid(True)
-        axs[0,1].set_ylabel('Hard LC Rate [ct/s]', fontsize=13)
+        axs[0,1].set_ylabel('Rate (2-10 keV) [ct/s]', fontsize=13)
         #axs[0,1].hlines(avg_rate_hard, plt.xlim()[0], plt.xlim()[1], colors='b', label=f'Average rate: {avg_rate_hard: .2f} +- {erate_hard:.2f} [ct/s]')
         axs[0,1].tick_params(axis='both', which='major', labelsize=13)
 
         axs[1,1].errorbar(x_hard, y_bg_hard, yerr=yerr_bg_hard, color='red',fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='', ecolor='rosybrown')
-        axs[1,1].set_xlabel('Time [s]', fontsize=13)
-        axs[1,1].set_ylabel('Hard LC Background Rate [ct/s]', fontsize=13)
+        axs[1,1].set_xlabel('Time [MJD]', fontsize=13)
+        axs[1,1].set_ylabel('Background Rate (2-10 keV)[ct/s]', fontsize=13)
         axs[1,1].grid(True)
-        axs[1,1].tick_params(axis='both', which='major', labelsize=13)
+        axs[1,1].ticklabel_format(useOffset=False)
+        axs[1,1].tick_params(axis='both', which='major', labelsize=13, rotation=60)
 
         #Magic trick for the legend
         #lines_labels = [ax.get_legend_handles_labels() for ax in fig.axes]
@@ -551,19 +560,38 @@ class Observation:
         axs2[1].errorbar(x_hard, y_hard, yerr=yerr_hard, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='', ecolor='gray', label=f'EPIC-pn ObsId {self.obsid}, exposure {self.epic_expid} Hard LC')
         axs2[2].errorbar(x_soft, hr, yerr=hr_err, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='', ecolor='gray', label=f'EPIC-pn ObsId {self.obsid}, exposure {self.epic_expid} Hardness Ratio')
         axs2[2].set_xlabel('Time [s]')
+        axs2[2].ticklabel_format(useOffset=False)
         axs2[2].set_ylabel('HR: (H-S)/(H+S)')
-        axs2[1].set_ylabel('Hard Light Curve')
-        axs2[0].set_ylabel('Soft Light Curve')
+        axs2[1].set_ylabel('Rate (0.6 - 2 keV) [ct/s]')
+        axs2[0].set_ylabel('Rate (2-10 keV) [ct/s]')
         axs2[0].grid()
         axs2[1].grid()
         axs2[2].grid()
         #axs2[3].errorbar(y_soft+y_hard, hr, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='', ecolor='gray' )
 
         plt.savefig(os.path.join(self.target_dir, "Products", "EPIC_Lightcurves", f"{self.obsid}_epicpn_HR.png"))
+
+        #Plot HR loops
+        x_loop = (y_soft+y_hard)[10:20]
+        y_loop = hr[10:20]
+        fig3, axs3 = plt.subplots(2, 1, figsize=(7,6), sharex=False, gridspec_kw={'hspace':0.0})
+        axs3[0].errorbar(x=x_soft, y=y_soft+y_hard, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='', ecolor='gray')
+        axs3[1].errorbar(x=x_loop, y=y_loop, color='black',  fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='', ecolor='gray')
+        axs3[0].set_ylabel('Total rate [ct/s]')
+        axs3[1].set_ylabel('HR:(H-S)/(H+S)')
+        axs3[0].set_xlabel('Time [s]')
+        axs3[1].set_xlabel('Total rate[ct/s]')
+        axs3[0].grid()
+        axs3[1].grid()
+
+        #Linestyle arrow 
+        axs3[1].quiver(x_loop[:-1], y_loop[:-1], x_loop[1:]-x_loop[:-1], y_loop[1:]-y_loop[:-1], scale_units='xy', angles='xy', scale=1, width=0.003, headwidth=8)
+
+        plt.savefig(os.path.join(self.target_dir, "Products", "EPIC_Lightcurves", f"{self.obsid}_epicpn_HR_loop.png"))
         plt.close()
+
+
         self.mean_hr = np.mean(hr)
-        #obs_array = np.ndarray(len(y_soft))
-        #obs_array.fill(str(self.obsid))
         table_hr_rate = Table({'rate': y_soft+y_hard, 'erate': yerr_soft+yerr_hard, 'hr': hr, 'hr_err': hr_err}, dtype=('d', 'd', 'd', 'd'))
         ascii.write(table=table_hr_rate, output=f'{self.target_dir}/Products/EPIC_Lightcurves/{self.obsid}_hr_rate.csv', format='csv', overwrite=True)
 

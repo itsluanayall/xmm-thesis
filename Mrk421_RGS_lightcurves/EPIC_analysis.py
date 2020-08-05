@@ -58,7 +58,7 @@ if __name__ == "__main__":
         obs.epproc()
         obs.filter_epic(pileup=True)
         obs.epiclccorr(pileup=True) #always correct for pile-up
-        obs.epic_lightcurve()
+        obs.epic_lightcurve(mjdref=mjdref)
         obs.fracvartest(instrument='epic')
         obs.pn_spectrum(pileup=True)
         obs.pn_xspec(target_REDSHIFT)

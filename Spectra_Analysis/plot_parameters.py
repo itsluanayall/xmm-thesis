@@ -23,6 +23,8 @@ import random
 from scipy.optimize import curve_fit
 from scipy.stats import linregress
 from matplotlib.offsetbox import AnchoredText
+from scipy.stats import ks_2samp, chisquare
+
 
 parser = ArgumentParser(description=__doc__)
 parser.add_argument('--epic', action='store_true',
@@ -320,8 +322,10 @@ if __name__ == "__main__":
                                         "obsid": data_spec_zlogp['obsid'].values})
         
         # Take only data from observation specified by command line
+        mjdref = 50814.0
         df_plot_zlogp = df_plot_zlogp[df_plot_zlogp['obsid']==args.hysteresis]
         df_plot_zlogp['alpha'] = df_plot_zlogp['alpha'].apply(lambda x : -x)
+        df_plot_zlogp['time'] = df_plot_zlogp['time'].apply(lambda x : mjdref+ (x/86400.0))
 
         #Same for powerlaw
         data_spec_zpowe = data_spec_zpowe[data_spec_zpowe['phoindex_up']!=0.]
@@ -333,98 +337,262 @@ if __name__ == "__main__":
         
         df_plot_zpowe = df_plot_zpowe[df_plot_zpowe['obsid']==args.hysteresis]
         df_plot_zpowe['phoindex'] = df_plot_zpowe['phoindex'].apply(lambda x : -x)
+        df_plot_zpowe['time'] = df_plot_zpowe['time'].apply(lambda x : mjdref+ (x/86400.0))
 
-        #Make figure
-        figure, axs = plt.subplots(3,1, figsize=(8,8), gridspec_kw={'hspace':0.3})
+        if args.hysteresis==136540101:
+            loop1 = df_plot_zpowe['phoindex'].values[10:14]
+            x_loop1 = df_plot_zpowe['rate'].values[10:14]
+
+            loop2 = df_plot_zpowe['phoindex'].values[15:20]
+            x_loop2 = df_plot_zpowe['rate'].values[15:20]        
+
+            loop3 = df_plot_zpowe['phoindex'].values[21:26]
+            x_loop3 = df_plot_zpowe['rate'].values[21:26]
+
+            loop4 = df_plot_zpowe['phoindex'].values[27:31]
+            x_loop4 = df_plot_zpowe['rate'].values[27:31]
+
+            fig = plt.figure(figsize=(8,8))
+            axs1 = plt.subplot(313)
+            axs1.errorbar(y=df_plot_zpowe['rate'].values[0:9], x=df_plot_zpowe['time'].values[0:9], yerr=df_plot_zpowe['erate'].values[0:9],
+                            fmt='.',color='black', ecolor='gray', marker='.', markersize=5, elinewidth=1, capsize=2, capthick=1)
+            axs1.errorbar(y=df_plot_zpowe['rate'].values[10:14], x=df_plot_zpowe['time'].values[10:14], yerr=df_plot_zpowe['erate'].values[10:14],
+                            fmt='.',color='black', ecolor='gray', marker='o', markersize=5, elinewidth=1, capsize=2, capthick=1, label='Epoch 1')
+            axs1.errorbar(y=df_plot_zpowe['rate'].values[15:20], x=df_plot_zpowe['time'].values[15:20], yerr=df_plot_zpowe['erate'].values[15:20],
+                            fmt='.',color='black', ecolor='gray', marker='v', markersize=5, elinewidth=1, capsize=2, capthick=1, label='Epoch 2')
+            axs1.errorbar(y=df_plot_zpowe['rate'].values[21:26], x=df_plot_zpowe['time'].values[21:26], yerr=df_plot_zpowe['erate'].values[21:26],
+                            fmt='.',color='black', ecolor='gray', marker='^', markersize=5, elinewidth=1, capsize=2, capthick=1, label='Epoch 3')
+            axs1.errorbar(y=df_plot_zpowe['rate'].values[27:31], x=df_plot_zpowe['time'].values[27:31], yerr=df_plot_zpowe['erate'].values[27:31],
+                            fmt='.',color='black', ecolor='gray', marker='s', markersize=5, elinewidth=1, capsize=2, capthick=1, label='Epoch 4')
+            axs1.errorbar(y=df_plot_zpowe['rate'].values[32:-1], x=df_plot_zpowe['time'].values[32:-1], yerr=df_plot_zpowe['erate'].values[32:-1],
+                            fmt='.',color='black', ecolor='gray', marker='.', markersize=5, elinewidth=1, capsize=2, capthick=1,)
+            axs1.set_xlabel('Time [MJD]')
+            axs1.set_ylabel('Rate [ct/s]')
+            axs1.ticklabel_format(useOffset=False)
+            axs1.legend(ncol=4)
+
+            axs2 = plt.subplot(321)
+            axs2.set_title('Epoch 1', fontsize=7)
+            axs2.set_ylabel('$\Gamma$ (powerlaw)')
+            axs2.errorbar(y=loop1, x=x_loop1, fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 1')
+            axs2.quiver(x_loop1[:-1], loop1[:-1], x_loop1[1:]-x_loop1[:-1], loop1[1:]-loop1[:-1], scale_units='xy', angles='xy', scale=1, width=0.006, headwidth=10)
+
+            axs3 = plt.subplot(322)
+            axs3.set_title('Epoch 2', fontsize=7)
+            axs3.errorbar(y=loop2, x=x_loop2, fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 2')
+            axs3.quiver(x_loop2[:-1], loop2[:-1], x_loop2[1:]-x_loop2[:-1], loop2[1:]-loop2[:-1], scale_units='xy', angles='xy', scale=1, width=0.006, headwidth=10)
         
-        #Separate data into 3 parts: stable, ascending, descending
+            axs4 = plt.subplot(323)
+            axs4.set_title('Epoch 3', fontsize=7)
+            axs4.set_ylabel('$\Gamma$ (powerlaw)')
+            axs4.errorbar(y=loop3, x=x_loop3, fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 3')
+            axs4.quiver(x_loop3[:-1], loop3[:-1], x_loop3[1:]-x_loop3[:-1], loop3[1:]-loop3[:-1], scale_units='xy', angles='xy', scale=1, width=0.006, headwidth=10)
+            
+            axs5 = plt.subplot(324)
+            axs5.set_title('Epoch 4', fontsize=7)
+            axs5.set_xlabel('Rate [ct/s]')
+            axs5.errorbar(y=loop4, x=x_loop4,fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 3')
+            axs5.quiver(x_loop4[:-1], loop4[:-1], x_loop4[1:]-x_loop4[:-1], loop4[1:]-loop4[:-1], scale_units='xy', angles='xy', scale=1, width=0.006, headwidth=10)
+            
+            plt.tight_layout()
+            plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", f"hysteresis_{args.hysteresis}.png"))
 
-        if args.hysteresis==791781401:
-            print('ciao')
-            df_plot_zlogp = df_plot_zlogp[df_plot_zlogp['rate']>20]
-            df_plot_zpowe = df_plot_zpowe[df_plot_zpowe['rate']>20]
 
-        ascending = []
-        descending = []
-        stable = []
-        
-        i = 0
-        while i<len(df_plot_zpowe['rate']):
+        if args.hysteresis==150498701:
+            loop1 = df_plot_zpowe['phoindex'].values[1:7]
+            x_loop1 = df_plot_zpowe['rate'].values[1:7]
 
-            if i==0:
-                if df_plot_zpowe['rate'].values[i]<=df_plot_zpowe['rate'].values[i+1]:
-                    ascending.append(df_plot_zpowe['rate'].values[i])
-                    i+=1
-                elif  df_plot_zpowe['rate'].values[i]>df_plot_zpowe['rate'].values[i+1]:
+            loop2 = df_plot_zpowe['phoindex'].values[7:16]
+            x_loop2 = df_plot_zpowe['rate'].values[7:16]
+
+            loop3 = df_plot_zpowe['phoindex'].values[23:28]
+            x_loop3 = df_plot_zpowe['rate'].values[23:28]
+
+            loop4 = df_plot_zpowe['phoindex'].values[33:40]
+            x_loop4 = df_plot_zpowe['rate'].values[33:40]
+
+            loop5 = df_plot_zpowe['phoindex'].values[43:47]
+            x_loop5 = df_plot_zpowe['rate'].values[43:47]
+
+
+            fig = plt.figure(figsize=(11,13))
+            axs1 = plt.subplot(331)
+            axs1.set_title('Epoch 1', fontsize=7)
+            axs1.set_ylabel('$\Gamma$ (powerlaw)')
+            axs1.errorbar(y=loop1, x=x_loop1, fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 1')
+            axs1.quiver(x_loop1[:-1], loop1[:-1], x_loop1[1:]-x_loop1[:-1], loop1[1:]-loop1[:-1], scale_units='xy', angles='xy', scale=1, width=0.006, headwidth=10)
+            
+            axs2 = plt.subplot(332)
+            axs2.set_title('Epoch 2', fontsize=7)
+            axs2.errorbar(y=loop2, x=x_loop2, fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 2')
+            axs2.quiver(x_loop2[:-1], loop2[:-1], x_loop2[1:]-x_loop2[:-1], loop2[1:]-loop2[:-1], scale_units='xy', angles='xy', scale=1, width=0.006, headwidth=10)
+
+            axs3 = plt.subplot(333)
+            axs3.set_title('Epoch 3', fontsize=7)
+            axs3.errorbar(y=loop3, x=x_loop3, fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 3')
+            axs3.quiver(x_loop3[:-1], loop3[:-1], x_loop3[1:]-x_loop3[:-1], loop3[1:]-loop3[:-1], scale_units='xy', angles='xy', scale=1, width=0.006, headwidth=10)
+
+            axs4 = plt.subplot(323)
+            axs4.set_title('Epoch 4', fontsize=7)
+            axs4.set_ylabel('$\Gamma$ (powerlaw)')
+            axs4.errorbar(y=loop4, x=x_loop4, fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 3')
+            axs4.quiver(x_loop4[:-1], loop4[:-1], x_loop4[1:]-x_loop4[:-1], loop4[1:]-loop4[:-1], scale_units='xy', angles='xy', scale=1, width=0.006, headwidth=10)
+
+            axs5 = plt.subplot(324)
+            axs5.set_title('Epoch 5', fontsize=7)
+            axs5.set_xlabel('Rate [ct/s]')
+            axs5.errorbar(y=loop5, x=x_loop5, fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 3')
+            axs5.quiver(x_loop5[:-1], loop5[:-1], x_loop5[1:]-x_loop5[:-1], loop5[1:]-loop5[:-1], scale_units='xy', angles='xy', scale=1, width=0.006, headwidth=10)
+
+            axs6 = plt.subplot(313)
+            axs6.errorbar(y=df_plot_zpowe['rate'].values[1:7], x=df_plot_zpowe['time'].values[1:7], yerr=df_plot_zpowe['erate'].values[1:7],
+                            fmt='.',color='black', ecolor='gray', marker='d', markersize=7, elinewidth=1, capsize=2, capthick=1, label='Epoch 1')
+            axs6.errorbar(y=df_plot_zpowe['rate'].values[7:16], x=df_plot_zpowe['time'].values[7:16], yerr=df_plot_zpowe['erate'].values[7:16],
+                            fmt='.',color='black', ecolor='gray', marker='o', markersize=7, elinewidth=1, capsize=2, capthick=1, label='Epoch 2')
+            axs6.errorbar(y=df_plot_zpowe['rate'].values[23:28], x=df_plot_zpowe['time'].values[23:28], yerr=df_plot_zpowe['erate'].values[23:28],
+                            fmt='.',color='black', ecolor='gray', marker='v', markersize=7, elinewidth=1, capsize=2, capthick=1, label='Epoch 3')
+            axs6.errorbar(y=df_plot_zpowe['rate'].values[33:40], x=df_plot_zpowe['time'].values[33:40], yerr=df_plot_zpowe['erate'].values[33:40],
+                            fmt='.',color='black', ecolor='gray', marker='^', markersize=7, elinewidth=1, capsize=2, capthick=1, label='Epoch 4')
+            axs6.errorbar(y=df_plot_zpowe['rate'].values[43:47], x=df_plot_zpowe['time'].values[43:47], yerr=df_plot_zpowe['erate'].values[43:47],
+                            fmt='.',color='black', ecolor='gray', marker='s', markersize=7, elinewidth=1, capsize=2, capthick=1, label='Epoch 5')
+            axs6.errorbar(y=df_plot_zpowe['rate'].values[16:23], x=df_plot_zpowe['time'].values[16:23], yerr=df_plot_zpowe['erate'].values[16:23],
+                            fmt='.',color='black', ecolor='gray', marker='.', markersize=5, elinewidth=1, capsize=2, capthick=1)
+            axs6.errorbar(y=df_plot_zpowe['rate'].values[40:43], x=df_plot_zpowe['time'].values[40:43], yerr=df_plot_zpowe['erate'].values[40:43],
+                            fmt='.',color='black', ecolor='gray', marker='.', markersize=5, elinewidth=1, capsize=2, capthick=1)
+            axs6.errorbar(y=df_plot_zpowe['rate'].values[28:33], x=df_plot_zpowe['time'].values[28:33], yerr=df_plot_zpowe['erate'].values[28:33],
+                            fmt='.',color='black', ecolor='gray', marker='.', markersize=5, elinewidth=1, capsize=2, capthick=1)
+            axs6.set_xlabel('Time [MJD]')
+            axs6.set_ylabel('Rate [ct/s]')
+            axs6.ticklabel_format(useOffset=False)
+            axs6.legend(ncol=2)
+            plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", f"hysteresis_{args.hysteresis}.png"))
+
+
+        if args.hysteresis==99280601:
+            loop1 = df_plot_zpowe['phoindex'].values[0:4]
+            x_loop1 = df_plot_zpowe['rate'].values[0:4]
+
+            loop2 = df_plot_zpowe['phoindex'].values[5:12]
+            x_loop2 = df_plot_zpowe['rate'].values[5:12]
+
+            loop3 = df_plot_zpowe['phoindex'].values[12:23]
+            x_loop3 = df_plot_zpowe['rate'].values[12:23]
+
+            axs1 = plt.subplot(231)
+            axs1.set_title('Epoch 1', fontsize=7)
+            axs1.set_ylabel('$\Gamma$ (powerlaw)')
+            axs1.errorbar(y=loop1, x=x_loop1, fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 1')
+            axs1.quiver(x_loop1[:-1], loop1[:-1], x_loop1[1:]-x_loop1[:-1], loop1[1:]-loop1[:-1], scale_units='xy', angles='xy', scale=1, width=0.006, headwidth=10)
+            
+            axs2 = plt.subplot(232)
+            axs2.set_title('Epoch 2', fontsize=7)
+            axs2.errorbar(y=loop2, x=x_loop2, fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 1')
+            axs2.quiver(x_loop2[:-1], loop2[:-1], x_loop2[1:]-x_loop2[:-1], loop2[1:]-loop2[:-1], scale_units='xy', angles='xy', scale=1, width=0.006, headwidth=10)
+             
+            axs3 = plt.subplot(233)
+            axs3.set_title('Epoch 3', fontsize=7)
+            axs3.set_xlabel('Rate [ct/s]')
+            axs3.errorbar(y=loop3, x=x_loop3, fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 1')
+            axs3.quiver(x_loop3[:-1], loop3[:-1], x_loop3[1:]-x_loop3[:-1], loop3[1:]-loop3[:-1], scale_units='xy', angles='xy', scale=1, width=0.006, headwidth=10)
+                       
+            axs4 = plt.subplot(212)
+            axs4.errorbar(y=df_plot_zpowe['rate'].values[0:4], x=df_plot_zpowe['time'].values[0:4], yerr=df_plot_zpowe['erate'].values[0:4],
+                            fmt='.',color='black', ecolor='gray', marker='d', markersize=6, elinewidth=1, capsize=2, capthick=1, label='Epoch 1')
+            axs4.errorbar(y=df_plot_zpowe['rate'].values[5:12], x=df_plot_zpowe['time'].values[5:12], yerr=df_plot_zpowe['erate'].values[5:12],
+                            fmt='.',color='black', ecolor='gray', marker='o', markersize=6, elinewidth=1, capsize=2, capthick=1, label='Epoch 2')
+            axs4.errorbar(y=df_plot_zpowe['rate'].values[12:23], x=df_plot_zpowe['time'].values[12:23], yerr=df_plot_zpowe['erate'].values[12:23],
+                            fmt='.',color='black', ecolor='gray', marker='s', markersize=6, elinewidth=1, capsize=2, capthick=1, label='Epoch 3')           
+            axs4.errorbar(y=df_plot_zpowe['rate'].values[4], x=df_plot_zpowe['time'].values[4], yerr=df_plot_zpowe['erate'].values[4],
+                            fmt='.',color='black', ecolor='gray', marker='.', markersize=5, elinewidth=1, capsize=2, capthick=1)           
+            plt.legend()
+            axs4.set_xlabel('Time [MJD]')
+            axs4.set_ylabel('Rate [ct/s]')
+            axs4.ticklabel_format(useOffset=False)
+            plt.tight_layout()
+            plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", f"hysteresis_{args.hysteresis}.png"))
+
+
+        if args.hysteresis==136540801 :
+            #Make figure
+            figure, axs = plt.subplots(2,1, figsize=(8,6), gridspec_kw={'hspace':0.3})
+            
+            #Separate data into 3 parts: stable, ascending, descending
+
+            ascending = []
+            descending = []
+            stable = []
+            
+            i = 0
+            while i<len(df_plot_zpowe['rate']):
+
+                if i==0:
+                    if df_plot_zpowe['rate'].values[i]<=df_plot_zpowe['rate'].values[i+1]:
+                        ascending.append(df_plot_zpowe['rate'].values[i])
+                        i+=1
+                    elif  df_plot_zpowe['rate'].values[i]>df_plot_zpowe['rate'].values[i+1]:
+                        descending.append(df_plot_zpowe['rate'].values[i])
+                        i+=1
+                    continue
+
+                if df_plot_zpowe['rate'].values[i]<df_plot_zpowe['rate'].values[i-1]:
                     descending.append(df_plot_zpowe['rate'].values[i])
                     i+=1
-                continue
+                elif df_plot_zpowe['rate'].values[i]>df_plot_zpowe['rate'].values[i-1] :
+                    ascending.append(df_plot_zpowe['rate'].values[i])
+                    i+=1          
+                else:
+                    stable.append(df_plot_zpowe['rate'].values[i])
+                    i+=1
+            
+            df_plot_zpowe1 = df_plot_zpowe[df_plot_zpowe['rate'].isin(ascending)]
+            df_plot_zpowe2 = df_plot_zpowe[df_plot_zpowe['rate'].isin(stable)]
+            df_plot_zpowe3 = df_plot_zpowe[df_plot_zpowe['rate'].isin(descending)]
 
-            if df_plot_zpowe['rate'].values[i]<df_plot_zpowe['rate'].values[i-1]:
-                descending.append(df_plot_zpowe['rate'].values[i])
-                i+=1
-            elif df_plot_zpowe['rate'].values[i]>df_plot_zpowe['rate'].values[i-1] :
-                ascending.append(df_plot_zpowe['rate'].values[i])
-                i+=1          
-            else:
-                stable.append(df_plot_zpowe['rate'].values[i])
-                i+=1
-        
-        df_plot_zpowe1 = df_plot_zpowe[df_plot_zpowe['rate'].isin(ascending)]
-        df_plot_zpowe2 = df_plot_zpowe[df_plot_zpowe['rate'].isin(stable)]
-        df_plot_zpowe3 = df_plot_zpowe[df_plot_zpowe['rate'].isin(descending)]
+            df_plot_zlogp1 = df_plot_zlogp[df_plot_zlogp['rate'].isin(ascending)]
+            df_plot_zlogp2 = df_plot_zlogp[df_plot_zlogp['rate'].isin(stable)]
+            df_plot_zlogp3 = df_plot_zlogp[df_plot_zlogp['rate'].isin(descending)]
+            
+            
+            #Subplot 1: lightcurve
+            axs[0].errorbar(y=df_plot_zpowe1['rate'].values, x=df_plot_zpowe1['time'].values, yerr=df_plot_zpowe1['erate'].values,
+                            fmt='.',color='red', ecolor='lightcoral', markersize=1.5, elinewidth=1, capsize=2, capthick=1)
+            axs[0].errorbar(y=df_plot_zpowe3['rate'].values, x=df_plot_zpowe3['time'].values, yerr=df_plot_zpowe3['erate'].values,
+                            fmt='.',color='b', ecolor='cornflowerblue', markersize=1.5, elinewidth=1, capsize=2, capthick=1)
+            
+            #Subplot 2 photon index vs rate (powerlaw)
+            axs[1].errorbar(y=df_plot_zpowe1['phoindex'].values, x=df_plot_zpowe1['rate'].values, xerr=df_plot_zpowe1['erate'].values,
+                        yerr = (df_plot_zpowe1['phoindex_bot'].values, df_plot_zpowe1['phoindex_top'].values), fmt='.',color='red', markersize=7, elinewidth=1, capsize=2, capthick=1, ecolor='lightcoral', label='zpowerlaw')
+            axs[1].errorbar(y=df_plot_zpowe2['phoindex'].values, x=df_plot_zpowe2['rate'].values, xerr=df_plot_zpowe2['erate'].values,
+                        yerr = (df_plot_zpowe2['phoindex_bot'].values, df_plot_zpowe2['phoindex_top'].values), fmt='.',color='g', markersize=7, elinewidth=1, capsize=2, capthick=1, ecolor='yellowgreen', label='zpowerlaw')
+            axs[1].errorbar(y=df_plot_zpowe3['phoindex'].values, x=df_plot_zpowe3['rate'].values, xerr=df_plot_zpowe3['erate'].values,
+                        yerr = (df_plot_zpowe3['phoindex_bot'].values, df_plot_zpowe3['phoindex_top'].values), fmt='.',color='b', markersize=7, elinewidth=1, capsize=2, capthick=1, ecolor='cornflowerblue', label='zpowerlaw')
+            '''
+            #Subplot 3: alpha vs rate (logpar)      
+            axs[2].errorbar(y=df_plot_zlogp1['alpha'].values, x=df_plot_zlogp1['rate'].values, xerr=df_plot_zlogp1['erate'].values,
+                        yerr = (df_plot_zlogp1['alpha_bot'].values, df_plot_zlogp1['alpha_top'].values), fmt='.', linestyle='',markersize=7, ecolor='lightcoral', elinewidth=1, capsize=2, capthick=1, color='red', label='zlogpar')
+            axs[2].errorbar(y=df_plot_zlogp2['alpha'].values, x=df_plot_zlogp2['rate'].values, xerr=df_plot_zlogp2['erate'].values,
+                        yerr = (df_plot_zlogp2['alpha_bot'].values, df_plot_zlogp2['alpha_top'].values), fmt='.', linestyle='',markersize=7, ecolor='yellowgreen', elinewidth=1, capsize=2, capthick=1, color='green', label='zlogpar')
+            axs[2].errorbar(y=df_plot_zlogp3['alpha'].values, x=df_plot_zlogp3['rate'].values, xerr=df_plot_zlogp3['erate'].values,
+                        yerr = (df_plot_zlogp3['alpha_bot'].values, df_plot_zlogp3['alpha_top'].values), fmt='.', linestyle='',markersize=7, ecolor='cornflowerblue', elinewidth=1, capsize=2, capthick=1, color='b', label='zlogpar')
+            '''
+            #Linestyle arrow 
+            axs[1].quiver(df_plot_zpowe['rate'].values[:-1], df_plot_zpowe['phoindex'].values[:-1], df_plot_zpowe['rate'].values[1:]-df_plot_zpowe['rate'].values[:-1], df_plot_zpowe['phoindex'].values[1:]-df_plot_zpowe['phoindex'].values[:-1], scale_units='xy', angles='xy', scale=1, width=0.003, headwidth=8)
+            #axs[2].quiver(df_plot_zlogp['rate'].values[:-1], df_plot_zlogp['alpha'].values[:-1], df_plot_zlogp['rate'].values[1:]-df_plot_zlogp['rate'].values[:-1], df_plot_zlogp['alpha'].values[1:]-df_plot_zlogp['alpha'].values[:-1], scale_units='xy', angles='xy', scale=1, width=0.003, headwidth=8)
 
-        df_plot_zlogp1 = df_plot_zlogp[df_plot_zlogp['rate'].isin(ascending)]
-        df_plot_zlogp2 = df_plot_zlogp[df_plot_zlogp['rate'].isin(stable)]
-        df_plot_zlogp3 = df_plot_zlogp[df_plot_zlogp['rate'].isin(descending)]
-        
-        
-        #Subplot 1: lightcurve
-        #axs[0].errorbar(y=df_plot_zpowe['rate'].values, x=df_plot_zpowe['time'].values, yerr=df_plot_zpowe['erate'].values,
-        #                fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1)
-        axs[0].errorbar(y=df_plot_zpowe1['rate'].values, x=df_plot_zpowe1['time'].values, yerr=df_plot_zpowe1['erate'].values,
-                        fmt='.',color='red', ecolor='lightcoral', markersize=1.5, elinewidth=1, capsize=2, capthick=1)
-        axs[0].errorbar(y=df_plot_zpowe2['rate'].values, x=df_plot_zpowe2['time'].values, yerr=df_plot_zpowe2['erate'].values,
-                        fmt='.',color='g', ecolor='yellowgreen', markersize=1.5, elinewidth=1, capsize=2, capthick=1)
-        axs[0].errorbar(y=df_plot_zpowe3['rate'].values, x=df_plot_zpowe3['time'].values, yerr=df_plot_zpowe3['erate'].values,
-                        fmt='.',color='b', ecolor='cornflowerblue', markersize=1.5, elinewidth=1, capsize=2, capthick=1)
-        
-        #Subplot 2 photon index vs rate (powerlaw)
-        #axs[1].errorbar(y=df_plot_zpowe['phoindex'].values, x=df_plot_zpowe['rate'].values, xerr=df_plot_zpowe['erate'].values,
-        #            yerr = (df_plot_zpowe['phoindex_bot'].values, df_plot_zpowe['phoindex_top'].values), fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='zpowerlaw')
-        axs[1].errorbar(y=df_plot_zpowe1['phoindex'].values, x=df_plot_zpowe1['rate'].values, xerr=df_plot_zpowe1['erate'].values,
-                    yerr = (df_plot_zpowe1['phoindex_bot'].values, df_plot_zpowe1['phoindex_top'].values), fmt='.',color='red', markersize=7, elinewidth=1, capsize=2, capthick=1, ecolor='lightcoral', label='zpowerlaw')
-        axs[1].errorbar(y=df_plot_zpowe2['phoindex'].values, x=df_plot_zpowe2['rate'].values, xerr=df_plot_zpowe2['erate'].values,
-                    yerr = (df_plot_zpowe2['phoindex_bot'].values, df_plot_zpowe2['phoindex_top'].values), fmt='.',color='g', markersize=7, elinewidth=1, capsize=2, capthick=1, ecolor='yellowgreen', label='zpowerlaw')
-        axs[1].errorbar(y=df_plot_zpowe3['phoindex'].values, x=df_plot_zpowe3['rate'].values, xerr=df_plot_zpowe3['erate'].values,
-                    yerr = (df_plot_zpowe3['phoindex_bot'].values, df_plot_zpowe3['phoindex_top'].values), fmt='.',color='b', markersize=7, elinewidth=1, capsize=2, capthick=1, ecolor='cornflowerblue', label='zpowerlaw')
-        
-        #Subplot 3: alpha vs rate (logpar)      
-        #axs[2].errorbar(y=df_plot_zlogp['alpha'].values, x=df_plot_zlogp['rate'].values, xerr=df_plot_zlogp['erate'].values,
-        #            yerr = (df_plot_zlogp['alpha_bot'].values, df_plot_zlogp['alpha_top'].values), fmt='.', linestyle='',markersize=5, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color='black', label='zlogpar')
-        axs[2].errorbar(y=df_plot_zlogp1['alpha'].values, x=df_plot_zlogp1['rate'].values, xerr=df_plot_zlogp1['erate'].values,
-                    yerr = (df_plot_zlogp1['alpha_bot'].values, df_plot_zlogp1['alpha_top'].values), fmt='.', linestyle='',markersize=7, ecolor='lightcoral', elinewidth=1, capsize=2, capthick=1, color='red', label='zlogpar')
-        axs[2].errorbar(y=df_plot_zlogp2['alpha'].values, x=df_plot_zlogp2['rate'].values, xerr=df_plot_zlogp2['erate'].values,
-                    yerr = (df_plot_zlogp2['alpha_bot'].values, df_plot_zlogp2['alpha_top'].values), fmt='.', linestyle='',markersize=7, ecolor='yellowgreen', elinewidth=1, capsize=2, capthick=1, color='green', label='zlogpar')
-        axs[2].errorbar(y=df_plot_zlogp3['alpha'].values, x=df_plot_zlogp3['rate'].values, xerr=df_plot_zlogp3['erate'].values,
-                    yerr = (df_plot_zlogp3['alpha_bot'].values, df_plot_zlogp3['alpha_top'].values), fmt='.', linestyle='',markersize=7, ecolor='cornflowerblue', elinewidth=1, capsize=2, capthick=1, color='b', label='zlogpar')
-        
-        #Linestyle arrow 
-        axs[1].quiver(df_plot_zpowe['rate'].values[:-1], df_plot_zpowe['phoindex'].values[:-1], df_plot_zpowe['rate'].values[1:]-df_plot_zpowe['rate'].values[:-1], df_plot_zpowe['phoindex'].values[1:]-df_plot_zpowe['phoindex'].values[:-1], scale_units='xy', angles='xy', scale=1, width=0.003, headwidth=8)
-        axs[2].quiver(df_plot_zlogp['rate'].values[:-1], df_plot_zlogp['alpha'].values[:-1], df_plot_zlogp['rate'].values[1:]-df_plot_zlogp['rate'].values[:-1], df_plot_zlogp['alpha'].values[1:]-df_plot_zlogp['alpha'].values[:-1], scale_units='xy', angles='xy', scale=1, width=0.003, headwidth=8)
+            #Labels and stuff
+            axs[0].grid()
+            axs[0].set_xlabel('Time [MJD]')
+            axs[0].set_ylabel('Rate [ct/s]')
+            axs[1].grid()
+            axs[1].set_xlabel('Rate [ct/s]')
+            axs[1].set_ylabel('$\Gamma$ (powerlaw)')
+            axs[2].grid()
+            #axs[2].set_xlabel('Rate [ct/s]')
+            #axs[2].set_ylabel(r'$\alpha$ (logparabola)')
+            axs[0].ticklabel_format(useOffset=False)
 
-        #Labels and stuff
-        axs[0].grid()
-        axs[0].set_xlabel('Time [s]')
-        axs[0].set_ylabel('Rate [ct/s]')
-        axs[1].grid()
-        axs[1].set_xlabel('Rate [ct/s]')
-        axs[1].set_ylabel('$\Gamma$ (powerlaw)')
-        axs[2].grid()
-        axs[2].set_xlabel('Rate [ct/s]')
-        axs[2].set_ylabel(r'$\alpha$ (logparabola)')
-        plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", f"hysteresis_{args.hysteresis}.png"))
-
+            plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", f"hysteresis_{args.hysteresis}.png"))
+            
 
     if args.flux:
 
@@ -699,6 +867,19 @@ if __name__ == "__main__":
             df_plot_zlogp = df_plot_zlogp[df_plot_zlogp['nH_low']>1e-4]
             print(f"Mean and standard deviation of NH evolution: {np.mean(df_plot_zlogp['nH'].values)}, {np.std(df_plot_zlogp['nH'].values, ddof=1)}")
 
+            fig = plt.figure(figsize=(13,6))
+            plt.errorbar('index', 'RATE', 'ERROR', data=data_lc, ecolor='black', linestyle='', color='black')
+            #Add vertical lines separating years
+            plt.vlines(year_endpoints, 0, 60, colors='r', linestyles='solid')
+            plt.grid(axis='y')
+            plt.xlabel('Year', labelpad=0.1)
+            plt.ylabel('Rate [ct/s]', labelpad=0.1)
+            plt.margins(0)
+            plt.tight_layout()
+            plt.xticks(ticks=year_endpoints, labels=labels, rotation=60)
+            plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "compact_LC_vlines.png"))
+            sys.exit()
+
             #Plot panel            
             fig_logp, axs_logp = plt.subplots(4, 1, figsize=(13,11), sharex=True, gridspec_kw={'hspace':0, 'wspace':0})
 
@@ -849,51 +1030,65 @@ if __name__ == "__main__":
             fig, axs = plt.subplots(2, 2, figsize=(7,7), sharex=True, gridspec_kw={'hspace':0.1})
             
             #Alpha, high rate
-            y_high_alpha, x_high_alpha, _ = axs[0,0].hist(data_spec_zlogp_high['phoindex'].values, bins=15, color='red')
-            #axs[0,0].hist(logpar_better_high['phoindex'].values, bins=5, color='orange')
+            weights = np.ones_like(data_spec_zlogp_high['phoindex'].values) / len(data_spec_zlogp_high['phoindex'].values)
+            y_high_alpha, x_high_alpha, p = axs[0,0].hist(data_spec_zlogp_high['phoindex'].values, bins=30, color='red', weights=weights)
             binsize = (x_high_alpha[1]-x_high_alpha[0])/2
-            axs[0,0].vlines(x=x_high_alpha[np.argmax(y_high_alpha)]+binsize, ymin=0, ymax=y_high_alpha.max(), color='black')
+            axs[0,0].vlines(x=x_high_alpha[np.argmax(y_high_alpha)]+binsize, ymin=0, ymax=y_high_alpha.max(), linewidth=1, color='black')
             free_text = f"max alpha: {round(x_high_alpha[np.argmax(y_high_alpha)]+binsize, 2)} $\pm$ {round(binsize, 2)}"
             text_box = AnchoredText(free_text, frameon=False, loc='lower left', pad=0.5)
             plt.setp(text_box.patch, facecolor='white', alpha=0.5)
             axs[0,0].add_artist(text_box)
 
             #Alpha, low rate
-            y_low_alpha, x_low_alpha, _ = axs[1,0].hist(data_spec_zlogp_low['phoindex'].values, bins=15, color='blue')
+            weights = np.ones_like(data_spec_zlogp_low['phoindex'].values) / len(data_spec_zlogp_low['phoindex'].values)
+            y_low_alpha, x_low_alpha, _ = axs[1,0].hist(data_spec_zlogp_low['phoindex'].values, bins=30, color='blue', weights=weights)
             #axs[1,0].hist(logpar_better_low['phoindex'].values, bins=5, color='c')
             binsize = (x_low_alpha[1]-x_low_alpha[0])/2            
-            axs[1,0].vlines(x=x_low_alpha[np.argmax(y_low_alpha)]+binsize, ymin=0, ymax=y_low_alpha.max(), color='black')
+            axs[1,0].vlines(x=x_low_alpha[np.argmax(y_low_alpha)]+binsize, ymin=0, ymax=y_low_alpha.max(), linewidth=1, color='black')
             free_text = f"max alpha: {round(x_low_alpha[np.argmax(y_low_alpha)]+binsize, 2)} $\pm$ {round(binsize, 2)}"
             text_box = AnchoredText(free_text, frameon=False, loc='lower left', pad=0.5)
             plt.setp(text_box.patch, facecolor='white', alpha=0.5)
             axs[1,0].add_artist(text_box)   
 
+            #K-S alpha
+            sample1 = data_spec_zlogp_high['phoindex'].values
+            sample2 = data_spec_zlogp_low['phoindex'].values
+            print('K-S for alpha (logpar): ',ks_2samp(sample1, sample2))
+
+
             #Beta, high rate
-            y_high_beta, x_high_beta, _ = axs[0,1].hist(data_spec_zlogp_high['beta'].values, bins=15, color='red')
+            weights = np.ones_like(data_spec_zlogp_high['beta'].values) / len(data_spec_zlogp_high['beta'].values)
+            y_high_beta, x_high_beta, _ = axs[0,1].hist(data_spec_zlogp_high['beta'].values, bins=30, color='red', weights=weights)
             #axs[0,1].hist(logpar_better_high['beta'].values, bins=5, color='orange')
             binsize = (x_high_beta[1]-x_high_beta[0])/2
-            axs[0,1].vlines(x=x_high_beta[np.argmax(y_high_beta)]+binsize, ymin=0, ymax=y_high_beta.max(), color='black')
+            axs[0,1].vlines(x=x_high_beta[np.argmax(y_high_beta)]+binsize, ymin=0, ymax=y_high_beta.max(), linewidth=1, color='black')
             free_text = f"max beta: {round(x_high_beta[np.argmax(y_high_beta)]+binsize, 2)} $\pm$ {round(binsize, 2)}"
             text_box = AnchoredText(free_text, frameon=False, loc='lower right', pad=0.5)
             plt.setp(text_box.patch, facecolor='white', alpha=0.5)
             axs[0,1].add_artist(text_box)
 
             #Beta, low rate
-            y_low_beta, x_low_beta, _ = axs[1,1].hist(data_spec_zlogp_low['beta'].values, bins=15, color='blue')
+            weights = np.ones_like(data_spec_zlogp_low['beta'].values) / len(data_spec_zlogp_low['beta'].values)
+            y_low_beta, x_low_beta, _ = axs[1,1].hist(data_spec_zlogp_low['beta'].values, bins=30, color='blue', weights=weights)
             #axs[1,1].hist(logpar_better_low['beta'].values, bins=5, color='c')
             binsize = (x_low_beta[1]-x_low_beta[0])/2
-            axs[1,1].vlines(x=x_low_beta[np.argmax(y_low_beta)]+binsize, ymin=0, ymax=y_low_beta.max(), color='black')
+            axs[1,1].vlines(x=x_low_beta[np.argmax(y_low_beta)]+binsize, ymin=0, ymax=y_low_beta.max(), linewidth=1, color='black')
             free_text = f"max beta: {round(x_low_beta[np.argmax(y_low_beta)]+binsize, 2)} $\pm$ {round(binsize, 2)}"
             text_box = AnchoredText(free_text, frameon=False, loc='lower right', pad=0.5)
             plt.setp(text_box.patch, facecolor='white', alpha=0.5)
             axs[1,1].add_artist(text_box)
+            
+            #K-S for beta
+            sample1 = data_spec_zlogp_high['beta'].values
+            sample2 = data_spec_zlogp_low['beta'].values
+            print('K-S for beta (logpar): ',ks_2samp(sample1, sample2))
 
             red_patch =  Patch(facecolor='red', edgecolor='black', label='high state')
             blue_patch =  Patch(facecolor='b', edgecolor='black', label='low state')
             axs[0,1].legend(handles=[red_patch, blue_patch], loc='upper right',  fancybox=True, shadow=True)
             axs[1,0].set_xlabel(r'$\alpha$ (logparabola)')
-            axs[1,0].set_ylabel('counts')
-            axs[0,0].set_ylabel('counts')
+            axs[1,0].set_ylabel('Normalized counts')
+            axs[0,0].set_ylabel('Normalized counts')
             axs[1,1].set_xlabel(r'$\beta$ (logparabola)')
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "distribution_logpar.png"))
 
@@ -905,30 +1100,37 @@ if __name__ == "__main__":
             data_spec_zpowe_low = data_spec_zpowe[data_spec_zpowe['rate']<20]
 
             #Plot distribution only for photon index
-            fig, axs = plt.subplots(2, 1, figsize=(5,7), sharex=True, gridspec_kw={'hspace':0.1})
+            fig, axs = plt.subplots(2, 1, figsize=(6,7), sharex=True, gridspec_kw={'hspace':0.1})
             
             #High rate
-            y_high, x_high, _ = axs[0].hist(data_spec_zpowe_high['phoindex'].values, bins=15, color='red')
+            weights = np.ones_like(data_spec_zpowe_high['phoindex'].values) / len(data_spec_zpowe_high['phoindex'].values)
+            y_high, x_high, _ = axs[0].hist(data_spec_zpowe_high['phoindex'].values, bins=30, color='red', weights=weights)
             binsize = (x_high[1]-x_high[0])/2
-            axs[0].vlines(x=x_high[np.argmax(y_high)]+binsize, ymin=0, ymax=y_high.max(), color='black')
+            axs[0].vlines(x=x_high[np.argmax(y_high)]+binsize, ymin=0, ymax=y_high.max(), color='black', linewidth=1)
             free_text = f"max $\Gamma$: {round(x_high[np.argmax(y_high)]+binsize, 2)} $\pm$ {round(binsize, 2)}"
             text_box = AnchoredText(free_text, frameon=False, loc='upper right', pad=0.5)
             plt.setp(text_box.patch, facecolor='white', alpha=0.5)
             axs[0].add_artist(text_box)
 
             #Low rate
-            y_low, x_low, _ = axs[1].hist(data_spec_zpowe_low['phoindex'].values, bins=15, color='blue')
+            weights = np.ones_like(data_spec_zpowe_low['phoindex'].values) / len(data_spec_zpowe_low['phoindex'].values)
+            y_low, x_low, _ = axs[1].hist(data_spec_zpowe_low['phoindex'].values, bins=30, color='blue', weights=weights)
             binsize = (x_low[1]-x_low[0])/2
-            axs[1].vlines(x=x_low[np.argmax(y_low)]+binsize, ymin=0, ymax=y_low.max(), color='black')
+            axs[1].vlines(x=x_low[np.argmax(y_low)]+binsize, ymin=0, ymax=y_low.max(), color='black', linewidth=1)
             free_text = f"max $\Gamma$: {round(x_low[np.argmax(y_low)]+binsize, 2)} $\pm$ {round(binsize, 2)}"
             text_box = AnchoredText(free_text, frameon=False, loc='upper right', pad=0.5)
             plt.setp(text_box.patch, facecolor='white', alpha=0.5)
             axs[1].add_artist(text_box)
             
+            #K-S for gamma 
+            sample1 = data_spec_zpowe_high['phoindex'].values
+            sample2 = data_spec_zpowe_low['phoindex'].values
+            print('K-S for gamma (powerlaw): ',ks_2samp(sample1, sample2))
+
             red_patch =  Patch(facecolor='red', edgecolor='black', label='high state')
             blue_patch =  Patch(facecolor='b', edgecolor='black', label='low state')
             axs[0].legend(handles=[red_patch, blue_patch], loc='upper left')
             axs[1].set_xlabel('$\Gamma$ (powerlaw)')
-            axs[0].set_ylabel('counts')
-            axs[1].set_ylabel('counts')
+            axs[0].set_ylabel('Normalized counts')
+            axs[1].set_ylabel('Normalized counts')
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "distribution_powerlaw.png"))
