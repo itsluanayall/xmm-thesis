@@ -65,8 +65,8 @@ if __name__ == "__main__":
         
         #Save attributes of observation into the EPIC_table (to edit)
         EPIC_obs_table.add_row((str(obs.obsid), str(obs.revolution),  f"{obs.epic_expid}" , str(obs.starttime), 
-                                str(obs.endtime), str(int(obs.duration)), obs.epicrate[0], obs.epic_erate[0], obs.mean_hr,
-                                obs.epicrate[1], obs.epic_erate[1],
+                                str(obs.endtime), str(int(obs.duration)), obs.epicrate[0], obs.epic_erate[0],
+                                obs.epicrate[1], obs.epic_erate[1], obs.mean_hr,
                                 obs.fracvardict[0].get('Fractional Variability'), obs.fracvardict[0].get('Fractional Variability Error'),
                                 obs.fracvardict[0].get('Excess variance'), obs.fracvardict[0].get('Excess variance error'),
                                 obs.fracvardict[0].get('Normalized excess variance'), obs.fracvardict[0].get('Normalized excess variance error'),
