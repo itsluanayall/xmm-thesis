@@ -1041,7 +1041,7 @@ if __name__ == "__main__":
 
             #Alpha, low rate
             weights = np.ones_like(data_spec_zlogp_low['phoindex'].values) / len(data_spec_zlogp_low['phoindex'].values)
-            y_low_alpha, x_low_alpha, _ = axs[1,0].hist(data_spec_zlogp_low['phoindex'].values, bins=30, color='blue', weights=weights)
+            y_low_alpha, x_low_alpha, _ = axs[1,0].hist(data_spec_zlogp_low['phoindex'].values, bins=30, hatch='/', color='blue', weights=weights)
             #axs[1,0].hist(logpar_better_low['phoindex'].values, bins=5, color='c')
             binsize = (x_low_alpha[1]-x_low_alpha[0])/2            
             axs[1,0].vlines(x=x_low_alpha[np.argmax(y_low_alpha)]+binsize, ymin=0, ymax=y_low_alpha.max(), linewidth=1, color='black')
@@ -1069,7 +1069,7 @@ if __name__ == "__main__":
 
             #Beta, low rate
             weights = np.ones_like(data_spec_zlogp_low['beta'].values) / len(data_spec_zlogp_low['beta'].values)
-            y_low_beta, x_low_beta, _ = axs[1,1].hist(data_spec_zlogp_low['beta'].values, bins=30, color='blue', weights=weights)
+            y_low_beta, x_low_beta, _ = axs[1,1].hist(data_spec_zlogp_low['beta'].values, bins=30, hatch='/', color='blue', weights=weights)
             #axs[1,1].hist(logpar_better_low['beta'].values, bins=5, color='c')
             binsize = (x_low_beta[1]-x_low_beta[0])/2
             axs[1,1].vlines(x=x_low_beta[np.argmax(y_low_beta)]+binsize, ymin=0, ymax=y_low_beta.max(), linewidth=1, color='black')
@@ -1083,9 +1083,12 @@ if __name__ == "__main__":
             sample2 = data_spec_zlogp_low['beta'].values
             print('K-S for beta (logpar): ',ks_2samp(sample1, sample2))
 
-            red_patch =  Patch(facecolor='red', edgecolor='black', label='high state')
-            blue_patch =  Patch(facecolor='b', edgecolor='black', label='low state')
-            axs[0,1].legend(handles=[red_patch, blue_patch], loc='upper right',  fancybox=True, shadow=True)
+            red_patch =  Patch(facecolor='red',  edgecolor='black', label='high state')
+            blue_patch =  Patch(facecolor='b', hatch='/', edgecolor='black', label='low state')
+            leg = axs[0,1].legend(handles=[red_patch, blue_patch], labelspacing=1.5, handlelength=4, loc='upper right',  fancybox=True, shadow=True)
+            for patch in leg.get_patches():
+                patch.set_height(16)
+                patch.set_y(-6)
             axs[1,0].set_xlabel(r'$\alpha$ (logparabola)')
             axs[1,0].set_ylabel('Normalized counts')
             axs[0,0].set_ylabel('Normalized counts')
@@ -1114,7 +1117,7 @@ if __name__ == "__main__":
 
             #Low rate
             weights = np.ones_like(data_spec_zpowe_low['phoindex'].values) / len(data_spec_zpowe_low['phoindex'].values)
-            y_low, x_low, _ = axs[1].hist(data_spec_zpowe_low['phoindex'].values, bins=30, color='blue', weights=weights)
+            y_low, x_low, _ = axs[1].hist(data_spec_zpowe_low['phoindex'].values, bins=30, color='blue',hatch='/', weights=weights)
             binsize = (x_low[1]-x_low[0])/2
             axs[1].vlines(x=x_low[np.argmax(y_low)]+binsize, ymin=0, ymax=y_low.max(), color='black', linewidth=1)
             free_text = f"max $\Gamma$: {round(x_low[np.argmax(y_low)]+binsize, 2)} $\pm$ {round(binsize, 2)}"
@@ -1128,8 +1131,11 @@ if __name__ == "__main__":
             print('K-S for gamma (powerlaw): ',ks_2samp(sample1, sample2))
 
             red_patch =  Patch(facecolor='red', edgecolor='black', label='high state')
-            blue_patch =  Patch(facecolor='b', edgecolor='black', label='low state')
-            axs[0].legend(handles=[red_patch, blue_patch], loc='upper left')
+            blue_patch =  Patch(facecolor='b', hatch='/', edgecolor='black', label='low state')
+            leg = axs[0].legend(handles=[red_patch, blue_patch], labelspacing=1.5, handlelength=4, loc='upper right',  fancybox=True, shadow=True)
+            for patch in leg.get_patches():
+                patch.set_height(16)
+                patch.set_y(-6)           
             axs[1].set_xlabel('$\Gamma$ (powerlaw)')
             axs[0].set_ylabel('Normalized counts')
             axs[1].set_ylabel('Normalized counts')

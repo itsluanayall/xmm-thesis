@@ -25,7 +25,7 @@ def cross_correlation(rates1, rates2, times1, times2, x, str1, str2, obs):
     fig, axs = plt.subplots(2, 1, figsize=(10,8), gridspec_kw={'hspace':0.3})
     axs[0].plot(MJDREF + (times1/86400.0), rates1/max(rates1), color='b', marker='o', markersize=3, linestyle='', label=str1)
     axs[0].plot(MJDREF + (times2/86400.0), rates2/max(rates2), color='red', marker='^', markersize=4, linestyle='', label=str2)
-    axs[1].plot(x, cc_simple, marker='o', markersize=1)
+    axs[1].plot(x, cc_simple, marker='o', markersize=1, linestyle='')
     axs[0].ticklabel_format(useOffset=False)
     axs[1].grid(alpha=0.5)
     axs[0].grid(alpha=0.5)
@@ -37,17 +37,19 @@ def cross_correlation(rates1, rates2, times1, times2, x, str1, str2, obs):
     #text = "Cross-correlation between " + str1 + "and" + str2
     #plt.title(text, fontsize=15)
     maxlag = x[np.argmax(cc_simple)]
+    axs[1].plot(maxlag, max(cc_simple), marker='x', markersize=6)
     #maxlag = cc_simple.argmax() - (len(rates1) - 1)
+    print('CCF max:', max(cc_simple) )
     print(f"max correlation is at lag {maxlag} for observation {obs}")
     '''
     data = []
-    if obs in ['0670920301','0670920501' ]:
-        x = x[70:-70]
-        cc_simple = cc_simple[70:-70]
+    if obs in ['0670920501' ]:
+        x = x[100:-100]
+        cc_simple = cc_simple[100:-100]
     
-    elif obs=='0670920401':
-        x = x[150:-150]
-        cc_simple = cc_simple[150:-150]
+    elif obs in ['0670920401', '0670920301']:
+        x = x[150:-50]
+        cc_simple = cc_simple[150:-50]
     elif obs=='0502030101':
         x = x[400:-400]
         cc_simple = cc_simple[400:-400]       
@@ -71,6 +73,7 @@ def cross_correlation(rates1, rates2, times1, times2, x, str1, str2, obs):
     y = y*cc_simple.max()
 
     plt.plot(x,y,'r',linewidth=2)
+    print('max skewnorm:', x[np.argmax(y)])
     
     popt,pcov = curve_fit(skew_norm_pdf, x, cc_simple, p0=[0,1,1])
 
@@ -154,7 +157,7 @@ if __name__ == "__main__":
 
 
         #Get soft and hard lightcurves rates
-        with fits.open('PN_soft_25.lc') as hdul:
+        with fits.open('PN_soft_10.lc') as hdul:
             rates_soft = hdul['RATE'].data['RATE']
             erates_soft = hdul['RATE'].data['ERROR']
             times_soft = hdul['RATE'].data['TIME']
@@ -165,7 +168,7 @@ if __name__ == "__main__":
             times_soft = times_soft[mask_nan]
             rms_soft = np.mean(rates_soft)
 
-        with fits.open('PN_hard_25.lc') as hdul:
+        with fits.open('PN_hard_10.lc') as hdul:
             rates_hard = hdul['RATE'].data['RATE']
             erates_hard = hdul['RATE'].data['ERROR']
             times_hard = hdul['RATE'].data['TIME']
@@ -178,9 +181,7 @@ if __name__ == "__main__":
             rms_hard = np.mean(rates_hard)
 
         duration = times_soft[-1] - times_soft[0]
-        print('duration', duration)
         npts = len(rates_soft)
-        print('npts', npts)
         new_times = np.linspace(0, duration, len(rates_soft))
         lags = np.arange(-npts + 1, npts)
         lags = np.arange(-(npts/2), (npts/2))
