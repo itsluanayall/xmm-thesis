@@ -73,7 +73,7 @@ if __name__ == "__main__":
 
     #Correlation coefficient
     slope, intercept, r, p, stderr = linregress(df_total['rate'].values, df_total['hr'].values)
-    line = f'Regression line, r={r:.2f}'
+    line = f'Correlation= {r:.2f}'
 
 
     func_grid = np.linspace(200, 650, 100)

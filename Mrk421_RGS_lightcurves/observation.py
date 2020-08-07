@@ -556,24 +556,25 @@ class Observation:
 
         #Plot lightcurves with HR
         fig2, axs2 = plt.subplots(3, 1, figsize=(7,6), sharex=False, gridspec_kw={'hspace':0.0})
-        axs2[0].errorbar(x_soft, y_soft, yerr=yerr_soft, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='', ecolor='gray', label=f'EPIC-pn ObsId {self.obsid}, exposure {self.epic_expid} Soft LC')
-        axs2[1].errorbar(x_hard, y_hard, yerr=yerr_hard, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='', ecolor='gray', label=f'EPIC-pn ObsId {self.obsid}, exposure {self.epic_expid} Hard LC')
-        axs2[2].errorbar(x_soft, hr, yerr=hr_err, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='', ecolor='gray', label=f'EPIC-pn ObsId {self.obsid}, exposure {self.epic_expid} Hardness Ratio')
-        axs2[2].set_xlabel('Time [s]')
+        axs2[0].errorbar(x_soft, y_soft, yerr=yerr_soft, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=3, linestyle='', ecolor='gray', label=f'EPIC-pn ObsId {self.obsid}, exposure {self.epic_expid} Soft LC')
+        axs2[1].errorbar(x_hard, y_hard, yerr=yerr_hard, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=3, linestyle='', ecolor='gray', label=f'EPIC-pn ObsId {self.obsid}, exposure {self.epic_expid} Hard LC')
+        axs2[2].errorbar(x_soft, hr, yerr=hr_err, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=3, linestyle='', ecolor='gray', label=f'EPIC-pn ObsId {self.obsid}, exposure {self.epic_expid} Hardness Ratio')
+        axs2[2].set_xlabel('Time [MJD]')
         axs2[2].ticklabel_format(useOffset=False)
         axs2[2].set_ylabel('HR: (H-S)/(H+S)')
-        axs2[1].set_ylabel('Rate (0.6 - 2 keV) [ct/s]')
-        axs2[0].set_ylabel('Rate (2-10 keV) [ct/s]')
+        axs2[1].set_ylabel('CR$_{0.6-2 keV}$ [ct/s]')
+        axs2[0].set_ylabel('CR$_{2-10 keV}$ [ct/s]')
         axs2[0].grid()
         axs2[1].grid()
         axs2[2].grid()
+        plt.tight_layout()
         #axs2[3].errorbar(y_soft+y_hard, hr, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='', ecolor='gray' )
 
         plt.savefig(os.path.join(self.target_dir, "Products", "EPIC_Lightcurves", f"{self.obsid}_epicpn_HR.png"))
 
         #Plot HR loops
-        x_loop = (y_soft+y_hard)[10:20]
-        y_loop = hr[10:20]
+        x_loop = (y_soft+y_hard)
+        y_loop = hr
         fig3, axs3 = plt.subplots(2, 1, figsize=(7,6), sharex=False, gridspec_kw={'hspace':0.0})
         axs3[0].errorbar(x=x_soft, y=y_soft+y_hard, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='', ecolor='gray')
         axs3[1].errorbar(x=x_loop, y=y_loop, color='black',  fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='', ecolor='gray')
