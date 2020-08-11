@@ -315,7 +315,7 @@ def epic_spectrum_plot_xspec(observation, expid, model, target_dir):
     axs[0].set_yscale('log')
     axs[0].set_xscale('log')
     
-    axs[0].set_xlim(0.4, 12)
+    axs[0].set_xlim(0.6, 12)
     axs[0].set_ylabel('Normalized counts [s-1 keV-1]', fontsize=10)
     axs[0].legend(loc='upper right', fontsize='x-large')
 

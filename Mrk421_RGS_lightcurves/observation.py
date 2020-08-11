@@ -1842,7 +1842,7 @@ class Observation:
         os.chdir(self.rgsdir)
         for i in range(self.npairs):
             print(self.obsid)
-            if (self.duration_lc_ks[i] >= timescale) or (self.obsid =='0791780201'):
+            if (self.duration_lc_ks[i] >= timescale):# or (self.obsid =='0791780201'):
                 logging.info('Observation long enough to make variability panel.')
                 expos0 = Exposure(self.pairs_events[i][0], self.pairs_srcli[i][0])
                 expos1 = Exposure(self.pairs_events[i][1], self.pairs_srcli[i][1])
@@ -1957,10 +1957,10 @@ class Observation:
                 ndof = len(meanx2_times) - 1
                 print('Chisquare/ndof = %f/%d' % (chisq, ndof))
 
-                conf90_positive = q0[0]*(10**(0.46)) # confidence intervals 90% given by Vaughan, 2003 (Table 1)
-                conf90_negative = q0[0]*(10**(-0.78))
-                conf99_positive = q0[0]*(10**(0.75)) # confidence intervals 99%
-                conf99_negative = q0[0]*(10**(-1.16))
+                conf90_positive = q0[0]*(10**(0.45)) # confidence intervals 90% given by Vaughan, 2003 (Table 1)
+                conf90_negative = q0[0]*(10**(-0.71))
+                conf99_positive = q0[0]*(10**(0.73)) # confidence intervals 99%
+                conf99_negative = q0[0]*(10**(-1.01))
 
                 axs[3].hlines(q0, t_in, t_fin, color='red', label=f"Constant fit: {q0[0]:.3f} +- {dq[0]:.3f} \n $\chi^2$/ndof = {chisq:.2f} / {ndof}")
                 axs[3].errorbar(meanx2_times, mean_xs, mean_xs_err, xerr=meanx2_times_err,  linestyle='', color='black', marker='.', ecolor='gray')
@@ -2042,10 +2042,10 @@ class Observation:
                 print('Chisquare/ndof = %f/%d' % (chisq, ndof))
 
                 #90% confidence intervals 
-                conf90_positive = q0[0]*10**(0.46/2.)
-                conf90_negative = q0[0]*10**(-0.78/2.)
-                conf99_positive = q0[0]*10**(0.75/2.)
-                conf99_negative = q0[0]*10**(-1.16/2.)
+                conf90_positive = q0[0]*10**(0.45/2.)
+                conf90_negative = q0[0]*10**(-0.71/2.)
+                conf99_positive = q0[0]*10**(0.73/2.)
+                conf99_negative = q0[0]*10**(-1.01/2.)
                 axs[5].hlines(q0, t_in, t_fin, color='red', label=f"Constant fit: {q0[0]:.3f} +- {dq[0]:.3f} \n $\chi^2$/ndof = {chisq:.2f} / {ndof}")
                 axs[5].hlines((conf90_positive, conf90_negative), t_in, t_fin, color='black', linestyle=':')
                 axs[5].hlines((conf99_positive, conf99_negative), t_in, t_fin, color='black', linestyle='--')
@@ -2104,7 +2104,7 @@ class Observation:
                 #Binning
                 meanx2_rate, meanx2_xs, meanx2_rate_err, meanx2_xs_err = binning(N, 1/N, xs_sorted, 'rate', 'xs')
                 meanx2_rate, meanx2_fvar, meanx2_rate_err, meanx2_fvar_err = binning(N, 1/N, xs_sorted, 'rate', 'fvar')
-                
+                '''
                 fig_rate, ax = plt.subplots(1,1, figsize=(10,10))
                 ax.errorbar(x=meanx2_rate, y=meanx2_xs, yerr=meanx2_xs_err, xerr=meanx2_rate_err, linestyle='', marker='.')
                 ax.set_xlabel('x')
@@ -2112,8 +2112,9 @@ class Observation:
                 ax.set_xlim(0, max(meanx2_rate)+1)
                 ax.grid(True)
                 plt.savefig(f'{self.target_dir}/Products/Plots_timeseries/{self.obsid}_{expos0.expid}+{expos1.expid}_xs_rate.png')
+                '''
                 plt.close()
-
+                    
                 #Save to csv file
                 obs_array = np.ndarray(len(meanx2_xs))
                 obs_array.fill(str(self.obsid))

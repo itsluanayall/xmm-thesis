@@ -107,7 +107,7 @@ if __name__ == "__main__":
             obs.rgslccorr()
             obs.lightcurve(mjdref=mjdref, use_grace=use_grace)
             obs.fracvartest(screen=True, instrument='rgs')
-            obs.vaughan_panel(N=20, M=20, timescale=timescale_fvar, timebinsize=25)
+            obs.vaughan_panel(N=30, M=20, timescale=timescale_fvar, timebinsize=25)
             obs.divide_spectrum()
             obs.xspec_divided_spectra_average(target_REDSHIFT)
             obs.xspec_divided_spectra(target_REDSHIFT)
