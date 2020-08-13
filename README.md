@@ -8,26 +8,27 @@ this structure:
 Markarian421
 ├── 0099280101
 │   ├── odf
+|   ├── epic
 │   └── rgs
 ├── 0099280201
 │   ├── odf
-    ├── epic
+|   ├── epic
 │   └── rgs
 ├── 0099280301
 │   ├── odf
-    ├── epic
+|   ├── epic
 │   └── rgs
 ├── 0099280401
 │   ├── odf
-    ├── epic
+|   ├── epic
 │   └── rgs
 ├── 0099280501
 │   ├── odf
-    ├── epic
+|   ├── epic
 │   └── rgs
 ├── 0099280601
 │   ├── odf
-    ├── epic
+|   ├── epic
 │   └── rgs
 ├── etc.
 ```
