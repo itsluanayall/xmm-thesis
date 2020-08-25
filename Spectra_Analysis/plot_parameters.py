@@ -143,36 +143,12 @@ if __name__ == "__main__":
             df_plot_zlogp_better = df_plot_zlogp[(df_plot_zlogp['ftest']<0.1) & (df_plot_zlogp['ftest']!=-999.)]
             df_plot_zpowe_better = df_plot_zpowe[(df_plot_zpowe['ftest']>=0.1) | (df_plot_zpowe['ftest']==-999.)]
 
-            '''
-            #linear function between x and y
-            def fitfunc (x,a,b):
-                return a*x + b
-            
-            # Initial values
-            initial_values =(0.8,0)
-            pars, covm = curve_fit(fitfunc, df_plot_zpowe_better['phoindex'].values, df_plot_zpowe_better['fvar'].values, initial_values, df_plot_zpowe_better['fvar_err'].values) 
-
-            a0, b0 = pars    #parameter of fit
-            da, db = np.sqrt(covm.diagonal())   #and its error (from covariance matrix)
-
-            # Print fit results
-            print('a = %f +- %f' % (a0, da))
-            print('b = %f +- %f' % (b0, db))
-
-            #chi2
-            chisq =(((df_plot_zpowe_better['fvar'].values-fitfunc(df_plot_zpowe_better['phoindex'].values, a0,b0) )/df_plot_zpowe_better['fvar_err'].values)**2).sum()
-            ndof = len(df_plot_zpowe_better['phoindex'].values) - 1
-            print('Chisquare/ndof = %f/%d' % (chisq, ndof))
-            '''
             # Plot
             fig, axs =plt.subplots(1, 2, figsize=(7,5), sharey=False, gridspec_kw={'wspace':0.3})
         
             axs[0].errorbar(x=df_plot_zlogp_better['fvar'].values, y=df_plot_zlogp_better['alpha'].values, xerr=df_plot_zlogp_better['fvar_err'].values,
                         yerr = (df_plot_zlogp_better['alpha_bot'].values, df_plot_zlogp_better['alpha_top'].values), color='b', fmt='.', markersize=5, ecolor='cornflowerblue', elinewidth=1, capsize=2, capthick=1, label='logpar best model')
-            '''
-            func_grid = np.linspace(1.8, 2.7, 50)
-            axs[1].plot(func_grid, fitfunc(func_grid, a0, b0), color = 'red')
-            '''
+   
             axs[1].errorbar(y=df_plot_zpowe_better['phoindex'].values, x=df_plot_zpowe_better['fvar'].values, xerr=df_plot_zpowe_better['fvar_err'].values,
                         yerr = (df_plot_zpowe_better['phoindex_bot'].values, df_plot_zpowe_better['phoindex_top'].values), color='red', fmt='.', markersize=5, ecolor='lightcoral', elinewidth=1, capsize=2, capthick=1, label='powerlaw best model')
 
@@ -180,12 +156,10 @@ if __name__ == "__main__":
             axs[1].grid(True)
             axs[0].set_title('Logparabola')
             axs[1].set_title('Powerlaw')
-            axs[0].set_xlabel('$F_{var}$', fontsize=10)
-            axs[0].set_ylabel(r'$ \alpha$', fontsize=10)
-            axs[1].set_ylabel('$\Gamma$', fontsize=10)
-            axs[1].set_xlabel('$F_{var}$', fontsize=10)
-            #axs[0].legend(loc='upper left')
-            #axs[1].legend(loc='upper left')
+            axs[0].set_xlabel('$F_{var}$', fontsize=14)
+            axs[0].set_ylabel(r'$ \alpha$', fontsize=14)
+            axs[1].set_ylabel('$\Gamma$', fontsize=14)
+            axs[1].set_xlabel('$F_{var}$', fontsize=14)
 
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "fvar_phoindex_correlations.png"))
 
@@ -208,10 +182,9 @@ if __name__ == "__main__":
                         yerr = (df_plot_zlogp_better['beta_bot'].values, df_plot_zlogp_better['beta_top'].values), color='b', linestyle='', marker='.', markersize=5, ecolor='cornflowerblue', elinewidth=1, capsize=2, capthick=1, label='logpar best model')
             
             plt.grid()
-            plt.ylabel(r'$\beta$', fontsize=10)
-            plt.xlabel('$F_{var}$', fontsize=10)
+            plt.ylabel(r'$\beta$', fontsize=14)
+            plt.xlabel('$F_{var}$', fontsize=14)
             plt.title('Logparabola', fontsize=15)
-            #plt.legend(loc='upper left')
             plt.tight_layout()
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "fvar_beta_correlations.png"))
 
@@ -357,41 +330,41 @@ if __name__ == "__main__":
             axs1.errorbar(y=df_plot_zpowe['rate'].values[0:9], x=df_plot_zpowe['time'].values[0:9], yerr=df_plot_zpowe['erate'].values[0:9],
                             fmt='.',color='black', ecolor='gray', marker='.', markersize=5, elinewidth=1, capsize=2, capthick=1)
             axs1.errorbar(y=df_plot_zpowe['rate'].values[10:14], x=df_plot_zpowe['time'].values[10:14], yerr=df_plot_zpowe['erate'].values[10:14],
-                            fmt='.',color='black', ecolor='gray', marker='o', markersize=5, elinewidth=1, capsize=2, capthick=1, label='Epoch 1')
+                            fmt='.',color='red', ecolor='gray', marker='o', markersize=5, elinewidth=1, capsize=2, capthick=1, label='Epoch 1')
             axs1.errorbar(y=df_plot_zpowe['rate'].values[15:20], x=df_plot_zpowe['time'].values[15:20], yerr=df_plot_zpowe['erate'].values[15:20],
-                            fmt='.',color='black', ecolor='gray', marker='v', markersize=5, elinewidth=1, capsize=2, capthick=1, label='Epoch 2')
+                            fmt='.',color='blue', ecolor='gray', marker='v', markersize=5, elinewidth=1, capsize=2, capthick=1, label='Epoch 2')
             axs1.errorbar(y=df_plot_zpowe['rate'].values[21:26], x=df_plot_zpowe['time'].values[21:26], yerr=df_plot_zpowe['erate'].values[21:26],
-                            fmt='.',color='black', ecolor='gray', marker='^', markersize=5, elinewidth=1, capsize=2, capthick=1, label='Epoch 3')
+                            fmt='.',color='g', ecolor='gray', marker='^', markersize=5, elinewidth=1, capsize=2, capthick=1, label='Epoch 3')
             axs1.errorbar(y=df_plot_zpowe['rate'].values[27:31], x=df_plot_zpowe['time'].values[27:31], yerr=df_plot_zpowe['erate'].values[27:31],
-                            fmt='.',color='black', ecolor='gray', marker='s', markersize=5, elinewidth=1, capsize=2, capthick=1, label='Epoch 4')
+                            fmt='.',color='orange', ecolor='gray', marker='s', markersize=5, elinewidth=1, capsize=2, capthick=1, label='Epoch 4')
             axs1.errorbar(y=df_plot_zpowe['rate'].values[32:-1], x=df_plot_zpowe['time'].values[32:-1], yerr=df_plot_zpowe['erate'].values[32:-1],
                             fmt='.',color='black', ecolor='gray', marker='.', markersize=5, elinewidth=1, capsize=2, capthick=1,)
-            axs1.set_xlabel('Time [MJD]')
-            axs1.set_ylabel('Rate [ct/s]')
+            axs1.set_xlabel('Time [MJD]', fontsize=12)
+            axs1.set_ylabel('Rate [ct/s]', fontsize=12)
             axs1.ticklabel_format(useOffset=False)
             axs1.legend(ncol=4)
 
             axs2 = plt.subplot(321)
-            axs2.set_title('Epoch 1', fontsize=7)
-            axs2.set_ylabel('$\Gamma$ (powerlaw)')
-            axs2.errorbar(y=loop1, x=x_loop1, fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 1')
+            axs2.set_title('Epoch 1', fontsize=11)
+            axs2.set_ylabel('$\Gamma$ (powerlaw)', fontsize=12)
+            axs2.errorbar(y=loop1, x=x_loop1, fmt='.',color='red', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 1')
             axs2.quiver(x_loop1[:-1], loop1[:-1], x_loop1[1:]-x_loop1[:-1], loop1[1:]-loop1[:-1], scale_units='xy', angles='xy', scale=1, width=0.006, headwidth=10)
 
             axs3 = plt.subplot(322)
-            axs3.set_title('Epoch 2', fontsize=7)
-            axs3.errorbar(y=loop2, x=x_loop2, fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 2')
+            axs3.set_title('Epoch 2', fontsize=11)
+            axs3.errorbar(y=loop2, x=x_loop2, fmt='.',color='blue', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 2')
             axs3.quiver(x_loop2[:-1], loop2[:-1], x_loop2[1:]-x_loop2[:-1], loop2[1:]-loop2[:-1], scale_units='xy', angles='xy', scale=1, width=0.006, headwidth=10)
         
             axs4 = plt.subplot(323)
-            axs4.set_title('Epoch 3', fontsize=7)
-            axs4.set_ylabel('$\Gamma$ (powerlaw)')
-            axs4.errorbar(y=loop3, x=x_loop3, fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 3')
+            axs4.set_title('Epoch 3', fontsize=11)
+            axs4.set_ylabel('$\Gamma$ (powerlaw)', fontsize=12)
+            axs4.errorbar(y=loop3, x=x_loop3, fmt='.',color='g', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 3')
             axs4.quiver(x_loop3[:-1], loop3[:-1], x_loop3[1:]-x_loop3[:-1], loop3[1:]-loop3[:-1], scale_units='xy', angles='xy', scale=1, width=0.006, headwidth=10)
             
             axs5 = plt.subplot(324)
-            axs5.set_title('Epoch 4', fontsize=7)
-            axs5.set_xlabel('Rate [ct/s]')
-            axs5.errorbar(y=loop4, x=x_loop4,fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 3')
+            axs5.set_title('Epoch 4', fontsize=11)
+            axs5.set_xlabel('Rate [ct/s]', fontsize=11)
+            axs5.errorbar(y=loop4, x=x_loop4,fmt='.',color='orange', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 3')
             axs5.quiver(x_loop4[:-1], loop4[:-1], x_loop4[1:]-x_loop4[:-1], loop4[1:]-loop4[:-1], scale_units='xy', angles='xy', scale=1, width=0.006, headwidth=10)
             
             plt.tight_layout()
@@ -417,52 +390,52 @@ if __name__ == "__main__":
 
             fig = plt.figure(figsize=(11,13))
             axs1 = plt.subplot(331)
-            axs1.set_title('Epoch 1', fontsize=7)
-            axs1.set_ylabel('$\Gamma$ (powerlaw)')
-            axs1.errorbar(y=loop1, x=x_loop1, fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 1')
+            axs1.set_title('Epoch 1', fontsize=12)
+            axs1.set_ylabel('$\Gamma$ (powerlaw)', fontsize=14)
+            axs1.errorbar(y=loop1, x=x_loop1, fmt='.',color='red', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 1')
             axs1.quiver(x_loop1[:-1], loop1[:-1], x_loop1[1:]-x_loop1[:-1], loop1[1:]-loop1[:-1], scale_units='xy', angles='xy', scale=1, width=0.006, headwidth=10)
             
             axs2 = plt.subplot(332)
-            axs2.set_title('Epoch 2', fontsize=7)
-            axs2.errorbar(y=loop2, x=x_loop2, fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 2')
+            axs2.set_title('Epoch 2', fontsize=12)
+            axs2.errorbar(y=loop2, x=x_loop2, fmt='.',color='blue', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 2')
             axs2.quiver(x_loop2[:-1], loop2[:-1], x_loop2[1:]-x_loop2[:-1], loop2[1:]-loop2[:-1], scale_units='xy', angles='xy', scale=1, width=0.006, headwidth=10)
 
             axs3 = plt.subplot(333)
-            axs3.set_title('Epoch 3', fontsize=7)
-            axs3.errorbar(y=loop3, x=x_loop3, fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 3')
+            axs3.set_title('Epoch 3', fontsize=12)
+            axs3.errorbar(y=loop3, x=x_loop3, fmt='.',color='g', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 3')
             axs3.quiver(x_loop3[:-1], loop3[:-1], x_loop3[1:]-x_loop3[:-1], loop3[1:]-loop3[:-1], scale_units='xy', angles='xy', scale=1, width=0.006, headwidth=10)
 
             axs4 = plt.subplot(323)
-            axs4.set_title('Epoch 4', fontsize=7)
-            axs4.set_ylabel('$\Gamma$ (powerlaw)')
-            axs4.errorbar(y=loop4, x=x_loop4, fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 3')
+            axs4.set_title('Epoch 4', fontsize=12)
+            axs4.set_ylabel('$\Gamma$ (powerlaw)', fontsize=14)
+            axs4.errorbar(y=loop4, x=x_loop4, fmt='.',color='orange', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 3')
             axs4.quiver(x_loop4[:-1], loop4[:-1], x_loop4[1:]-x_loop4[:-1], loop4[1:]-loop4[:-1], scale_units='xy', angles='xy', scale=1, width=0.006, headwidth=10)
 
             axs5 = plt.subplot(324)
-            axs5.set_title('Epoch 5', fontsize=7)
-            axs5.set_xlabel('Rate [ct/s]')
-            axs5.errorbar(y=loop5, x=x_loop5, fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 3')
+            axs5.set_title('Epoch 5', fontsize=12)
+            axs5.set_xlabel('Rate [ct/s]', fontsize=14)
+            axs5.errorbar(y=loop5, x=x_loop5, fmt='.',color='purple', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 3')
             axs5.quiver(x_loop5[:-1], loop5[:-1], x_loop5[1:]-x_loop5[:-1], loop5[1:]-loop5[:-1], scale_units='xy', angles='xy', scale=1, width=0.006, headwidth=10)
 
             axs6 = plt.subplot(313)
             axs6.errorbar(y=df_plot_zpowe['rate'].values[1:7], x=df_plot_zpowe['time'].values[1:7], yerr=df_plot_zpowe['erate'].values[1:7],
-                            fmt='.',color='black', ecolor='gray', marker='d', markersize=7, elinewidth=1, capsize=2, capthick=1, label='Epoch 1')
+                            fmt='.',color='r', ecolor='gray', marker='d', markersize=7, elinewidth=1, capsize=2, capthick=1, label='Epoch 1')
             axs6.errorbar(y=df_plot_zpowe['rate'].values[7:16], x=df_plot_zpowe['time'].values[7:16], yerr=df_plot_zpowe['erate'].values[7:16],
-                            fmt='.',color='black', ecolor='gray', marker='o', markersize=7, elinewidth=1, capsize=2, capthick=1, label='Epoch 2')
+                            fmt='.',color='blue', ecolor='gray', marker='o', markersize=7, elinewidth=1, capsize=2, capthick=1, label='Epoch 2')
             axs6.errorbar(y=df_plot_zpowe['rate'].values[23:28], x=df_plot_zpowe['time'].values[23:28], yerr=df_plot_zpowe['erate'].values[23:28],
-                            fmt='.',color='black', ecolor='gray', marker='v', markersize=7, elinewidth=1, capsize=2, capthick=1, label='Epoch 3')
+                            fmt='.',color='g', ecolor='gray', marker='v', markersize=7, elinewidth=1, capsize=2, capthick=1, label='Epoch 3')
             axs6.errorbar(y=df_plot_zpowe['rate'].values[33:40], x=df_plot_zpowe['time'].values[33:40], yerr=df_plot_zpowe['erate'].values[33:40],
-                            fmt='.',color='black', ecolor='gray', marker='^', markersize=7, elinewidth=1, capsize=2, capthick=1, label='Epoch 4')
+                            fmt='.',color='orange', ecolor='gray', marker='^', markersize=7, elinewidth=1, capsize=2, capthick=1, label='Epoch 4')
             axs6.errorbar(y=df_plot_zpowe['rate'].values[43:47], x=df_plot_zpowe['time'].values[43:47], yerr=df_plot_zpowe['erate'].values[43:47],
-                            fmt='.',color='black', ecolor='gray', marker='s', markersize=7, elinewidth=1, capsize=2, capthick=1, label='Epoch 5')
+                            fmt='.',color='purple', ecolor='gray', marker='s', markersize=7, elinewidth=1, capsize=2, capthick=1, label='Epoch 5')
             axs6.errorbar(y=df_plot_zpowe['rate'].values[16:23], x=df_plot_zpowe['time'].values[16:23], yerr=df_plot_zpowe['erate'].values[16:23],
                             fmt='.',color='black', ecolor='gray', marker='.', markersize=5, elinewidth=1, capsize=2, capthick=1)
             axs6.errorbar(y=df_plot_zpowe['rate'].values[40:43], x=df_plot_zpowe['time'].values[40:43], yerr=df_plot_zpowe['erate'].values[40:43],
                             fmt='.',color='black', ecolor='gray', marker='.', markersize=5, elinewidth=1, capsize=2, capthick=1)
             axs6.errorbar(y=df_plot_zpowe['rate'].values[28:33], x=df_plot_zpowe['time'].values[28:33], yerr=df_plot_zpowe['erate'].values[28:33],
                             fmt='.',color='black', ecolor='gray', marker='.', markersize=5, elinewidth=1, capsize=2, capthick=1)
-            axs6.set_xlabel('Time [MJD]')
-            axs6.set_ylabel('Rate [ct/s]')
+            axs6.set_xlabel('Time [MJD]', fontsize=14)
+            axs6.set_ylabel('Rate [ct/s]', fontsize=14)
             axs6.ticklabel_format(useOffset=False)
             axs6.legend(ncol=2)
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", f"hysteresis_{args.hysteresis}.png"))
@@ -479,34 +452,34 @@ if __name__ == "__main__":
             x_loop3 = df_plot_zpowe['rate'].values[12:23]
 
             axs1 = plt.subplot(231)
-            axs1.set_title('Epoch 1', fontsize=7)
-            axs1.set_ylabel('$\Gamma$ (powerlaw)')
-            axs1.errorbar(y=loop1, x=x_loop1, fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 1')
+            axs1.set_title('Epoch 1', fontsize=10)
+            axs1.set_ylabel('$\Gamma$ (powerlaw)', fontsize=12)
+            axs1.errorbar(y=loop1, x=x_loop1, fmt='.',color='red', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 1')
             axs1.quiver(x_loop1[:-1], loop1[:-1], x_loop1[1:]-x_loop1[:-1], loop1[1:]-loop1[:-1], scale_units='xy', angles='xy', scale=1, width=0.006, headwidth=10)
             
             axs2 = plt.subplot(232)
-            axs2.set_title('Epoch 2', fontsize=7)
-            axs2.errorbar(y=loop2, x=x_loop2, fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 1')
+            axs2.set_title('Epoch 2', fontsize=10)
+            axs2.errorbar(y=loop2, x=x_loop2, fmt='.',color='blue', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 1')
             axs2.quiver(x_loop2[:-1], loop2[:-1], x_loop2[1:]-x_loop2[:-1], loop2[1:]-loop2[:-1], scale_units='xy', angles='xy', scale=1, width=0.006, headwidth=10)
              
             axs3 = plt.subplot(233)
-            axs3.set_title('Epoch 3', fontsize=7)
-            axs3.set_xlabel('Rate [ct/s]')
-            axs3.errorbar(y=loop3, x=x_loop3, fmt='.',color='black', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 1')
+            axs3.set_title('Epoch 3', fontsize=10)
+            axs3.set_xlabel('Rate [ct/s]', fontsize=10)
+            axs3.errorbar(y=loop3, x=x_loop3, fmt='.',color='g', markersize=5, elinewidth=1, capsize=2, capthick=1, ecolor='gray', label='Epoch 1')
             axs3.quiver(x_loop3[:-1], loop3[:-1], x_loop3[1:]-x_loop3[:-1], loop3[1:]-loop3[:-1], scale_units='xy', angles='xy', scale=1, width=0.006, headwidth=10)
                        
             axs4 = plt.subplot(212)
             axs4.errorbar(y=df_plot_zpowe['rate'].values[0:4], x=df_plot_zpowe['time'].values[0:4], yerr=df_plot_zpowe['erate'].values[0:4],
-                            fmt='.',color='black', ecolor='gray', marker='d', markersize=6, elinewidth=1, capsize=2, capthick=1, label='Epoch 1')
+                            fmt='.',color='r', ecolor='gray', marker='^', markersize=4, elinewidth=1, capsize=2, capthick=1, label='Epoch 1')
             axs4.errorbar(y=df_plot_zpowe['rate'].values[5:12], x=df_plot_zpowe['time'].values[5:12], yerr=df_plot_zpowe['erate'].values[5:12],
-                            fmt='.',color='black', ecolor='gray', marker='o', markersize=6, elinewidth=1, capsize=2, capthick=1, label='Epoch 2')
+                            fmt='.',color='blue', ecolor='gray', marker='o', markersize=4, elinewidth=1, capsize=2, capthick=1, label='Epoch 2')
             axs4.errorbar(y=df_plot_zpowe['rate'].values[12:23], x=df_plot_zpowe['time'].values[12:23], yerr=df_plot_zpowe['erate'].values[12:23],
-                            fmt='.',color='black', ecolor='gray', marker='s', markersize=6, elinewidth=1, capsize=2, capthick=1, label='Epoch 3')           
+                            fmt='.',color='g', ecolor='gray', marker='s', markersize=4, elinewidth=1, capsize=2, capthick=1, label='Epoch 3')           
             axs4.errorbar(y=df_plot_zpowe['rate'].values[4], x=df_plot_zpowe['time'].values[4], yerr=df_plot_zpowe['erate'].values[4],
                             fmt='.',color='black', ecolor='gray', marker='.', markersize=5, elinewidth=1, capsize=2, capthick=1)           
             plt.legend()
-            axs4.set_xlabel('Time [MJD]')
-            axs4.set_ylabel('Rate [ct/s]')
+            axs4.set_xlabel('Time [MJD]', fontsize=12)
+            axs4.set_ylabel('Rate [ct/s]', fontsize=12)
             axs4.ticklabel_format(useOffset=False)
             plt.tight_layout()
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", f"hysteresis_{args.hysteresis}.png"))
@@ -872,13 +845,12 @@ if __name__ == "__main__":
             #Add vertical lines separating years
             plt.vlines(year_endpoints, 0, 60, colors='r', linestyles='solid')
             plt.grid(axis='y')
-            plt.xlabel('Year', labelpad=0.1)
-            plt.ylabel('Rate [ct/s]', labelpad=0.1)
+            plt.xlabel('Year', labelpad=0.1, fontsize=15)
+            plt.ylabel('Rate [ct/s]', labelpad=0.1, fontsize=15)
             plt.margins(0)
             plt.tight_layout()
-            plt.xticks(ticks=year_endpoints, labels=labels, rotation=60)
+            plt.xticks(ticks=year_endpoints, labels=labels, rotation=50, fontsize=11)
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "compact_LC_vlines.png"))
-            sys.exit()
 
             #Plot panel            
             fig_logp, axs_logp = plt.subplots(4, 1, figsize=(13,11), sharex=True, gridspec_kw={'hspace':0, 'wspace':0})
@@ -931,16 +903,16 @@ if __name__ == "__main__":
             axs_logp[1].grid()
             axs_logp[2].grid()
             axs_logp[3].grid()
-            axs_logp[0].set_ylabel("Rate [ct/s]")
-            axs_logp[1].set_ylabel(r"$\alpha$")
-            axs_logp[2].set_ylabel(r"$\beta$")
-            axs_logp[3].set_ylabel("$N_H$ [$10^{22}$ cm$^{-2}$]")
-            axs_logp[3].set_xlabel("Year")
+            axs_logp[0].set_ylabel("Rate [ct/s]", fontsize=15)
+            axs_logp[1].set_ylabel(r"$\alpha$", fontsize=15)
+            axs_logp[2].set_ylabel(r"$\beta$", fontsize=15)
+            axs_logp[3].set_ylabel("$N_H$ [$10^{22}$ cm$^{-2}$]", fontsize=15)
+            axs_logp[3].set_xlabel("Year", fontsize=15)
             axs_logp[0].margins(0)
             axs_logp[1].margins(0)
             axs_logp[2].margins(0)
             axs_logp[3].margins(0)
-            plt.xticks(ticks=year_endpoints, labels=labels, rotation=60)
+            plt.xticks(ticks=year_endpoints, labels=labels, rotation=50, fontsize=11)
             plt.tight_layout()
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "panel_logpar.png"))
             
@@ -999,14 +971,14 @@ if __name__ == "__main__":
             axs_pw[0].grid()
             axs_pw[1].grid()
             axs_pw[2].grid()
-            axs_pw[0].set_ylabel("Rate [ct/s]")
-            axs_pw[1].set_ylabel("$\Gamma$")
-            axs_pw[2].set_ylabel("$N_H$ [$10^{22}$ cm$^{-2}$]")
-            axs_pw[2].set_xlabel("Year")
+            axs_pw[0].set_ylabel("Rate [ct/s]", fontsize=15)
+            axs_pw[1].set_ylabel("$\Gamma$", fontsize=15)
+            axs_pw[2].set_ylabel("$N_H$ [$10^{22}$ cm$^{-2}$]", fontsize=15)
+            axs_pw[2].set_xlabel("Year", fontsize=15)
             axs_pw[0].margins(0)
             axs_pw[1].margins(0)
             axs_pw[2].margins(0)
-            plt.xticks(ticks=year_endpoints, labels=labels, rotation=60)
+            plt.xticks(ticks=year_endpoints, labels=labels, rotation=50, fontsize=11)
             plt.tight_layout()
             plt.savefig(os.path.join(target_dir, "Products", "Plots_spectra", "panel_powerlaw.png"))
     

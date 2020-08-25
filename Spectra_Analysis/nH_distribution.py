@@ -37,8 +37,8 @@ if __name__ == "__main__":
     plt.errorbar(x=0.0145, y=0.0145, marker='+', markersize=10, markeredgewidth=1, markeredgecolor='r') 
     plt.errorbar(x=0.0079, y=0.0142, marker='x', color='b', markersize=7)
 
-    plt.xlabel('nH_logpar [$10^{22}$ cm$^-2$]')
-    plt.ylabel('nH_power [$10^{22}$ cm$^-2$]')
+    plt.xlabel('nH_logpar [$10^{22}$ cm$^{-2}$]')
+    plt.ylabel('nH_power [$10^{22}$ cm$^{-2}$]')
 
     fig2 = plt.figure()
     counts_pw, bins_pw, _ = plt.hist(data_distrib['nH_powerlaw'], bins=20)

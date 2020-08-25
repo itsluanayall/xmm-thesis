@@ -541,11 +541,6 @@ class Observation:
         axs[1,1].ticklabel_format(useOffset=False)
         axs[1,1].tick_params(axis='both', which='major', labelsize=13, rotation=60)
 
-        #Magic trick for the legend
-        #lines_labels = [ax.get_legend_handles_labels() for ax in fig.axes]
-        #lines, labels = [sum(lol, []) for lol in zip(*lines_labels)]
-        #fig.legend(lines, labels, loc='upper center', bbox_to_anchor=(0.5, 1.00), fontsize='x-large', fancybox=True, shadow=True)
-
         #Save figure in epic/pn directory of the current Observation
         plt.savefig(f'{self.obsid}_epicpn_lc.png')
         if not os.path.isdir(f'{self.target_dir}/Products/EPIC_Lightcurves'):
@@ -559,11 +554,12 @@ class Observation:
         axs2[0].errorbar(x_soft, y_soft, yerr=yerr_soft, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=3, linestyle='', ecolor='gray', label=f'EPIC-pn ObsId {self.obsid}, exposure {self.epic_expid} Soft LC')
         axs2[1].errorbar(x_hard, y_hard, yerr=yerr_hard, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=3, linestyle='', ecolor='gray', label=f'EPIC-pn ObsId {self.obsid}, exposure {self.epic_expid} Hard LC')
         axs2[2].errorbar(x_soft, hr, yerr=hr_err, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=3, linestyle='', ecolor='gray', label=f'EPIC-pn ObsId {self.obsid}, exposure {self.epic_expid} Hardness Ratio')
-        axs2[2].set_xlabel('Time [MJD]')
+        axs2[2].set_xlabel('Time [MJD]', fontsize=12)
+        axs2[2].tick_params(axis='both', which='major', labelsize=8, rotation=50)
         axs2[2].ticklabel_format(useOffset=False)
-        axs2[2].set_ylabel('HR: (H-S)/(H+S)')
-        axs2[1].set_ylabel('CR$_{0.6-2 keV}$ [ct/s]')
-        axs2[0].set_ylabel('CR$_{2-10 keV}$ [ct/s]')
+        axs2[2].set_ylabel('HR: (H-S)/(H+S)', fontsize=12)
+        axs2[1].set_ylabel('CR$_{0.6-2 keV}$ [ct/s]', fontsize=12)
+        axs2[0].set_ylabel('CR$_{2-10 keV}$ [ct/s]', fontsize=12)
         axs2[0].grid()
         axs2[1].grid()
         axs2[2].grid()
@@ -1872,7 +1868,7 @@ class Observation:
                 axs[0].errorbar(data['TIME'].values, data['RATE'].values, yerr=data['ERROR'].values, linestyle='', color='black', marker='.', ecolor='gray', 
                             label=f'RGS Lightcurve ObsId {self.obsid} binsize {timebinsize}s ')
                 axs[0].grid(True)
-                axs[0].set_ylabel('x', fontsize=10)
+                axs[0].set_ylabel('x', fontsize=15)
 
 
                 #---------Subplot <x> (mean lightcurve)-----#
@@ -1880,7 +1876,7 @@ class Observation:
 
                 axs[1].errorbar(mean_time, mean_data, yerr=mean_error_data, color='black', linestyle='', marker='.', ecolor='gray')
                 axs[1].grid()
-                axs[1].set_ylabel('<x>', fontsize=10)
+                axs[1].set_ylabel('<x>', fontsize=15)
 
 
                 #----------Subplot excess variance---------#
@@ -1928,7 +1924,7 @@ class Observation:
                 axs[2].errorbar(mean_time_nonneg, xs_pos_arr, xs_pos_err_arr, color='black', marker='.', linestyle='', ecolor='gray' )
                 axs[2].errorbar(mean_time_uplim, xs_uplim, capthick=1, elinewidth=1, color='black', linestyle='', marker=r'$\downarrow$', uplims=True)
                 axs[2].grid()
-                axs[2].set_ylabel('$\sigma_{XS}^2$', fontsize=10)
+                axs[2].set_ylabel('$\sigma_{XS}^2$', fontsize=15)
 
                 #----------Subplot mean excess variance----------#
                 df_mean_xs = pd.DataFrame({'time': mean_time_nonneg, 'xs': xs_pos_arr})
@@ -1969,7 +1965,7 @@ class Observation:
                 axs[3].grid()
                 axs[3].legend(loc='lower right', fancybox=True)
                 axs[3].set_yscale('log')
-                axs[3].set_ylabel('$<\sigma_{XS}^2>$', fontsize=10)
+                axs[3].set_ylabel('$<\sigma_{XS}^2>$', fontsize=15)
 
                 #-------------Subplot F_var-------------#
                 segment = N*timebinsize
@@ -2007,7 +2003,7 @@ class Observation:
                 df_fvar = df_fvar.dropna()
                 axs[4].errorbar(data=df_fvar, x='time', y='fvar', yerr='fvar_err', linestyle='', color='black', marker='.', ecolor='gray')
                 axs[4].grid()
-                axs[4].set_ylabel('$F_{var}$', fontsize=10)
+                axs[4].set_ylabel('$F_{var}$', fontsize=15)
 
                 
                 #---------------Subplot mean Fvar-----------#
@@ -2016,8 +2012,8 @@ class Observation:
 
                 axs[5].errorbar(meanx2_times, fvar_mean_arr, fvar_err_mean_arr, xerr=meanx2_times_err, linestyle='', color='black', marker='.', ecolor='gray')
                 axs[5].grid()
-                axs[5].set_xlabel('TIME [s]', fontsize=10)
-                axs[5].set_ylabel('$<F_{var}>$', fontsize=10)
+                axs[5].set_xlabel('TIME [s]', fontsize=15)
+                axs[5].set_ylabel('$<F_{var}>$', fontsize=15)
 
                 # Fit constant  
                 fvar_mean_arr = np.array(fvar_mean_arr)
