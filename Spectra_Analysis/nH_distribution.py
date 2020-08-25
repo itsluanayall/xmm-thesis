@@ -34,7 +34,7 @@ if __name__ == "__main__":
     
     g = (sns.jointplot("nH_logpar", "nH_powerlaw", data=data_distrib, space=0, height=7, color="royalblue", marker='.').plot_joint(sns.kdeplot,zorder=0, n_levels=5))
     plt.errorbar(data_distrib.nH_logpar, data_distrib.nH_powerlaw, linestyle='', ecolor='lightsteelblue', alpha=0.4, xerr=(nH_bot_logpar, nH_top_logpar), yerr=(nH_bot_powerlaw, nH_top_powerlaw))
-    plt.errorbar(x=0.0145, y=0.0145, marker='+', markersize=10, markeredgewidth=1, markeredgecolor='r') 
+    plt.errorbar(x=0.0134, y=0.0134, marker='+', markersize=10, markeredgewidth=1, markeredgecolor='r') 
     plt.errorbar(x=0.0079, y=0.0142, marker='x', color='b', markersize=7)
 
     plt.xlabel('nH_logpar [$10^{22}$ cm$^{-2}$]')
