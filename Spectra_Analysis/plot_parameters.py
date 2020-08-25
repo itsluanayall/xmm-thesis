@@ -1015,16 +1015,10 @@ if __name__ == "__main__":
 
         if args.logpar:
 
-            # Separate data into low and high state (rate >20)
+            # Separate data into low and high state (rate >20 cts/s)
             data_spec_zlogp = data_spec_zlogp[data_spec_zlogp['phoindex_up']!=0]
             data_spec_zlogp_high = data_spec_zlogp[data_spec_zlogp['rate']>=20]
             data_spec_zlogp_low = data_spec_zlogp[data_spec_zlogp['rate']<20]
-                        
-            #Distinguish model favoring based on Ftest column
-            data_spec_avg_logp = data_spec_avg[data_spec_avg['model']=='constant*TBabs*zlogp']
-            logpar_better = data_spec_avg_logp[(data_spec_avg_logp['ftest']<0.1) & (data_spec_avg_logp['ftest']!=-999.)]
-            logpar_better_high = logpar_better[logpar_better['rate']>=20] 
-            logpar_better_low = logpar_better[logpar_better['rate']<20] 
 
             # Plot distribution for alpha and beta 
             fig, axs = plt.subplots(2, 2, figsize=(7,7), sharex=True, gridspec_kw={'hspace':0.1})
@@ -1042,7 +1036,6 @@ if __name__ == "__main__":
             #Alpha, low rate
             weights = np.ones_like(data_spec_zlogp_low['phoindex'].values) / len(data_spec_zlogp_low['phoindex'].values)
             y_low_alpha, x_low_alpha, _ = axs[1,0].hist(data_spec_zlogp_low['phoindex'].values, bins=30, hatch='/', color='blue', weights=weights)
-            #axs[1,0].hist(logpar_better_low['phoindex'].values, bins=5, color='c')
             binsize = (x_low_alpha[1]-x_low_alpha[0])/2            
             axs[1,0].vlines(x=x_low_alpha[np.argmax(y_low_alpha)]+binsize, ymin=0, ymax=y_low_alpha.max(), linewidth=1, color='black')
             free_text = f"max alpha: {round(x_low_alpha[np.argmax(y_low_alpha)]+binsize, 2)} $\pm$ {round(binsize, 2)}"
@@ -1055,11 +1048,9 @@ if __name__ == "__main__":
             sample2 = data_spec_zlogp_low['phoindex'].values
             print('K-S for alpha (logpar): ',ks_2samp(sample1, sample2))
 
-
             #Beta, high rate
             weights = np.ones_like(data_spec_zlogp_high['beta'].values) / len(data_spec_zlogp_high['beta'].values)
             y_high_beta, x_high_beta, _ = axs[0,1].hist(data_spec_zlogp_high['beta'].values, bins=30, color='red', weights=weights)
-            #axs[0,1].hist(logpar_better_high['beta'].values, bins=5, color='orange')
             binsize = (x_high_beta[1]-x_high_beta[0])/2
             axs[0,1].vlines(x=x_high_beta[np.argmax(y_high_beta)]+binsize, ymin=0, ymax=y_high_beta.max(), linewidth=1, color='black')
             free_text = f"max beta: {round(x_high_beta[np.argmax(y_high_beta)]+binsize, 2)} $\pm$ {round(binsize, 2)}"
@@ -1070,7 +1061,6 @@ if __name__ == "__main__":
             #Beta, low rate
             weights = np.ones_like(data_spec_zlogp_low['beta'].values) / len(data_spec_zlogp_low['beta'].values)
             y_low_beta, x_low_beta, _ = axs[1,1].hist(data_spec_zlogp_low['beta'].values, bins=30, hatch='/', color='blue', weights=weights)
-            #axs[1,1].hist(logpar_better_low['beta'].values, bins=5, color='c')
             binsize = (x_low_beta[1]-x_low_beta[0])/2
             axs[1,1].vlines(x=x_low_beta[np.argmax(y_low_beta)]+binsize, ymin=0, ymax=y_low_beta.max(), linewidth=1, color='black')
             free_text = f"max beta: {round(x_low_beta[np.argmax(y_low_beta)]+binsize, 2)} $\pm$ {round(binsize, 2)}"
@@ -1111,7 +1101,7 @@ if __name__ == "__main__":
             binsize = (x_high[1]-x_high[0])/2
             axs[0].vlines(x=x_high[np.argmax(y_high)]+binsize, ymin=0, ymax=y_high.max(), color='black', linewidth=1)
             free_text = f"max $\Gamma$: {round(x_high[np.argmax(y_high)]+binsize, 2)} $\pm$ {round(binsize, 2)}"
-            text_box = AnchoredText(free_text, frameon=False, loc='upper right', pad=0.5)
+            text_box = AnchoredText(free_text, frameon=False, loc='upper left', pad=0.5)
             plt.setp(text_box.patch, facecolor='white', alpha=0.5)
             axs[0].add_artist(text_box)
 
@@ -1121,7 +1111,7 @@ if __name__ == "__main__":
             binsize = (x_low[1]-x_low[0])/2
             axs[1].vlines(x=x_low[np.argmax(y_low)]+binsize, ymin=0, ymax=y_low.max(), color='black', linewidth=1)
             free_text = f"max $\Gamma$: {round(x_low[np.argmax(y_low)]+binsize, 2)} $\pm$ {round(binsize, 2)}"
-            text_box = AnchoredText(free_text, frameon=False, loc='upper right', pad=0.5)
+            text_box = AnchoredText(free_text, frameon=False, loc='upper left', pad=0.5)
             plt.setp(text_box.patch, facecolor='white', alpha=0.5)
             axs[1].add_artist(text_box)
             
