@@ -692,7 +692,7 @@ class Observation:
             y = y[mask_nan]
             yerr = yerr[mask_nan]
 
-            #Search for significant flares
+            #Search for significant flares (rate > 3*sigma +mean)
             for rate_value in y:
                 
                 if rate_value > (3*std_y + mean_y):
@@ -985,7 +985,8 @@ class Observation:
 
     def pn_spectrum(self, pileup=False):
         """
-        Follows https://www.cosmos.esa.int/web/xmm-newton/sas-thread-pn-spectrum-timing
+        Follows the steps from the following SAS thread: 
+        https://www.cosmos.esa.int/web/xmm-newton/sas-thread-pn-spectrum-timing
         """
         os.chdir(self.epdir)
 
@@ -1060,6 +1061,14 @@ class Observation:
 
     def pn_xspec(self, target_REDSHIFT):
         """
+        XSPEC analysis of the EPIC-pn spectrum of the observation. The steps are all logged into a file called XSPECLogFile_{self.obsid}_spectrum.txt.
+        The fit is performed on two different models: logparabola and powerlaw. The plot of the spectra and residuals is done
+        using matplotlib. The plotting function is written in tools.py.
+        The flux and luminosity are stored, given the target_REDSHIFT as argument.
+        The fitted parameters and the spectrum counts are all stored into an astropy Table that is then saved as a FITS file.
+        
+        :param target_REDSHIFT: redshift of target
+        :type target_REDSHIFT: float
         """
 
         # Make sure output directory exists
@@ -1837,15 +1846,14 @@ class Observation:
         """
         os.chdir(self.rgsdir)
         for i in range(self.npairs):
-            print(self.obsid)
+
             if (self.duration_lc_ks[i] >= timescale):# or (self.obsid =='0791780201'):
                 logging.info('Observation long enough to make variability panel.')
                 expos0 = Exposure(self.pairs_events[i][0], self.pairs_srcli[i][0])
                 expos1 = Exposure(self.pairs_events[i][1], self.pairs_srcli[i][1])
                 logging.info(f"Starting generation of Vaughan Panel for observation number {self.obsid}, exposures {expos0.expid}, {expos1.expid}.")
 
-                #Run rgslccorr on timebin of 25s
-                timebinsize = 25 #s
+                #Run rgslccorr on timebin of chosen timebinsize s
                 if not glob.glob(os.path.join(self.rgsdir, f"{self.obsid}_{expos0.expid}+{expos1.expid}_bkg_rates_{timebinsize}bin.ds")):
                     logging.info(f"Running rgslccorr SAS command, timebinsize {timebinsize}s.")
                     rgslc_command = f"rgslccorr evlist='{expos0.evenli} {expos1.evenli}' srclist='{expos0.srcli} {expos1.srcli}' withbkgsubtraction=yes timebinsize={timebinsize} orders='1' sourceid=3 outputsrcfilename={self.obsid}_{expos0.expid}+{expos1.expid}_RGS_rates_{timebinsize}bin.ds outputbkgfilename={self.obsid}_{expos0.expid}+{expos1.expid}_bkg_rates_{timebinsize}bin.ds"
@@ -1892,7 +1900,7 @@ class Observation:
                     segment_df = data[(data['TIME']<t+segment) & (data['TIME']>t)]
                     n_in_segment = len(segment_df)
                     
-                    if n_in_segment <=2:
+                    if n_in_segment <=2:  #average on al least 2 data points
                         t += segment
                         continue
 
@@ -2090,12 +2098,6 @@ class Observation:
                 xs_sorted = xs_sorted.dropna()
                 xs_sorted = xs_sorted.sort_values(by=['rate'])
                 xs_sorted = xs_sorted[xs_sorted['xs']>0.]   
-                '''
-                #Consider upper limits of xs in calculating fvar
-                xs_sorted = pd.DataFrame({'rate': mean_data, 'xs': xs_arr, 'xs_err': xs_err_arr, 'fvar': fvar_arr, 'fvar_err': fvar_err_arr})
-                xs_sorted = xs_sorted.dropna()
-                xs_sorted = xs_sorted.sort_values(by=['rate'])
-                '''
 
                 #Binning
                 meanx2_rate, meanx2_xs, meanx2_rate_err, meanx2_xs_err = binning(N, 1/N, xs_sorted, 'rate', 'xs')
