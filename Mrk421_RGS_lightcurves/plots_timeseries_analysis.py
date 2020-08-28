@@ -1,11 +1,13 @@
 """
-Welcome to plot_parameters.py!
+Welcome to plot_timeseries_analysis.py! This script allows to generate some interesting plots concerning 
+timeseries, lightcurves and variability quantities. Here follow the possible combinations:
 
 
- --fvar --phoindex (--beta) --average, 
- --rate --phoindex (--beta) --bins, 
- --phoindex --beta, 
- --panel --bins --logpar (--powerlaw) 
+ --fvar  
+ --fvar --correlation
+ --lightcurve total
+ --lightcurve mean
+ 
 """
 
 from astropy.io import fits
