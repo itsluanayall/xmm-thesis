@@ -1865,9 +1865,11 @@ class Observation:
                 data = data[2:]
                 if self.obsid == '0560980101':
                     data = data[1:]
-                
-                
 
+                #Set initial time to 0, so it's more readable
+                data['TIME'] -= data['TIME'].values[0]
+                
+                
                 ###### --------------------------PANEL ----------------------------------#####
                 fig, axs = plt.subplots(6, 1, figsize=(15,20), sharex=True, gridspec_kw={'hspace':0, 'wspace':0})
                 fig.suptitle(f'RGS Lightcurve ObsId {self.obsid}, {expos0.expid}+{expos1.expid}, binsize {timebinsize}s \n N ={N}, M = {M}', fontsize=15, y=0.92)
