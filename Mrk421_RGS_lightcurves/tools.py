@@ -194,6 +194,10 @@ def fractional_variability(rates, errrates, backv, backe, netlightcurve=True, co
 
 def mask_fracexp15(fits_file):
     """
+    For each light curve, checks the FRACEXP column of the FITS file given as argument. If the value
+    is not at least 15%, the data point is discarded.
+    Returns the time array, the rate array, the error rate array, the fracexp array, the background rate array,
+    and the background error rate array. 
     """
     #Check FRACEXP column, the fractional exposure extension. If not at least 15%, discard the datapoint
     with fits.open(fits_file) as hdul:

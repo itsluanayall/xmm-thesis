@@ -420,6 +420,7 @@ class Observation:
 
         for filename in glob.glob('*_RGS_rates.ds'):
             output_name = filename
+            
             try:
                   
                 logging.info(f'The lightcurve {output_name} will be plotted with matplotlib.')
