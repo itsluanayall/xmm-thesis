@@ -51,7 +51,6 @@ if __name__ == "__main__":
     mjdref = CONFIG['MJDREF']
     target_dir = CONFIG['target_dir']
     target_REDSHIFT = CONFIG['target_REDSHIFT']
-    use_grace = CONFIG['use_grace']
     timescale_fvar = CONFIG['timescale_fvar']
     logging.info(f'MRK421 Analysis - version:{version}')
     setupSAS(sas_dir=sas_dir, ccf_dir=ccf_dir)
@@ -105,7 +104,7 @@ if __name__ == "__main__":
             obs.bkg_lightcurve()
             obs.check_flaring_particle_bkgr()
             obs.rgslccorr()
-            obs.lightcurve(mjdref=mjdref, use_grace=use_grace)
+            obs.lightcurve(mjdref=mjdref)
             obs.fracvartest(screen=True, instrument='rgs')
             obs.vaughan_panel(N=30, M=20, timescale=timescale_fvar, timebinsize=25)
             obs.divide_spectrum()

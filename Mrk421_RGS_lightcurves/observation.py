@@ -403,7 +403,7 @@ class Observation:
                 logging.info(f'Lightcurves already extracted.')
             
 
-    def lightcurve(self, mjdref, use_grace=False):
+    def lightcurve(self, mjdref):
         """
         Makes the lightcurve plot and saves it in the rgs directory of the current observation
         The user here has two options: you can either save the lightcurve using the dsplot command
@@ -421,61 +421,52 @@ class Observation:
         for filename in glob.glob('*_RGS_rates.ds'):
             output_name = filename
             try:
-                if use_grace: 
-                    logging.info(f'The RGS lightcurve {output_name} will be plotted with xmgrace.')
-                    plot_lc_command = f'dsplot table={output_name} withx=yes x=TIME withy=yes y=RATE plotter="xmgrace -hardcopy -printfile {output_name}.ps"'
-                    plot_status = run_command(plot_lc_command)
-                    if (plot_status!=0):
-                        raise Exception
-                    else:
-                        logging.info(f'Lightcurve {output_name} ready and saved.')
+                  
+                logging.info(f'The lightcurve {output_name} will be plotted with matplotlib.')
 
-                else:  
-                    logging.info(f'The lightcurve {output_name} will be plotted with matplotlib.')
+                #Extract data from the lightcurve fits file produced with rgslccorr and drop NaN values by making a numpy mask
+                x, y, yerr, fracexp, y_bg, yerr_bg = mask_fracexp15(output_name)
+            
+                #Store average rate into Observation attribute
+                self.rgsrate.append(np.mean(y))
+                avg_rate = np.mean(y)
+                stdev_rate = np.sqrt(1/(np.sum(1/np.square(yerr))))  #weighted error of mean
+                self.stdev.append(stdev_rate)
+                avg_time = np.mean((x[0], x[-1]))
+                self.duration_lc_ks.append((x[-1] - x[0])/1000.)
 
-                    #Extract data from the lightcurve fits file produced with rgslccorr and drop NaN values by making a numpy mask
-                    x, y, yerr, fracexp, y_bg, yerr_bg = mask_fracexp15(output_name)
-                
-                    #Store average rate into Observation attribute
-                    self.rgsrate.append(np.mean(y))
-                    avg_rate = np.mean(y)
-                    stdev_rate = np.sqrt(1/(np.sum(1/np.square(yerr))))  #weighted error of mean
-                    self.stdev.append(stdev_rate)
-                    avg_time = np.mean((x[0], x[-1]))
-                    self.duration_lc_ks.append((x[-1] - x[0])/1000.)
+                #Conversion in MJD (note that 86400 are the seconds in one day)
+                avg_time_mjd = mjdref + (avg_time/86400.0)
+                self.longterm_lc_times.append(avg_time_mjd)
+                x_mjd = mjdref + (x/86400.0)
 
-                    #Conversion in MJD (note that 86400 are the seconds in one day)
-                    avg_time_mjd = mjdref + (avg_time/86400.0)
-                    self.longterm_lc_times.append(avg_time_mjd)
-                    x_mjd = mjdref + (x/86400.0)
+                #Plot data: 1 panel for source lc, one panel for background lc
+                fig, axs = plt.subplots(2, 1, figsize=(15,10), sharex=True, gridspec_kw={'hspace':0})
+                axs[0].errorbar(x_mjd, y, yerr=yerr, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='-', ecolor='gray', label=f'RGS Lightcurve ObsId {self.obsid}, exposures {output_name[11:18]} ')
+                axs[0].grid(True)
+                axs[0].ticklabel_format(useOffset=False)
+                axs[0].set_ylabel('Rate [ct/s]', fontsize=13)
+                axs[0].hlines(avg_rate, plt.xlim()[0], plt.xlim()[1], colors='b', label=f'Average rate: {avg_rate: .2f} +- {stdev_rate:.2f} [ct/s]')
+                axs[0].tick_params(axis='both', which='major', labelsize=13)
 
-                    #Plot data: 1 panel for source lc, one panel for background lc
-                    fig, axs = plt.subplots(2, 1, figsize=(15,10), sharex=True, gridspec_kw={'hspace':0})
-                    axs[0].errorbar(x_mjd, y, yerr=yerr, color='black', fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='-', ecolor='gray', label=f'RGS Lightcurve ObsId {self.obsid}, exposures {output_name[11:18]} ')
-                    axs[0].grid(True)
-                    axs[0].ticklabel_format(useOffset=False)
-                    axs[0].set_ylabel('Rate [ct/s]', fontsize=13)
-                    axs[0].hlines(avg_rate, plt.xlim()[0], plt.xlim()[1], colors='b', label=f'Average rate: {avg_rate: .2f} +- {stdev_rate:.2f} [ct/s]')
-                    axs[0].tick_params(axis='both', which='major', labelsize=13)
+                axs[1].errorbar(x_mjd, y_bg, yerr=yerr_bg, color='red',fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='-', ecolor='rosybrown', label=f'Background')
+                axs[1].set_xlabel('Time [MJD]', fontsize=13)
+                axs[1].ticklabel_format(useOffset=False)
+                axs[1].set_ylabel('Background Rate [ct/s]', fontsize=13)
+                axs[1].grid(True)
+                axs[1].tick_params(axis='both', which='major', labelsize=13)
 
-                    axs[1].errorbar(x_mjd, y_bg, yerr=yerr_bg, color='red',fmt='.', elinewidth=1, capsize=2, capthick=1, markersize=5, linestyle='-', ecolor='rosybrown', label=f'Background')
-                    axs[1].set_xlabel('Time [MJD]', fontsize=13)
-                    axs[1].ticklabel_format(useOffset=False)
-                    axs[1].set_ylabel('Background Rate [ct/s]', fontsize=13)
-                    axs[1].grid(True)
-                    axs[1].tick_params(axis='both', which='major', labelsize=13)
+                #Magic trick for the legend
+                lines_labels = [ax.get_legend_handles_labels() for ax in fig.axes]
+                lines, labels = [sum(lol, []) for lol in zip(*lines_labels)]
+                fig.legend(lines, labels, loc='upper center', bbox_to_anchor=(0.5, 1.00), fontsize='x-large', fancybox=True, shadow=True)
 
-                    #Magic trick for the legend
-                    lines_labels = [ax.get_legend_handles_labels() for ax in fig.axes]
-                    lines, labels = [sum(lol, []) for lol in zip(*lines_labels)]
-                    fig.legend(lines, labels, loc='upper center', bbox_to_anchor=(0.5, 1.00), fontsize='x-large', fancybox=True, shadow=True)
+                #Save figure in rgs directory of the current Observation
+                plt.savefig(f'{output_name}.png')
+                plt.savefig(os.path.join(self.target_dir, "Products", "RGS_Lightcurves", f"{output_name}.png"))
+                plt.close()
 
-                    #Save figure in rgs directory of the current Observation
-                    plt.savefig(f'{output_name}.png')
-                    plt.savefig(os.path.join(self.target_dir, "Products", "RGS_Lightcurves", f"{output_name}.png"))
-                    plt.close()
-
-                    logging.info(f'The lightcurve is saved as {output_name}.png')
+                logging.info(f'The lightcurve is saved as {output_name}.png')
 
             except Exception as e:
                 logging.error(e)
