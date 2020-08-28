@@ -1,3 +1,8 @@
+"""
+Welcome to ftest.py! This scripts allows you to perform the F-test on the results of the fits using the 
+XSpec. Please append "--epic" if you want to perform the test on EPIC data.
+"""
+
 import logging
 import os
 import glob
@@ -7,8 +12,11 @@ from config import CONFIG
 import numpy as np
 import sys
 import matplotlib.pyplot as plt
+from argparse import ArgumentParser
 
-EPIC_ftest = False
+parser = ArgumentParser(description=__doc__)
+parser.add_argument('--epic', action='store_true',
+                    help='perform ftest on EPIC data')
 
 if __name__ == "__main__":
 
