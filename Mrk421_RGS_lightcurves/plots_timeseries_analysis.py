@@ -1,3 +1,13 @@
+"""
+Welcome to plot_parameters.py!
+
+
+ --fvar --phoindex (--beta) --average, 
+ --rate --phoindex (--beta) --bins, 
+ --phoindex --beta, 
+ --panel --bins --logpar (--powerlaw) 
+"""
+
 from astropy.io import fits
 from astropy.table import Table
 import numpy as np
@@ -10,40 +20,44 @@ from brokenaxes import brokenaxes
 from config import CONFIG
 from tools import *
 from scipy.stats import linregress
-
-
-
+from argparse import ArgumentParser
 import pandas as pd
 from matplotlib.patches import Rectangle
-target_dir = "/media/xmmsas/thesis/Markarian421"
+
+target_dir = CONFIG['target_dir']
 timescale_fvar = CONFIG['timescale_fvar']
-MJDREF = 50814.0
-MAKE_FVAR_PLOTS = False
-MAKE_MEAN_LC = False
-MAKE_LC = True
-MAKE_EXCESS_VARIANCE = False 
-FVAR_CORRELATON = False
-M = 15
+MJDREF = CONFIG['mjdref']
+
+parser = ArgumentParser(description=__doc__)
+
+parser.add_argument('--fvar', action='store_true',
+                    help='make plots of Fractional variability vs rate and vs time.')
+parser.add_argument("--correlation", action="store_true", 
+                    help="add correlation line to fvar plot")
+parser.add_argument("--lightcurve", action="store_true", 
+                    help="make lightcurve plot")
+parser.add_argument("--total", action="store_true", 
+                    help="make historical lightcurve plot")    
+parser.add_argument("--mean", action="store_true", 
+                    help="make mean lightcurve plot")                   
+parser.add_argument("--xs", action="store_true", 
+                    help="make excess variance plot")     
+parser.add_argument("--brokenaxis", action="store_true", 
+                    help="make lightcurve with broken axis (only for markarian 421)")    
+
 
 def plot(x, y, title, xlabel, ylabel, output_folder, dy, dx=[]):
     """
+    Makes a plot with the given arguments. One-liner.
     """
+
     fig = plt.figure(figsize=(10,5))
     ax = fig.add_subplot(1, 1, 1)
 
-    #Drop NaN values by making a numpy mask
-    #mask_nan = np.invert(np.isnan(y)) 
-    #x = x[mask_nan]
-    #y = y[mask_nan]
-    #dy = dy[mask_nan]
-
-    if len(dx)==0:
-        
+    if len(dx)==0:    
         plt.errorbar(x,y, yerr=dy, color='black', ecolor='gray', linestyle='', fmt='.', markersize=1, elinewidth=1, capsize=2, capthick=1)
     
     else:
-
-        #dx = dx[mask_nan]
         plt.errorbar(x,y, yerr=dy, xerr=dx, color='black', ecolor='gray', fmt='.', linestyle='', markersize=1, elinewidth=1, capsize=2, capthick=1)
     
     plt.grid(True)
@@ -53,16 +67,13 @@ def plot(x, y, title, xlabel, ylabel, output_folder, dy, dx=[]):
     plt.xticks(fontsize=10)
     plt.yticks(fontsize=10)
     
-    if MAKE_FVAR_PLOTS and FVAR_CORRELATON:
+    if args.fvar and args.correlation:
 
         #Correlation coefficient
         slope, intercept, r, p, stderr = linregress(x,y)
         line = f'Correlation: {r:.2f}'
         plt.plot(x, intercept + slope * x, label=line, color='red')
         plt.legend()
-
-    #Save figure 
-    #plt.savefig(f'{output_folder}/{title}.png')
 
 def plot_total_lc(x, y, title, xlabel, ylabel, output_folder, dy, dx=[]):
     """
@@ -337,25 +348,28 @@ if __name__ == "__main__":
     if not os.path.isdir(f'{target_dir}/Products/Plots_timeseries'):
         os.makedirs(f'{target_dir}/Products/Plots_timeseries')
     
-    if MAKE_MEAN_LC:
-        # LONG TERM VARIABILITY PLOT
-        path_log = f"{target_dir}/Products"
-        os.chdir(path_log)
-
-        hdul = Table.read(f"{target_dir}/Products/RGS_Lightcurves/obs_table.fits", hdu=1)    
+    #----------------Mean lightcurve plot------------#
+    if args.lightcurve and args.mean:
+        
+        # Open table containing lightcurve information
+        hdul = Table.read(os.path.join(target_dir, 'Products', 'RGS_Lightcurves', 'obs_table.fits'), hdu=1)    
+        
+        # Put table in pandas dataframe 
         data = hdul.to_pandas()
         data.dropna()
         data = data.sort_values(by=['MJD_avg_time'])
         time_err = data['Duration_Obs'].values/86400
-        print(time_err)
        
+        #Make plot
         title = 'Long-term X-ray Variability Lightcurve'
-        plot(x=data['MJD_avg_time'].values, y=data['RGS_Rate'].values, dx=time_err, dy=data['RGS_erate'].values, title=title, xlabel='MJD', ylabel='Mean Rate [ct/s]', output_folder=f"{target_dir}/Products/Plots_timeseries" )
+        plot(x=data['MJD_avg_time'].values, y=data['RGS_Rate'].values, dx=time_err, dy=data['RGS_erate'].values, title=title, xlabel='MJD', ylabel='Mean Rate [ct/s]', output_folder=os.path.join(target_dir,'Products','Plots_timeseries'))
+        plt.savefig(os.path.join(target_dir,'Products','Plots_timeseries', 'mean_lightcurve.png'))
 
-
-    if MAKE_FVAR_PLOTS:
-        # FRACTIONAL VARIABILITY PLOTS
-        hdul = Table.read(f"{target_dir}/Products/RGS_Lightcurves/obs_table.fits", hdu=1)    
+    #--------------Fvar plots------------------------#
+    if args.fvar:
+        
+        # Open table containing lightcurve and variability information
+        hdul = Table.read(os.path.join(target_dir,'Products','RGS_Lightcurves','obs_table.fits'), hdu=1)    
         data = hdul.to_pandas()
         data = data.dropna()
         #data = data[data['ObsId'] != 150498701]
@@ -363,70 +377,51 @@ if __name__ == "__main__":
         data['F_var'] = data['F_var'].apply(lambda x: x*100)  #for % units
         data['F_var_sigma'] = data['F_var_sigma'].apply(lambda x: x*100)
         data = data.sort_values(by=['RGS_Rate'])
+        
+        #Make fvar vs rate plot
         title = f'Fractional Variability vs Rate'
         print("# datapoints fvar =", len(data))
-        plot(data['RGS_Rate'].values, data['F_var'].values, dx=data['RGS_erate'].values, dy=data['F_var_sigma'].values, title=title, output_folder=f"{target_dir}/Products/Plots_timeseries", xlabel='Mean rate [ct/s]', ylabel='Fractional Variability [%]')
+        plot(data['RGS_Rate'].values, data['F_var'].values, dx=data['RGS_erate'].values, dy=data['F_var_sigma'].values, title=title, output_folder=os.path.join(target_dir,'Products','Plots_timeseries'), xlabel='Mean rate [ct/s]', ylabel='Fractional Variability [%]')
         
+        #Make fvar vs time plot
         data = data.sort_values(by=['MJD_avg_time'])
         title = 'Fractional Variability vs time'
         plot(data['MJD_avg_time'].values, data['F_var'].values, dy=data['F_var_sigma'].values, title=title, output_folder=f"{target_dir}/Products/Plots_timeseries", xlabel='MJD [d]', ylabel='Fractional Variability [%]')
         
+    #--------------Excess variance plots-------------#
+    if args.xs:
 
-    
-    if MAKE_EXCESS_VARIANCE:
-        hdul = Table.read(f"{target_dir}/Products/RGS_Lightcurves/obs_table.fits", hdu=1)    
+        #Open table containing variability information
+        hdul = Table.read(os.path.join(target_dir,'Products', 'RGS_Lightcurves','obs_table.fits'), hdu=1)    
         data = hdul.to_pandas()
         data = data.dropna()
         #data = data[data['ObsId'] != 150498701]
         data = data[data['F_var']!=-1.000]
         data = data.sort_values(by=['MJD_avg_time'])
-        title = 'Excess variance vs time'
         print("# datapoints excess variance =", len(data))
         
-        data_short = data[data['Duration_Obs']<20000]
-        data_medium = data[(data['Duration_Obs']>=20000) & (data['Duration_Obs']<40000)]
-        data_long1 = data[(data['Duration_Obs']>=40000) & (data['Duration_Obs']<60000)]
-        data_long2 = data[data['Duration_Obs']>=60000]
+        #Square root of xs 
         xs_linear = np.sqrt(data['Excess_Variance'].values)
         xs_linear_err = 0.5*xs_linear * (data['xs_sigma'].values/data['Excess_Variance'].values)
         
-
-        #plot(x=data['MJD_avg_time'].values, y=data['Excess_Variance'].values, dy=data['xs_sigma'].values, title=title, output_folder=f"{target_dir}/Products/Plots_timeseries", xlabel='MJD', ylabel='$\sigma_{XS}^2$')
+        #Make xs vs time plot
         plot(x=data['MJD_avg_time'].values, y=xs_linear, dy=xs_linear_err, title='linear xs vs time', output_folder=f"{target_dir}/Products/Plots_timeseries", xlabel='MJD', ylabel='$\sqrt{\sigma_{XS}^2}$')
+        plt.savefig(os.path.join(target_dir,'Products','Plots_timeseries', 'linear_xs_vs_time.png'))
         
-        
+        #Make xs vs rate plot
         plot(x=data['RGS_Rate'].values, y=xs_linear, dx=data['RGS_erate'].values, dy=xs_linear_err, title='linear xs vs rate', output_folder=f"{target_dir}/Products/Plots_timeseries", xlabel='Rate[ct/s]', ylabel='$\sqrt{\sigma_{XS}^2}$')
-        '''
-        plt.errorbar(data_short['RGS_Rate'].values, np.sqrt(data_short['Excess_Variance'].values), color='r', marker='.',markersize=5, linestyle='', label='Duration < 0.2 d')
-        plt.errorbar(data_medium['RGS_Rate'].values, np.sqrt(data_medium['Excess_Variance'].values), color='b', marker='.',markersize=5, linestyle='', label='0.2 d < Duration < 0.5 d')
-        plt.errorbar(data_long1['RGS_Rate'].values, np.sqrt(data_long1['Excess_Variance'].values), color='g', marker='.',markersize=5, linestyle='', label='0.5 d < Duration < 0.7 d ')
-        plt.errorbar(data_long2['RGS_Rate'].values, np.sqrt(data_long2['Excess_Variance'].values), color='orange', marker='.',markersize=5, linestyle='', label='Duration > 0.7 d')
-        
-        #Correlation coefficient
-        slope1, intercept1, r1, p1, stderr1 = linregress(data_short['RGS_Rate'].values, np.sqrt(data_short['Excess_Variance'].values))
-        slope2, intercept2, r2, p2, stderr2 = linregress(data_medium['RGS_Rate'].values, np.sqrt(data_medium['Excess_Variance'].values))
-        slope3, intercept3, r3, p3, stderr3 = linregress(data_long1['RGS_Rate'].values, np.sqrt(data_long1['Excess_Variance'].values))
-        slope4, intercept4, r4, p4, stderr4 = linregress(data_long2['RGS_Rate'].values, np.sqrt(data_long2['Excess_Variance'].values))
+        plt.savefig(os.path.join(target_dir,'Products','Plots_timeseries', 'linear_xs_vs_rate.png'))
 
-        plt.plot(data_short['RGS_Rate'].values, intercept1 + slope1 * data_short['RGS_Rate'].values, label= f'Correlation: {r1:.2f}', color='r')
-        plt.plot(data_medium['RGS_Rate'].values, intercept2 + slope2 * data_medium['RGS_Rate'].values, label=f'Correlation: {r2:.2f}', color='b')
-        plt.plot(data_long1['RGS_Rate'].values, intercept3 + slope3 * data_long1['RGS_Rate'].values, label=f'Correlation: {r3:.2f}',color='g')
-        plt.plot(data_long2['RGS_Rate'].values, intercept4 + slope4 * data_long2['RGS_Rate'].values, label=f'Correlation: {r4:.2f}',color='orange')
-
-        plt.legend(ncol=2)
-        '''
-        plt.savefig(f'{target_dir}/Products/Plots_timeseries/linear_xs_vs_rate.png')
-
+    #-------------Historic RGS lightcurve------------#
     if MAKE_LC:
-        #TOTAL LIGHT CURVE
-        os.chdir(target_dir)
+
         total_lightcurve_rates = []
         total_lightcurve_errates = []
         total_lightcurve_times = []
 
         for directory in os.listdir(target_dir):
-            if directory.startswith('0'):
-                os.chdir(f"{target_dir}/{directory}/rgs")
+            if directory.startswith('0'):  #then it's a directory of an observation
+                os.chdir(os.path.join(target_dir, directory, 'rgs'))
 
                 for filename in glob.glob('*_RGS_rates.ds'):
                     x, y, yerr, fracexp, y_bg, yerr_bg = mask_fracexp15(filename)
@@ -441,12 +436,12 @@ if __name__ == "__main__":
         # Conversion of times (from MET to MJD)
         total_lightcurve_times_mjd = MJDREF + (total_lightcurve_times/86400.0)
         
+        # Make lightcurve pandas dataframe 
         data_lc = pd.DataFrame({"RATE":total_lightcurve_rates, "MJD":total_lightcurve_times_mjd, "ERROR":total_lightcurve_errates})
         data_lc = data_lc.sort_values(by=['MJD'])
-        data_lc.to_csv(f"{target_dir}/Products/Plots_timeseries/data_lc.csv")
+        data_lc.to_csv(os.path.join(target_dir, 'Products', 'Plots_timeseries', 'data_lc.csv'))
 
-
-        #Plot time distribution
+        # Separate data into years
         year_array = []
         for mjd in data_lc['MJD'].values:
             if mjd<51910:
@@ -490,17 +485,17 @@ if __name__ == "__main__":
             elif mjd<58849:
                 year_array.append(int(2019))
 
+        # Add 'YEAR' column to dataframe
         data_lc['YEAR'] = year_array  
         data_lc = data_lc.reset_index(drop=True)
         data_lc = data_lc.reset_index()
         #sample_data = data_lc[0:792]
         #sample_data.to_csv(f'{target_dir}/Products/data_lc_mrk421.csv', index=False)    
 
+        #Broken axis plot - define limits of observations (only implemented for Marakarian 421!)
+        if args.brokenaxis:
 
-
-        #Broken axis plot
-
-        lims = ((51689,51690), (51849,51851), (51861, 51864), (52037,52038),
+            lims = ((51689,51690), (51849,51851), (51861, 51864), (52037,52038),
             (52398, 52400),(52582, 52584),(52592, 52594), (52609, 52612),
             (52791,52793), (52797, 52798),(52957, 52959), (52983,52985),
             (53131, 53132), (53681, 53685), (53854,53856), (53883,53884), 
@@ -513,71 +508,61 @@ if __name__ == "__main__":
             (57695, 57698.5), (57705, 57706), (57876.5, 57878), (57880.5, 57881.5),
             (58076, 58077.5), (58239.5, 58241), (58247.5, 58249), (58443, 58444.5),
             (58609, 58610), (58816, 58817))
-        '''
-        fig_brkax = plt.figure(figsize=(60,8))
-        bax = brokenaxes(xlims=lims, wspace=0.2, tilt=90, diag_color='red', d=0.0015)
 
+            fig_brkax = plt.figure(figsize=(60,8))
+            bax = brokenaxes(xlims=lims, wspace=0.2, tilt=90, diag_color='red', d=0.0015)
+            bax.errorbar(data_lc['MJD'].values, data_lc['RATE'].values, data_lc['ERROR'].values, linestyle='', markersize=0.05, marker='.')
+            my_ticks = [51689,51690, 51849,51851, 51861, 51864, 52037,52038,
+                                    52398, 52400,52582, 52584,52592, 52594, 52609, 52612,
+                                    52791,52793, 52797, 52798,52957, 52959, 52983,52985,
+                                    53131, 53132, 53681, 53685, 53854,53856, 53883,53884, 
+                                    54074, 54075, 54228, 54231, 54423, 54426, 54593, 54594,
+                                    54617, 54618, 54792, 54794, 54976, 54977, 55151, 55153,
+                                    55319, 55320, 55510, 55516, 55698, 55703, 55874, 55875,
+                                    55893, 55895, 55900, 55901, 56776, 56781, 57179, 57187.5,
+                                    57334, 57337, 57364, 57365, 57370, 57371, 57514, 57515, 
+                                    57518, 57522.5, 57527.5, 57530.5, 57533.5, 57534.5,
+                                    57695, 57698.5, 57705, 57706, 57876.5, 57878, 57880.5, 57881.5,
+                                    58076, 58077.5, 58239.5, 58241, 58247.5, 58249, 58443, 58444.5,
+                                    58609, 58610, 58816, 58817]
+            bax.set_xlabel('MJD', labelpad=60, ha="right", fontsize=20)
+            bax.set_ylabel('Rate [ct/s]', fontsize=20)
+            bax.tick_params(rotation=60)
+            bax.ticklabel_format(useOffset=False, style='plain')
+            bax.grid(axis='both', which='major')
+            bax.grid(axis='both', which='minor', alpha=0.4)
+            
+            year = 2001
+            year_endpoints = []
+            for i in range(1, len(data_lc)):
+                if data_lc['YEAR'][i] != data_lc['YEAR'][i-1]:
+                    year_endpoints.append(data_lc['MJD'][i])
+                    
+            bax.vlines(year_endpoints, 0, 60, colors='r', linestyles='solid')
+            bax.axs[0].text(x=data_lc['MJD'][0], y=58, s=str(2000), c='r')
+            bax.text(x=year_endpoints[0]+0.10, y=58, s=str(2001), c='r')
+            bax.text(x=year_endpoints[1]+0.10, y=58, s=str(2002), c='r')
+            bax.axs[8].text(x=year_endpoints[2]+0.10, y=58, s=str(2003), c='r')
+            bax.text(x=year_endpoints[3]+0.10, y=58, s=str(2004), c='r')
+            bax.text(x=year_endpoints[4]+0.10, y=58, s=str(2005), c='r')
+            bax.axs[14].text(x=year_endpoints[5]+0.10, y=58, s=str(2006), c='r')
+            bax.text(x=year_endpoints[6]+0.10, y=58, s=str(2007), c='r')
+            bax.axs[19].text(x=year_endpoints[7]+0.10, y=58, s=str(2008), c='r')
+            bax.text(x=year_endpoints[8]+0.10, y=58, s=str(2009), c='r')
+            bax.text(x=year_endpoints[9]+0.10, y=58, s=str(2010), c='r')
+            bax.text(x=year_endpoints[10]+0.10, y=58, s=str(2011), c='r')
+            bax.text(x=year_endpoints[11]+0.10, y=58, s=str(2014), c='r')
+            bax.text(x=year_endpoints[12]+0.10, y=58, s=str(2015), c='r')
+            bax.axs[35].text(x=year_endpoints[13]+0.10, y=58, s=str(2016), c='r')
+            bax.axs[41].text(x=year_endpoints[14]+0.10, y=58, s=str(2017), c='r')
+            bax.axs[44].text(x=year_endpoints[15]+0.10, y=58, s=str(2018), c='r')
+            bax.text(x=year_endpoints[16]+0.10, y=58, s=str(2019), c='r')
 
-        bax.errorbar(data_lc['MJD'].values, data_lc['RATE'].values, data_lc['ERROR'].values, linestyle='', markersize=0.05, marker='.')
+            bax.margins(0)
+            plt.suptitle('Historical Lightcurve Mrk421', fontsize=25)
+            plt.savefig(f"{target_dir}/Products/Plots_timeseries/lc_broken_axis.png")
 
-
-
-        my_ticks = [51689,51690, 51849,51851, 51861, 51864, 52037,52038,
-                                52398, 52400,52582, 52584,52592, 52594, 52609, 52612,
-                                52791,52793, 52797, 52798,52957, 52959, 52983,52985,
-                                53131, 53132, 53681, 53685, 53854,53856, 53883,53884, 
-                                54074, 54075, 54228, 54231, 54423, 54426, 54593, 54594,
-                                54617, 54618, 54792, 54794, 54976, 54977, 55151, 55153,
-                                55319, 55320, 55510, 55516, 55698, 55703, 55874, 55875,
-                                55893, 55895, 55900, 55901, 56776, 56781, 57179, 57187.5,
-                                57334, 57337, 57364, 57365, 57370, 57371, 57514, 57515, 
-                                57518, 57522.5, 57527.5, 57530.5, 57533.5, 57534.5,
-                                57695, 57698.5, 57705, 57706, 57876.5, 57878, 57880.5, 57881.5,
-                                58076, 58077.5, 58239.5, 58241, 58247.5, 58249, 58443, 58444.5,
-                                58609, 58610, 58816, 58817]
-        
-
-        bax.set_xlabel('MJD', labelpad=60, ha="right", fontsize=20)
-        bax.set_ylabel('Rate [ct/s]', fontsize=20)
-
-        bax.tick_params(rotation=60)
-        bax.ticklabel_format(useOffset=False, style='plain')
-        bax.grid(axis='both', which='major')
-        bax.grid(axis='both', which='minor', alpha=0.4)
-        year = 2001
-        #for mjd in [51910, 52275, 52640, 53005, 53371, 	53736, 54101, 54466,54832, 55197, 55562, 55927, 56293, 56658, 57023, 57388, 57754, 58119, 58484]: 
-        #    plt.text(x=mjd+70, y=58, s=year)
-        #    year+=1
-        #plt.vlines([51910, 52275, 52640, 53005, 53371, 	53736, 54101, 54466,54832, 55197, 55562, 55927, 56293, 56658, 57023, 57388, 57754, 58119, 58484], 0, max(data_lc['RATE'].values), colors='r', linestyles='solid')
-        year_endpoints = []
-        for i in range(1, len(data_lc)):
-            if data_lc['YEAR'][i] != data_lc['YEAR'][i-1]:
-                year_endpoints.append(data_lc['MJD'][i])
-                
-        bax.vlines(year_endpoints, 0, 60, colors='r', linestyles='solid')
-        bax.axs[0].text(x=data_lc['MJD'][0], y=58, s=str(2000), c='r')
-        bax.text(x=year_endpoints[0]+0.10, y=58, s=str(2001), c='r')
-        bax.text(x=year_endpoints[1]+0.10, y=58, s=str(2002), c='r')
-        bax.axs[8].text(x=year_endpoints[2]+0.10, y=58, s=str(2003), c='r')
-        bax.text(x=year_endpoints[3]+0.10, y=58, s=str(2004), c='r')
-        bax.text(x=year_endpoints[4]+0.10, y=58, s=str(2005), c='r')
-        bax.axs[14].text(x=year_endpoints[5]+0.10, y=58, s=str(2006), c='r')
-        bax.text(x=year_endpoints[6]+0.10, y=58, s=str(2007), c='r')
-        bax.axs[19].text(x=year_endpoints[7]+0.10, y=58, s=str(2008), c='r')
-        bax.text(x=year_endpoints[8]+0.10, y=58, s=str(2009), c='r')
-        bax.text(x=year_endpoints[9]+0.10, y=58, s=str(2010), c='r')
-        bax.text(x=year_endpoints[10]+0.10, y=58, s=str(2011), c='r')
-        bax.text(x=year_endpoints[11]+0.10, y=58, s=str(2014), c='r')
-        bax.text(x=year_endpoints[12]+0.10, y=58, s=str(2015), c='r')
-        bax.axs[35].text(x=year_endpoints[13]+0.10, y=58, s=str(2016), c='r')
-        bax.axs[41].text(x=year_endpoints[14]+0.10, y=58, s=str(2017), c='r')
-        bax.axs[44].text(x=year_endpoints[15]+0.10, y=58, s=str(2018), c='r')
-        bax.text(x=year_endpoints[16]+0.10, y=58, s=str(2019), c='r')
-
-        bax.margins(0)
-        plt.suptitle('Historical Lightcurve Mrk421', fontsize=25)
-        plt.savefig(f"{target_dir}/Products/Plots_timeseries/lc_broken_axis.png")
-
+        # Make distribution of observations 
         from collections import Counter
         import seaborn as sns
         cnt = Counter(year_array)
@@ -590,9 +575,8 @@ if __name__ == "__main__":
         ax.bar(labels, cnt.values())
         ax.tick_params( rotation = 60)
         ax.set_ylabel('# datapoints') 
-        plt.savefig(f"{target_dir}/Products/Plots_timeseries/distrib_data.png")
-        plt.show()
-        '''
+        plt.savefig(os.path.join(target_dir, 'Products', 'Plots_timeseries', 'distrib_data.png'))
+        
         #Plot rate distribution 
         fig_hist_rate = plt.figure(figsize=(6,6))
         counts, bins, _ = plt.hist(data_lc['RATE'].values, bins=10,color='skyblue' ,edgecolor='black', linewidth=1.2, histtype='stepfilled')
@@ -604,20 +588,19 @@ if __name__ == "__main__":
         bin_low = (bin_prob - 1.96*np.sqrt(bin_prob*(1-bin_prob)/len(data_lc['RATE'].values)) ) * len(data_lc['RATE'].values)
         bin_top = bin_up-counts
         bin_bot = counts - bin_low
-
         plt.errorbar(bin_centers, counts, yerr=(bin_bot, bin_top), fmt='.', color='black')
 
-        #lognormal fit
+        # Lognormal fit
         from scipy.optimize import curve_fit
         from scipy.stats import lognorm
 
         def lognorm_func(x, mu, sigma):
             return np.exp(-(np.log(x) - mu)**2 / (2 * sigma**2))/ (x * sigma * np.sqrt(2 * np.pi))
 
-        # restore data from histogram: counts multiplied bin centers
+        # Restore data from histogram: counts multiplied bin centers
         restored = [[d]*int(counts[n]) for n,d in enumerate((bins[1:]+bins[:-1])/2)]
         
-        # flatten the result
+        # Flatten the result
         restored = [item for sublist in restored for item in sublist]
 
         print(lognorm.fit(restored, floc=0))
@@ -626,11 +609,11 @@ if __name__ == "__main__":
         x = np.arange(1,60)
         y = dist.pdf(x)
 
-        # the pdf is normalized, so we need to scale it to match the histogram
+        # The pdf is normalized, so we need to scale it to match the histogram
         y = y/y.max()
         y = y*counts.max()
 
-        #chi2 lognormal 
+        # Chi2 lognormal 
         y2 = dist.pdf(bin_centers) 
         y2 = y2/y2.max()
         y2 = y2*counts.max()
@@ -638,13 +621,13 @@ if __name__ == "__main__":
         ndof = len(counts) - 3
         print('Chisquare/ndof lognormal = %f/%d' % (chisq, ndof))
 
-        #gauss fit
+        # Gauss fit
         def Gauss(x, a, x0, sigma):
             return a * np.exp(-(x - x0)**2 / (2 * sigma**2))
 
         popt,pcov = curve_fit(Gauss, bin_centers, counts, p0=[max(counts), 23, 1])
 
-        #chi2 gauss
+        # Chi2 gauss
         chisq_gauss =(((counts-Gauss(bin_centers, popt[0], popt[1], popt[2]))/bin_top)**2).sum()
         ndof_gauss = len(counts) - 3
         print('Chisquare/ndof gauss = %f/%d' % (chisq_gauss, ndof_gauss))
@@ -657,15 +640,14 @@ if __name__ == "__main__":
         plt.ylabel('# datapoints')
         plt.xticks()
         plt.legend()
-        plt.savefig(f"{target_dir}/Products/Plots_timeseries/rate_histogram.png")
+        plt.savefig(os.path.join(target_dir, 'Products', 'Plots_timeseries', 'rate_histogram.png'))
         
-        '''
         #Plot compact lightcurve (x=index, y=rate, hue=year)
         g = sns.FacetGrid(data=data_lc, hue='YEAR', height=8, aspect=2)
         g.map(plt.errorbar, 'index', 'RATE', 'ERROR', fmt='.', ecolor='gray', elinewidth=1, capsize=2, capthick=1)
         g.fig.suptitle("Mrk421 total data")
         plt.grid(True)
         g.add_legend()
-        plt.savefig(f"{target_dir}/Products/Plots_timeseries/compact_lightcurve.png")
+        plt.savefig(os.path.join(target_dir, 'Products', 'Plots_timeseries', "compact_lightcurve.png"))
         plt.show()
-        '''
+        
