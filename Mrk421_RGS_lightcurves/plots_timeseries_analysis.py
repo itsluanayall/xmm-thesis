@@ -27,8 +27,9 @@ import pandas as pd
 from matplotlib.patches import Rectangle
 
 target_dir = CONFIG['target_dir']
+target_name = CONFIG['target_name']
 timescale_fvar = CONFIG['timescale_fvar']
-MJDREF = CONFIG['mjdref']
+MJDREF = CONFIG['MJDREF']
 
 parser = ArgumentParser(description=__doc__)
 
@@ -46,7 +47,7 @@ parser.add_argument("--xs", action="store_true",
                     help="make excess variance plot")     
 parser.add_argument("--brokenaxis", action="store_true", 
                     help="make lightcurve with broken axis (only for markarian 421)")    
-
+args = parser.parse_args()
 
 def plot(x, y, title, xlabel, ylabel, output_folder, dy, dx=[]):
     """
@@ -384,12 +385,15 @@ if __name__ == "__main__":
         title = f'Fractional Variability vs Rate'
         print("# datapoints fvar =", len(data))
         plot(data['RGS_Rate'].values, data['F_var'].values, dx=data['RGS_erate'].values, dy=data['F_var_sigma'].values, title=title, output_folder=os.path.join(target_dir,'Products','Plots_timeseries'), xlabel='Mean rate [ct/s]', ylabel='Fractional Variability [%]')
-        
+        plt.savefig(os.path.join(target_dir,'Products','Plots_timeseries', 'fvar_vs_rate.png'))
+
+
         #Make fvar vs time plot
         data = data.sort_values(by=['MJD_avg_time'])
         title = 'Fractional Variability vs time'
         plot(data['MJD_avg_time'].values, data['F_var'].values, dy=data['F_var_sigma'].values, title=title, output_folder=f"{target_dir}/Products/Plots_timeseries", xlabel='MJD [d]', ylabel='Fractional Variability [%]')
-        
+        plt.savefig(os.path.join(target_dir,'Products','Plots_timeseries', 'fvar_vs_time'))
+
     #--------------Excess variance plots-------------#
     if args.xs:
 
@@ -415,7 +419,7 @@ if __name__ == "__main__":
         plt.savefig(os.path.join(target_dir,'Products','Plots_timeseries', 'linear_xs_vs_rate.png'))
 
     #-------------Historic RGS lightcurve------------#
-    if MAKE_LC:
+    if args.lightcurve and args.total and target_name=="Markarian 421":
 
         total_lightcurve_rates = []
         total_lightcurve_errates = []
@@ -653,3 +657,102 @@ if __name__ == "__main__":
         plt.savefig(os.path.join(target_dir, 'Products', 'Plots_timeseries', "compact_lightcurve.png"))
         plt.show()
         
+
+    if args.lightcurve and args.total:
+        #TOTAL LIGHT CURVE
+        os.chdir(target_dir)
+        total_lightcurve_rates = []
+        total_lightcurve_errates = []
+        total_lightcurve_times = []
+        observations = []
+        for directory in os.listdir(target_dir):
+            if directory.startswith('0'):
+                os.chdir(f"{target_dir}/{directory}/rgs")
+                
+                for filename in glob.glob('*_RGS_rates.ds'):
+                    x, y, yerr, fracexp, y_bg, yerr_bg = mask_fracexp15(filename)
+                    total_lightcurve_rates.extend(y[:-1])
+                    total_lightcurve_errates.extend(yerr[:-1])
+                    total_lightcurve_times.extend(x[:-1])
+                    observations.extend([int(directory) for i in range(len(x)-1)])
+            
+        total_lightcurve_rates = np.asarray(total_lightcurve_rates)
+        total_lightcurve_errates = np.asarray(total_lightcurve_errates)
+        total_lightcurve_times = np.asarray(total_lightcurve_times)
+        observations = np.asarray(observations)
+      
+        # Conversion of times (from MET to MJD)
+        total_lightcurve_times_mjd = MJDREF + (total_lightcurve_times/86400.0)
+
+        data_lc = pd.DataFrame({"RATE":total_lightcurve_rates, "TIME":total_lightcurve_times, "ERROR":total_lightcurve_errates, "MJD": total_lightcurve_times_mjd, "OBSERVATION":observations})
+        data_lc = data_lc.sort_values(by=['TIME'])
+        
+        #Add year column to dataframe
+        year_array = []
+        for mjd in data_lc['MJD'].values:
+            if mjd<51910:
+                year_array.append(int(2000))
+            elif mjd<52275:
+                year_array.append(int(2001))
+            elif mjd<52640:
+                year_array.append(int(2002))
+            elif mjd<53005:
+                year_array.append(int(2003))
+            elif mjd<53371:
+                year_array.append(int(2004))
+            elif mjd<53736:
+                year_array.append(int(2005))
+            elif mjd<54101:
+                year_array.append(int(2006))
+            elif mjd<54466:
+                year_array.append(int(2007))
+            elif mjd<54832:
+                year_array.append(int(2008))
+            elif mjd<55197:
+                year_array.append(int(2009))
+            elif mjd<55562:
+                year_array.append(int(2010))
+            elif mjd<55927:
+                year_array.append(int(2011))
+            elif mjd<56293:
+                year_array.append(int(2012))
+            elif mjd<56658:
+                year_array.append(int(2013))
+            elif mjd<57023:
+                year_array.append(int(2014))
+            elif mjd<57388:
+                year_array.append(int(2015))
+            elif mjd<57754:
+                year_array.append(int(2016))
+            elif mjd<58119:
+                year_array.append(int(2017))
+            elif mjd<58484:
+                year_array.append(int(2018))
+            elif mjd<58849:
+                year_array.append(int(2019))
+
+        data_lc['YEAR'] = year_array  
+        data_lc = data_lc.reset_index(drop=True)
+        data_lc = data_lc.reset_index()
+        
+        #indexes where to place the xticks in the plot
+        year_endpoints = []
+        for i in range(1, len(data_lc)):
+            if data_lc['YEAR'][i] != data_lc['YEAR'][i-1]:
+                year_endpoints.append(data_lc['index'][i])
+        labels = np.linspace(start=2000,stop=2019,num=20,dtype=int)
+        labels = np.delete(labels, [12,13])  #delete year 2012 and 2013
+        year_endpoints = np.array(year_endpoints)
+        year_endpoints = np.insert(year_endpoints, 0, values=0)
+
+        fig = plt.figure(figsize=(15,5))
+        plt.errorbar('index', 'RATE', 'ERROR', data=data_lc, ecolor='black', linestyle='', color='black')
+        #Add vertical lines separating years
+        plt.vlines(year_endpoints, 0, 20, colors='r', linestyles='solid')
+        plt.grid(axis='y')
+        plt.xlabel('Year', labelpad=0.1, fontsize=15)
+        plt.ylabel('Rate [ct/s]', labelpad=0.1, fontsize=15)
+        plt.margins(0)
+        plt.tight_layout()
+        plt.xticks(ticks=year_endpoints, labels=labels, rotation=50, fontsize=11)
+        plt.savefig(os.path.join(target_dir, "Products", "Plots_timeseries", "compact_LC_vlines.png"))

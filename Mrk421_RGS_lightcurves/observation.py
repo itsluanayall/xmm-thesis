@@ -176,6 +176,14 @@ class Observation:
         if self.obsid=='0136540701':
             self.pairs_srcli = [['P0136540701R1S001SRCLI_0000.FIT', 'P0136540701R2S002SRCLI_0000.FIT'], ['P0136540701R1S001SRCLI_0000.FIT', 'P0136540701R2S018SRCLI_0000.FIT']]
         
+        #Check if the exposure numbers of the pair are different
+        expos0 = Exposure(self.pairs_events[0], self.pairs_srcli[0])
+        expos1 = Exposure(self.pairs_events[1], self.pairs_srcli[1])
+        
+        if expos0.expid == expos1.expid:
+            self.skipobs = True
+        else:
+            self.skipobs = False  
 
     def cifbuild(self):
         """
@@ -351,7 +359,7 @@ class Observation:
             logging.info(f'Running rgsproc command for observation number {self.obsid}...')
             ra = CONFIG['target_RA']
             dec = CONFIG['target_DEC']
-            rgs_command = f'rgsproc withsrc=yes srclabel=USER srcra={ra} srcdec=+{dec} > my_rgsproc_logfile'
+            rgs_command = f'rgsproc withsrc=yes srclabel=USER srcra={ra} srcdec={dec} > my_rgsproc_logfile'
             rgs_status = run_command(rgs_command)
             if (rgs_status != 0):
                 print(f'\033[91m An error has occurred running rgsproc for observation {self.obsid}! \033[0m')
@@ -715,9 +723,7 @@ class Observation:
                 evenli_set = glob.glob(f"*EVENLI0000.FIT")
                 evenli_set = sort_rgs_list(evenli_set, 'expo_number')
                 merged_set = [item for sublist in merged_set for item in sublist]
-                evenli_set = [item for sublist in evenli_set for item in sublist]    
-                print(merged_set)
-                print(evenli_set)   
+                evenli_set = [item for sublist in evenli_set for item in sublist]       
 
                 for i in range(len(merged_set)):
                     rgsfilter_cmmd = f"rgsfilter mergedset={merged_set[i]} evlist={evenli_set[i]} auxgtitables=gti_low_back_{max_key[13:16]}.fit"
@@ -1403,7 +1409,7 @@ class Observation:
         """    
         # Make sure output directory exists
         if not os.path.isdir(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}'):
-            os.mkdir(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}')
+            os.makedirs(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}')
 
         if not glob.glob(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}/*_1.png'):          
             logging.info(f"Starting RGS spectral analysis with XSPEC for observation {self.obsid} (total, average spectra).")
@@ -1837,6 +1843,9 @@ class Observation:
         :type timebinsize: int
         """
         os.chdir(self.rgsdir)
+        if not os.path.isdir(f'{self.target_dir}/Products/Plots_timeseries'):
+            os.makedirs(f'{self.target_dir}/Products/Plots_timeseries')
+
         for i in range(self.npairs):
 
             if (self.duration_lc_ks[i] >= timescale):# or (self.obsid =='0791780201'):
