@@ -178,9 +178,14 @@ if __name__ == "__main__":
         if filename!='data_lc.csv':
             df_xs_rate = pd.read_csv(filename) #read csv file of single observation
             rgb = '#%06X' % random.randint(0, 0xFFFFFF)  #create random color
-            axs[0].errorbar(data=df_xs_rate, x='rate', y='xs', yerr='xs_err', xerr='erate', fmt='.', markersize=10, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color=rgb, label=df_xs_rate['observation'][0])
-            axs[1].errorbar(data=df_xs_rate, x='rate', y='fvar', yerr='fvar_err', xerr='erate', fmt='.', markersize=10, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color=rgb, label=df_xs_rate['observation'][0])
-        
+            try:
+
+                obsid_xs = df_xs_rate['observation'].values[0]
+                axs[0].errorbar(data=df_xs_rate, x='rate', y='xs', yerr='xs_err', xerr='erate', fmt='.', markersize=10, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color=rgb,label=obsid_xs)
+                axs[1].errorbar(data=df_xs_rate, x='rate', y='fvar', yerr='fvar_err', xerr='erate', fmt='.', markersize=10, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color=rgb, label=obsid_xs)
+            except IndexError as e:
+                print('A file is likely empty. Please check the .csv files in the Products directory.')
+                
     axs[0].legend(title='Observation ID', fancybox=True)
     axs[0].set_ylabel('$<\sigma_{XS}^2>$')
     axs[0].grid()

@@ -177,8 +177,8 @@ class Observation:
             self.pairs_srcli = [['P0136540701R1S001SRCLI_0000.FIT', 'P0136540701R2S002SRCLI_0000.FIT'], ['P0136540701R1S001SRCLI_0000.FIT', 'P0136540701R2S018SRCLI_0000.FIT']]
         
         #Check if the exposure numbers of the pair are different
-        expos0 = Exposure(self.pairs_events[0], self.pairs_srcli[0])
-        expos1 = Exposure(self.pairs_events[1], self.pairs_srcli[1])
+        expos0 = Exposure(self.pairs_events[0][0], self.pairs_srcli[0][0])
+        expos1 = Exposure(self.pairs_events[0][1], self.pairs_srcli[0][1])
         
         if expos0.expid == expos1.expid:
             self.skipobs = True
