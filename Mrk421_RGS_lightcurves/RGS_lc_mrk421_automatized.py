@@ -89,7 +89,7 @@ if __name__ == "__main__":
 
     counter = 0
     mrk421_problematic_obs = ['0658802001', '0411082701']
-    pks_problematic_obs = []
+    pks_problematic_obs = ['0411780834', '0411780501']
     duration_lc_ks = []
     
     for obsid in os.listdir(target_dir):
@@ -119,9 +119,9 @@ if __name__ == "__main__":
             obs.lightcurve(mjdref=mjdref)
             obs.fracvartest(screen=True, instrument='rgs')
             obs.vaughan_panel(N=30, M=20, timescale=timescale_fvar, timebinsize=25)
-            #obs.divide_spectrum()
-            #obs.xspec_divided_spectra_average(target_REDSHIFT)
-            #obs.xspec_divided_spectra(target_REDSHIFT)
+            obs.divide_spectrum()
+            obs.xspec_divided_spectra_average(target_REDSHIFT)
+            obs.xspec_divided_spectra(target_REDSHIFT)
 
             #Save attributes of observable into a table
             if len(obs.rgsrate)==0:
@@ -184,8 +184,8 @@ if __name__ == "__main__":
                 axs[0].errorbar(data=df_xs_rate, x='rate', y='xs', yerr='xs_err', xerr='erate', fmt='.', markersize=10, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color=rgb,label=obsid_xs)
                 axs[1].errorbar(data=df_xs_rate, x='rate', y='fvar', yerr='fvar_err', xerr='erate', fmt='.', markersize=10, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color=rgb, label=obsid_xs)
             except IndexError as e:
-                print('A file is likely empty. Please check the .csv files in the Products directory.')
-                
+                print(f'The file {filename} is likely empty. Please check the .csv files in the Products directory.')
+
     axs[0].legend(title='Observation ID', fancybox=True)
     axs[0].set_ylabel('$<\sigma_{XS}^2>$')
     axs[0].grid()

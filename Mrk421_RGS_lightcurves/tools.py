@@ -244,7 +244,7 @@ def spectrum_plot_xspec(observation, expid0, expid1, model, target_dir, i=0):
 
     fig, axs = plt.subplots(3, 1, sharex=True, gridspec_kw={'hspace':0.1}, figsize=(20,15))
     if i==0:
-        fig.suptitle(f"Average spectra {observation}, expo {expid0}+{expid1}, {model} ", fontsize=25, y=0.92)
+        fig.suptitle(f"Spectra {observation}, expo {expid0}+{expid1}, {model} ", fontsize=25, y=0.92)
     else:
         fig.suptitle(f"{observation} expo {expid0}+{expid1} {model} Part {i}", fontsize=25, y=0.92)
 
@@ -306,7 +306,7 @@ def epic_spectrum_plot_xspec(observation, expid, model, target_dir):
     folded = xspec.Plot.model(1)
 
     fig, axs = plt.subplots(3, 1, sharex=True, gridspec_kw={'hspace':0.1}, figsize=(11,9))
-    fig.suptitle(f"Average spectra {observation}, expo {expid}, {model} ", fontsize=15, y=0.92)
+    fig.suptitle(f"Spectrum {observation}, expo {expid}, {model} ", fontsize=15, y=0.92)
 
     # First panel: Source Spectrum
     axs[0].errorbar(chans1, rates1, yerr=rates1_err, xerr=chans1_err, linestyle='', marker='.', markersize=2,color='black', label='EPIC-pn')

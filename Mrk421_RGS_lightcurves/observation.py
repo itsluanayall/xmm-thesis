@@ -185,6 +185,7 @@ class Observation:
         else:
             self.skipobs = False  
 
+
     def cifbuild(self):
         """
         Generates the Calibration Index File (CIF) for the observation
@@ -1300,7 +1301,7 @@ class Observation:
         if not os.path.isdir(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}'):
             os.mkdir(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}')
 
-        if not glob.glob(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}/*'):     
+        if not glob.glob(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}/{self.obsid}*.png'):     
 
             #Check if the exposures are synchronous
             for l in range(self.npairs):  
@@ -1411,7 +1412,7 @@ class Observation:
         if not os.path.isdir(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}'):
             os.makedirs(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}')
 
-        if not glob.glob(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}/*_1.png'):          
+        if not glob.glob(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}/{self.obsid}*.png'):          
             logging.info(f"Starting RGS spectral analysis with XSPEC for observation {self.obsid} (total, average spectra).")
             os.chdir(f"{self.target_dir}/{self.obsid}/rgs")
 
@@ -1489,7 +1490,7 @@ class Observation:
                     xspec.Fit.statMethod = "cstat" 
                     xspec.Fit.statTest = "pchi"
                     xspec.Fit.renorm()    #renormalize model to minimize statistic with current parameters
-                    xspec.Fit.query = 'yes'
+                    xspec.Fit.query = 'no'
                     xspec.Fit.perform() 
 
                     #Error calculation (confidence intervals 3 sigma, 90% confidence)
@@ -1634,7 +1635,7 @@ class Observation:
         :type target_REDSHIFT: float
         
         """
-        if not glob.glob(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}/*_1.png'):
+        if not glob.glob(f'{self.target_dir}/Products/RGS_Spectra/{self.obsid}/{self.obsid}*.png'):
                 
             logging.info(f"Starting spectral analysis with XSPEC for observation {self.obsid}, split spectrum.")
             os.chdir(f"{self.target_dir}/{self.obsid}/rgs")
