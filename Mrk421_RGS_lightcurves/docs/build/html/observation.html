@@ -1,0 +1,364 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>observation module &#8212; Blazar Analysis 1.0.0 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-observation">
+<span id="observation-module"></span><h1>observation module<a class="headerlink" href="#module-observation" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt id="observation.Exposure">
+<em class="property">class </em><code class="sig-prename descclassname">observation.</code><code class="sig-name descname">Exposure</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">evenli</span></em>, <em class="sig-param"><span class="n">srcli</span><span class="o">=</span><span class="default_value">'srcli'</span></em>, <em class="sig-param"><span class="n">specli</span><span class="o">=</span><span class="default_value">'specli'</span></em>, <em class="sig-param"><span class="n">bkgli</span><span class="o">=</span><span class="default_value">'bkgli'</span></em>, <em class="sig-param"><span class="n">respli</span><span class="o">=</span><span class="default_value">'respli'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#observation.Exposure" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class for an Exposure of an Observation.</p>
+<dl class="py method">
+<dt id="observation.Exposure.synchronous_times">
+<code class="sig-name descname">synchronous_times</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">exp2</span></em><span class="sig-paren">)</span><a class="headerlink" href="#observation.Exposure.synchronous_times" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compares the exposure’s start and stop times to those of another exposure. If the exposures overlap,
+the method returns the start time and the stop times of the overlapping interval.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>exp2</strong> (<em>class Exposure</em>) – exposure you want to compare self with.</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>Exception</strong> – when the two exposures are not synchronous</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>two floats, representing the start time and stop time for the pair of exposures</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="observation.Observation">
+<em class="property">class </em><code class="sig-prename descclassname">observation.</code><code class="sig-name descname">Observation</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obsid</span></em>, <em class="sig-param"><span class="n">target_dir</span></em><span class="sig-paren">)</span><a class="headerlink" href="#observation.Observation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Observation class for a specific target.
+In order to avoid unnecessary complexity, the method names of the class recall
+the SAS commands used to analyse observations.</p>
+<dl class="py method">
+<dt id="observation.Observation.bkg_lightcurve">
+<code class="sig-name descname">bkg_lightcurve</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#observation.Observation.bkg_lightcurve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates Background lightcurve associated to each exposure. Useful to check if there are flares.
+Follows tutorial on SAS thread of RGS background.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="observation.Observation.check_flaring_particle_bkgr">
+<code class="sig-name descname">check_flaring_particle_bkgr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#observation.Observation.check_flaring_particle_bkgr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks if the background lightcurve (CCD9 of RGS) affected by solar flares ecc, has significant peaks. 
+In order to do this, the method calculates the mean of the background lightcurve, its standard deviation, 
+and if there are datapoints that are &gt;3 sigma from the average, it counts that value as a significant flare. 
+The method collects all these flares in an array and then calls the SAS command tabgtigen and cuts on
+RATE&lt;maxr where maxr is the minimum element of the flare array.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="observation.Observation.cifbuild">
+<code class="sig-name descname">cifbuild</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#observation.Observation.cifbuild" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates the Calibration Index File (CIF) for the observation
+in the directory of the observation, and sets the ‘SAS_CCF’ variable pointing to it.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="observation.Observation.create_pairs_exposures">
+<code class="sig-name descname">create_pairs_exposures</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#observation.Observation.create_pairs_exposures" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines lists of pairs of the RGS exposures of the observation. Some observations (0510610101, 0510610201, 0136540701) 
+pairs are defined by hand because these observations were interrupted and so their exposures do not 
+follow the standard conventions.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="observation.Observation.divide_spectrum">
+<code class="sig-name descname">divide_spectrum</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#observation.Observation.divide_spectrum" title="Permalink to this definition">¶</a></dt>
+<dd><p>Splits the spectrum into pieces of 1000 seconds each. To do this, I use a while loop with 2 indices:
+- j represents the end_time of each piece, so after an iteration you just add 1000 seconds to it;
+- i represents the start_time of each piece, so after an iteration you just set it to j.
+At the end of the processing, we will have cut into pieces of 1000s each exposure. For instance, if there are 50 pieces for each exposure, the output will be 50 spectra for RGS1 and 50 spectra for RGS2. The nomenclature of the output spectra is the following:</p>
+<p>sourcespec{instrume}_gti{k}.fits for the source spectrum
+bkgspec{instrume}_gti{k}.fits for the background spectrum</p>
+<p>where instrume can be RGS1 or RGS2, and k=1,2,3…50 is the piece we are considering.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="observation.Observation.emdir">
+<em class="property">property </em><code class="sig-name descname">emdir</code><a class="headerlink" href="#observation.Observation.emdir" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="observation.Observation.epdir">
+<em class="property">property </em><code class="sig-name descname">epdir</code><a class="headerlink" href="#observation.Observation.epdir" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="observation.Observation.epic_lightcurve">
+<code class="sig-name descname">epic_lightcurve</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mjdref</span></em><span class="sig-paren">)</span><a class="headerlink" href="#observation.Observation.epic_lightcurve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes the lightcurve plots with matplotlib. The first plot will consist of 4 panels containing:
+the soft lightcurve (0.2 - 2 keV), the hard lightcurve (2 - 10 keV) and the respective background lightcurves.
+The second plot consists of 3 panels: the soft and hard lightcurves and the hardness ratio calculated as
+HR := (H-S)/(H+S) where H and S are the datapoints for the hard and soft lightcurves.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="observation.Observation.epiclccorr">
+<code class="sig-name descname">epiclccorr</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pileup</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#observation.Observation.epiclccorr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts a source and background raw lightcurve for EPIC-pn and runs epiclccorr to correct the raw lightcurve.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="observation.Observation.epproc">
+<code class="sig-name descname">epproc</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#observation.Observation.epproc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs the epproc SAS command to process and reduce EPIC-PN data.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="observation.Observation.filter_epic">
+<code class="sig-name descname">filter_epic</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pileup</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#observation.Observation.filter_epic" title="Permalink to this definition">¶</a></dt>
+<dd><p>Filter an EPIC PN event list for periods of high background flaring activity.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="observation.Observation.fracvartest">
+<code class="sig-name descname">fracvartest</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">screen</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">netlightcurve</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">instrument</span><span class="o">=</span><span class="default_value">'rgs'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#observation.Observation.fracvartest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads the FITS file containing the RGS source and background timeseries produced by rgslccorr. 
+It then calculates excess variance, normalized excess variance and fractional variability of the lightcurve,
+storing all these values into a dictionary that will then be reported in the final .csv file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>screen</strong> (<em>boolean</em>) – if True, prints on terminal the results of the variability quantities, defaults to True</p></li>
+<li><p><strong>netlightcurve</strong> (<em>boolean</em>) – if True, uses the net lightcurve (i.e. background substracted) to calculate the variability quantities, defaults to True</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="observation.Observation.lightcurve">
+<code class="sig-name descname">lightcurve</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mjdref</span></em><span class="sig-paren">)</span><a class="headerlink" href="#observation.Observation.lightcurve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes the lightcurve plot and saves it in the rgs directory of the current observation
+The user here has two options: you can either save the lightcurve using the dsplot command
+with XmGrace as plotting package in ‘.ps’ format, or you can plot it using python’s
+module matplotlib and save it in the ‘.png’ format. 
+You can choose the desired option setting the USE_GRACE boolean in the config.json file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mjdref</strong> (<em>float</em>) – MJD corresponding to the beginning of the XMM-Newton mission. It is needed because the times are all in MET (Mission Elapsed Time)</p></li>
+<li><p><strong>use_grace</strong> (<em>boolean</em>) – if set to True, plots the lightcurve using the lotting interface Grace, if set to False it uses matplotlib</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="observation.Observation.obsdir">
+<em class="property">property </em><code class="sig-name descname">obsdir</code><a class="headerlink" href="#observation.Observation.obsdir" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="observation.Observation.obsid">
+<em class="property">property </em><code class="sig-name descname">obsid</code><a class="headerlink" href="#observation.Observation.obsid" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="observation.Observation.odfdir">
+<em class="property">property </em><code class="sig-name descname">odfdir</code><a class="headerlink" href="#observation.Observation.odfdir" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="observation.Observation.odfingest">
+<code class="sig-name descname">odfingest</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#observation.Observation.odfingest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates the SUM.ASC file in the observation directory,
+that summarizes all the observational info
+and sets ‘SAS_ODF’ variable pointing to it.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="observation.Observation.pn_spectrum">
+<code class="sig-name descname">pn_spectrum</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pileup</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#observation.Observation.pn_spectrum" title="Permalink to this definition">¶</a></dt>
+<dd><p>Follows the steps from the following SAS thread: 
+<a class="reference external" href="https://www.cosmos.esa.int/web/xmm-newton/sas-thread-pn-spectrum-timing">https://www.cosmos.esa.int/web/xmm-newton/sas-thread-pn-spectrum-timing</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="observation.Observation.pn_xspec">
+<code class="sig-name descname">pn_xspec</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">target_REDSHIFT</span></em><span class="sig-paren">)</span><a class="headerlink" href="#observation.Observation.pn_xspec" title="Permalink to this definition">¶</a></dt>
+<dd><p>XSPEC analysis of the EPIC-pn spectrum of the observation. The steps are all logged into a file called XSPECLogFile_{self.obsid}_spectrum.txt.
+The fit is performed on two different models: logparabola and powerlaw. The plot of the spectra and residuals is done
+using matplotlib. The plotting function is written in tools.py.
+The flux and luminosity are stored, given the target_REDSHIFT as argument.
+The fitted parameters and the spectrum counts are all stored into an astropy Table that is then saved as a FITS file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>target_REDSHIFT</strong> (<em>float</em>) – redshift of target</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="observation.Observation.rgsdir">
+<em class="property">property </em><code class="sig-name descname">rgsdir</code><a class="headerlink" href="#observation.Observation.rgsdir" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="observation.Observation.rgslccorr">
+<code class="sig-name descname">rgslccorr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#observation.Observation.rgslccorr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs the rgslccorr SAS command for each pair (RGS1+RGS2) of exposures present in the observation.
+The products are the lightcurves .ds files.
+For the observations 0510610101, 0510610201 and 013654701 the eventlists are written manually because
+their exposures do not copme in pairs.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="observation.Observation.rgsproc">
+<code class="sig-name descname">rgsproc</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#observation.Observation.rgsproc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs the rgsproc SAS command to process and reduce RGS data.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="observation.Observation.target_dir">
+<em class="property">property </em><code class="sig-name descname">target_dir</code><a class="headerlink" href="#observation.Observation.target_dir" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="observation.Observation.vaughan_panel">
+<code class="sig-name descname">vaughan_panel</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">N</span></em>, <em class="sig-param"><span class="n">M</span></em>, <em class="sig-param"><span class="n">timescale</span><span class="o">=</span><span class="default_value">70</span></em>, <em class="sig-param"><span class="n">timebinsize</span><span class="o">=</span><span class="default_value">25</span></em><span class="sig-paren">)</span><a class="headerlink" href="#observation.Observation.vaughan_panel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a variability plot, along the lines of those in Vaughan et al.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>N</strong> (<em>int</em>) – number of bins to average on (from x to &lt;x&gt;)</p></li>
+<li><p><strong>M</strong> – number of bin to average on after having averaged on N bins</p></li>
+<li><p><strong>timescale</strong> (<em>int</em>) – how long the duration of the lightcurve must be, in kiloseconds</p></li>
+<li><p><strong>timebinsize</strong> (<em>int</em>) – bin size of lightcurve to insert as input parameter to rgslccorr, in seconds</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="observation.Observation.xspec_divided_spectra">
+<code class="sig-name descname">xspec_divided_spectra</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">target_REDSHIFT</span></em><span class="sig-paren">)</span><a class="headerlink" href="#observation.Observation.xspec_divided_spectra" title="Permalink to this definition">¶</a></dt>
+<dd><p>If the divide_spectrum method has already been called, this method allows to perform analysis on all the pieces 
+into which we have divided the spectrum using a for loop. The results are stored in the same astropy Table
+of the average spectrum.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>target_REDSHIFT</strong> (<em>float</em>) – redshift of target</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="observation.Observation.xspec_divided_spectra_average">
+<code class="sig-name descname">xspec_divided_spectra_average</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">target_REDSHIFT</span></em><span class="sig-paren">)</span><a class="headerlink" href="#observation.Observation.xspec_divided_spectra_average" title="Permalink to this definition">¶</a></dt>
+<dd><p>XSPEC analysis of the total, average spectrum (RGS1+RGS2) of the observation. The steps are all logged into a file called XSPECLogFile_average_spectrum.txt.
+The fit is performed on two different models: logparabola and powerlaw. The plot of the spectra and residuals is done
+using matplotlib. The plotting function is written in tools.py
+The flux and luminosity are stored, given the target_REDSHIFT as argument.
+The fitted parameters and the spectrum counts are all stored into an astropy Table that is then saved as a FITS file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>target_REDSHIFT</strong> (<em>float</em>) – redshift of target</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Blazar Analysis</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Luana M. Modafferi.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/observation.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
