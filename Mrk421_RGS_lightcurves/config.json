@@ -3,11 +3,12 @@
     "debug": true,
     "sas_dir": "/usr/local/SAS/xmmsas_20190531_1155",
     "ccf_dir": "/ccf/valid",
-    "target_dir": "/media/xmmsas/thesis/PKS2155-304",
+    "target_dir": "/media/xmmsas/thesis/Markarian421",
     "MJDREF": 50814.0,
-    "target_name": "PKS 2155-304",
-    "target_RA": 329.7167,
-    "target_DEC": -30.2256,
-    "target_REDSHIFT": 0.116,
+    "target_name": "Mkr421",
+    "target_RA": 166.113808,
+    "target_DEC": 38.20883287,
+    "target_REDSHIFT": 0.0308,
+    "timebinsize_division": 1000, 
     "timescale_fvar": 65
 }

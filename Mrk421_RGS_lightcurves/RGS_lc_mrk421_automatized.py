@@ -31,7 +31,7 @@ In particular:
 import logging
 import os
 from observation import Observation
-from tools import run_command, setupSAS
+from tools import run_command, setupSAS, constant
 from config import CONFIG
 from astropy.table import Table
 import matplotlib.pyplot as plt
@@ -40,6 +40,7 @@ import pandas as pd
 import glob
 import numpy as np
 import random
+from scipy.optimize import curve_fit
 logging.basicConfig(level=logging.INFO)
 
 #Introduction message for the user
@@ -174,15 +175,38 @@ if __name__ == "__main__":
     os.chdir(os.path.join(target_dir, 'Products', 'Plots_timeseries'))
     fig_xs_rate, axs  = plt.subplots(2, 1, figsize=(8, 8), sharex=True, gridspec_kw={'hspace':0.1})   
     
+    rate_fit = []
+    fvar_fit = []
+    fvar_err_fit = []
     for filename in glob.glob('*.{}'.format("csv")):
         if filename!='data_lc.csv':
             df_xs_rate = pd.read_csv(filename) #read csv file of single observation
             rgb = '#%06X' % random.randint(0, 0xFFFFFF)  #create random color
             try:
-
+                rate_fit.append(df_xs_rate['rate'].values)
+                fvar_fit.append(df_xs_rate['fvar'].values)
+                fvar_err_fit.append(df_xs_rate['fvar_err'].values)
                 obsid_xs = df_xs_rate['observation'].values[0]
+
+                initial_values =[np.mean(df_xs_rate['fvar'].values)]
+                pars, covm = curve_fit(constant, df_xs_rate['rate'].values, df_xs_rate['fvar'].values, initial_values,df_xs_rate['fvar_err'].values) 
+
+                q0 = pars    #parameter of fit
+                dq = np.sqrt(covm.diagonal())   #and its error (from covariance matrix)
+
+                # Print fit results
+                print(f'Fit constant for obs {obsid_xs} Fvar vs rate:')
+                print('q = %f +- %f' % (q0, dq))
+                
+                #chi2
+                chisq =(((df_xs_rate['fvar'].values-constant(df_xs_rate['rate'].values, q0) )/df_xs_rate['fvar_err'].values)**2).sum()
+                ndof = len(df_xs_rate['rate'].values) - 1
+                print('Chisquare/ndof = %f/%d' % (chisq, ndof))
+
+
                 axs[0].errorbar(data=df_xs_rate, x='rate', y='xs', yerr='xs_err', xerr='erate', fmt='.', markersize=10, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color=rgb,label=obsid_xs)
                 axs[1].errorbar(data=df_xs_rate, x='rate', y='fvar', yerr='fvar_err', xerr='erate', fmt='.', markersize=10, ecolor='gray', elinewidth=1, capsize=2, capthick=1, color=rgb, label=obsid_xs)
+            
             except IndexError as e:
                 print(f'The file {filename} is likely empty. Please check the .csv files in the Products directory.')
 
@@ -192,6 +216,30 @@ if __name__ == "__main__":
     axs[1].set_xlabel('Rate [ct/s]')
     axs[1].set_ylabel('$<F_{var}>$')
     axs[1].grid(True)
+    '''
+    # Initial values
+    fvar_fit = np.concatenate(fvar_fit).ravel()
+    fvar_err_fit = np.concatenate(fvar_err_fit).ravel()
+    rate_fit = np.concatenate(rate_fit).ravel()
+
+    initial_values =[np.mean(fvar_fit)]
+    pars, covm = curve_fit(constant, rate_fit, fvar_fit, initial_values,fvar_err_fit) 
+
+    q0 = pars    #parameter of fit
+    dq = np.sqrt(covm.diagonal())   #and its error (from covariance matrix)
+
+    # Print fit results
+    print('Fit constant for Fvar vs rate:')
+    print('q = %f +- %f' % (q0, dq))
+    
+    #chi2
+    chisq =(((fvar_fit-constant(rate_fit, q0) )/fvar_err_fit)**2).sum()
+    ndof = len(rate_fit) - 1
+    print('Chisquare/ndof = %f/%d' % (chisq, ndof))
+
+    axs[1].hlines(q0, min(rate_fit), max(rate_fit), color='red', label=f"Constant fit: {q0[0]:.3f} +- {dq[0]:.3f} \n $\chi^2$/ndof = {chisq:.2f} / {ndof}")
+    '''
+
     plt.savefig(os.path.join(target_dir, 'Products', 'Plots_timeseries','xs_rate_combined.png'))
     plt.close()
     '''

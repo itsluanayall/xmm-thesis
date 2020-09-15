@@ -677,7 +677,7 @@ if __name__ == "__main__":
     if not args.fvar and not args.rate:
 
         if args.phoindex and args.beta:  #user wants alpha vs beta plot (only possible for logpar)
-            data_spec_zlogp = data_spec_zlogp[data_spec_zlogp['phoindex_up']!=0.]
+            data_spec_zlogp = data_spec_zlogp[data_spec_zlogp['phoindex_up']!=0.]            
             df_plot_zlogp = pd.DataFrame({"rate": data_spec_zlogp['rate'].values, "erate": data_spec_zlogp['erate'].values, 
                                             'alpha': data_spec_zlogp['phoindex'].values, 
                                             'alpha_top': data_spec_zlogp['phoindex_up'].values - data_spec_zlogp['phoindex'].values,
@@ -685,8 +685,11 @@ if __name__ == "__main__":
                                             'beta': data_spec_zlogp['beta'].values, 
                                             'beta_top': data_spec_zlogp['beta_up'].values - data_spec_zlogp['beta'].values,
                                             'beta_bot': data_spec_zlogp['beta'].values - data_spec_zlogp['beta_low'].values,
-                                            "obsid": data_spec_zlogp['obsid'].values})
+                                            "obsid": data_spec_zlogp['obsid'].values, 'ftest': data_spec_zlogp['ftest'].values})
             
+            #Distinguish model favoring based on Ftest column
+            df_plot_zlogp = df_plot_zlogp[(df_plot_zlogp['ftest']<0.1) & (df_plot_zlogp['ftest']!=-999.)]
+
             if args.state:  #separate in high and low state
                 df_plot_zlogp_high = df_plot_zlogp[df_plot_zlogp['rate']>=20]
                 df_plot_zlogp_low = df_plot_zlogp[df_plot_zlogp['rate']<20]  
@@ -696,9 +699,9 @@ if __name__ == "__main__":
             if args.state:
                 
                 plt.errorbar(y=df_plot_zlogp_high['alpha'].values, x=df_plot_zlogp_high['beta'].values, xerr=(df_plot_zlogp_high['beta_bot'].values, df_plot_zlogp_high['beta_top'].values),
-                            yerr = (df_plot_zlogp_high['alpha_bot'].values, df_plot_zlogp_high['alpha_top'].values), fmt='.', markersize=3, ecolor='peachpuff', elinewidth=1, capsize=2, capthick=1, color='orange', label='High state')
+                            yerr = (df_plot_zlogp_high['alpha_bot'].values, df_plot_zlogp_high['alpha_top'].values), fmt='.', markersize=5, ecolor='peachpuff', elinewidth=1, capsize=2, capthick=1, color='orange', label='High state')
                 plt.errorbar(y=df_plot_zlogp_low['alpha'].values, x=df_plot_zlogp_low['beta'].values, xerr=(df_plot_zlogp_low['beta_bot'].values, df_plot_zlogp_low['beta_top'].values),
-                            yerr = (df_plot_zlogp_low['alpha_bot'].values, df_plot_zlogp_low['alpha_top'].values),fmt='.', markersize=3, ecolor='mediumseagreen', elinewidth=1, capsize=2, capthick=1, color='g', label='Low state')
+                            yerr = (df_plot_zlogp_low['alpha_bot'].values, df_plot_zlogp_low['alpha_top'].values),fmt='.', marker='x', markersize=5, ecolor='mediumseagreen', elinewidth=1, capsize=2, capthick=1, color='g', label='Low state')
                 plt.legend()
 
             else:
@@ -707,12 +710,14 @@ if __name__ == "__main__":
             
             
             #Correlation coefficient
+            '''
             slope, intercept, r, p, stderr = linregress(df_plot_zlogp['beta'].values, df_plot_zlogp['alpha'].values)
             line = f'Correlation: {r:.2f}'
             plt.plot(df_plot_zlogp['beta'].values, intercept + slope * df_plot_zlogp['beta'].values, label=line, color='red', zorder=3)
-            
-            plt.grid()
             plt.legend()
+
+            '''
+            plt.grid()
             plt.xlabel(r'$\beta$', fontsize=15)
             plt.ylabel(r'$\alpha$', fontsize=15)
             plt.tight_layout()

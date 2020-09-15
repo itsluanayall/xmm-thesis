@@ -177,13 +177,20 @@ class Observation:
             self.pairs_srcli = [['P0136540701R1S001SRCLI_0000.FIT', 'P0136540701R2S002SRCLI_0000.FIT'], ['P0136540701R1S001SRCLI_0000.FIT', 'P0136540701R2S018SRCLI_0000.FIT']]
         
         #Check if the exposure numbers of the pair are different
-        expos0 = Exposure(self.pairs_events[0][0], self.pairs_srcli[0][0])
-        expos1 = Exposure(self.pairs_events[0][1], self.pairs_srcli[0][1])
-        
-        if expos0.expid == expos1.expid:
+        try:
+
+            expos0 = Exposure(self.pairs_events[0][0], self.pairs_srcli[0][0])
+            expos1 = Exposure(self.pairs_events[0][1], self.pairs_srcli[0][1])
+            
+            if expos0.expid == expos1.expid:
+                self.skipobs = True
+            else:
+                self.skipobs = False  
+
+        except IndexError as e:
+            print('There are no exposures to check on.')
             self.skipobs = True
-        else:
-            self.skipobs = False  
+
 
 
     def cifbuild(self):
@@ -381,6 +388,7 @@ class Observation:
         For the observations 0510610101, 0510610201 and 013654701 the eventlists are written manually because
         their exposures do not copme in pairs.
         """
+        timebinsize_division = CONFIG['timebinsize_division']
         os.chdir(self.rgsdir)
         
         
@@ -397,7 +405,7 @@ class Observation:
             if not glob.glob(f'*{expos0.expid}+{expos1.expid}_RGS_rates.ds'): #If the lightcurves haven't already been generated, run rgslccorr
                 
                 logging.info(f"Running rgslccorr SAS command for observation number {self.obsid} and exposures {expos0.expid}, {expos1.expid} ...")
-                rgslc_command = f"rgslccorr evlist='{expos0.evenli} {expos1.evenli}' srclist='{expos0.srcli} {expos1.srcli}' withbkgsubtraction=yes timebinsize=1000 timemin={start_time} timemax={stop_time} orders='1' sourceid=3 outputsrcfilename={self.obsid}_{expos0.expid}+{expos1.expid}_RGS_rates.ds outputbkgfilename={self.obsid}_{expos0.expid}+{expos1.expid}_bkg_rates.ds"
+                rgslc_command = f"rgslccorr evlist='{expos0.evenli} {expos1.evenli}' srclist='{expos0.srcli} {expos1.srcli}' withbkgsubtraction=yes timebinsize={timebinsize_division} timemin={start_time} timemax={stop_time} orders='1' sourceid=3 outputsrcfilename={self.obsid}_{expos0.expid}+{expos1.expid}_RGS_rates.ds outputbkgfilename={self.obsid}_{expos0.expid}+{expos1.expid}_bkg_rates.ds"
                 status_rgslc = run_command(rgslc_command)
             
                 #If an error occurred try running on separate exposures rgslccorr
@@ -601,6 +609,7 @@ class Observation:
         Generates Background lightcurve associated to each exposure. Useful to check if there are flares.
         Follows tutorial on SAS thread of RGS background.
         """
+        timebinsize_division = CONFIG['timebinsize_division']
         logging.info('Generating Background lightcurve...')
         os.chdir(self.rgsdir)        
 
@@ -616,7 +625,7 @@ class Observation:
             #Selects events from background region, CCD9 to search for flaring particles
             if not glob.glob(os.path.join(self.target_dir, "Products", "Backgrnd_LC", f"{title_outputbkg0}.png")):
                 
-                select_bkg_cmmd0 = f"evselect table={expos0.evenli} timebinsize=1000 rateset={title_outputbkg0} makeratecolumn=yes maketimecolumn=yes expression='(CCDNR==9)&&(REGION({expos0.srcli}:{expos0.instrume}_BACKGROUND, M_LAMBDA, XDSP_CORR))'"
+                select_bkg_cmmd0 = f"evselect table={expos0.evenli} timebinsize={timebinsize_division} rateset={title_outputbkg0} makeratecolumn=yes maketimecolumn=yes expression='(CCDNR==9)&&(REGION({expos0.srcli}:{expos0.instrume}_BACKGROUND, M_LAMBDA, XDSP_CORR))'"
                 status_cmmd0 = run_command(select_bkg_cmmd0)
 
                 #Retrieve data from selected eventlist of background
@@ -1259,6 +1268,7 @@ class Observation:
         """
 
         #Store the eventlists and sourcelists
+        timebinsize_division = CONFIG['timebinsize_division']
         os.chdir(self.rgsdir)
         respli = glob.glob('*RSPMAT1*')
         total_spectra = glob.glob('*SRSPEC1*')
@@ -1311,14 +1321,11 @@ class Observation:
                 start_time, stop_time = expos0.synchronous_times(expos1)
                 print(f"Synchronous start and stop times for exposures {expos0.evenli}, {expos1.evenli}: {start_time} - {stop_time}")
 
-                #Divide each eventlist into pieces of 1000 seconds
-
-                #if not glob.glob(f'divided_spectra/sourcespec{expos0.instrume}_{expos0.expid}_gti*') or not glob.glob(f'divided_spectra/sourcespec{expos1.instrume}_{expos1.expid}_gti*') :                
-        
+                #Divide each eventlist into pieces of 1000 seconds        
                 print(f"Processing {expos0.evenli} and {expos1.evenli}...")
 
                 # Initialize indices for loop
-                step = 1000 #seconds
+                step = timebinsize_division #seconds
                 i = start_time
                 j = i + step
                 if self.obsid not in ['0510610101', '0510610201', '0136540701']:
