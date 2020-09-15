@@ -63,9 +63,8 @@ class Exposure:
 
         :param exp2: exposure you want to compare self with.
         :type exp2: class Exposure
-        ...
+        
         :raises Exception: when the two exposures are not synchronous
-        ...
         :return: two floats, representing the start time and stop time for the pair of exposures
 
         """
