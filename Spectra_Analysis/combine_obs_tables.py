@@ -31,7 +31,6 @@ def combine_obs_tables(products_dir, output_name):
         
 if __name__ == "__main__":
 
-    #target_dir = CONFIG['target_dir']
-    target_dir = "/home/luana/Desktop/Magistrale/Thesis/Markarian421"
+    target_dir = CONFIG['target_dir']
     products_dir = os.path.join(target_dir, "Products", "RGS_Spectra")
     spectra_table = combine_obs_tables(products_dir=products_dir, output_name="spectra_table.fits")
